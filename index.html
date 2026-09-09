@@ -1,0 +1,351 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#050814">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./icon-192.png">
+
+  <title>Bastion</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="training.css">
+  <link rel="stylesheet" href="module-preview.css">
+</head>
+<body>
+  <canvas id="gameCanvas"></canvas>
+  <div class="scanlines"></div>
+
+  <div id="hud" class="hidden">
+    <div class="hud-top">
+      <div class="hud-stack">
+        <div class="hud-chip hud-matter"><label>MATTER</label><b id="hudMatter">0</b></div>
+        <div class="hud-chip hud-boss"><label>NEXT THREAT</label><b id="hudBossProgress">Boss in 02:00</b></div>
+        <div class="hud-chip hud-secondary"><label>TIME</label><b id="hudTime">00:00</b></div>
+        <div class="hud-chip hidden"><label>KILLS</label><b id="hudKills">0</b></div>
+        <div class="hud-chip hidden"><label>MODULES</label><b id="hudModules">2</b></div>
+      </div>
+      <div class="hud-actions">
+        <button id="buildButton" class="icon-button" title="Build mode">B BUILD</button>
+        <button id="muteButton" class="icon-button" title="Toggle sound">SOUND</button>
+        <button id="pauseButton" class="icon-button" title="Pause and open settings">⚙ SETTINGS</button>
+      </div>
+    </div>
+    <div id="survivalHud" class="survival-hud"><span id="survivalProgress">SURVIVAL · 10:00</span><button id="bankRunButton" class="secondary hidden">Finish &amp; bank</button></div>
+    <div id="bossHud" class="hidden">
+      <strong id="bossName">SIEGE RING</strong>
+      <div class="boss-bar"><div id="bossFill" class="boss-fill"></div></div>
+    </div>
+    <div id="mobileControls" class="mobile-controls" aria-label="Touch controls">
+      <div id="mobileMoveZone" class="mobile-move-zone" aria-hidden="true">
+        <div id="moveJoystick" class="move-joystick">
+          <span class="joystick-crosshair" aria-hidden="true"></span>
+          <span id="joystickKnob" class="joystick-knob" aria-hidden="true"></span>
+        </div>
+      </div>
+      <div class="mobile-actions">
+        <button id="mobileBuildButton" class="mobile-action mobile-build" aria-label="Open build mode"><b>+</b><span>BUILD</span></button>
+        <button id="mobilePauseButton" class="mobile-action mobile-settings" aria-label="Pause and open settings">⚙</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="pauseOverlay" class="overlay hidden">
+    <main class="panel pause-panel">
+      <p id="pauseEyebrow" class="eyebrow">COMBAT SUSPENDED</p>
+      <h2 id="pauseTitle">Paused</h2>
+      <div class="settings-grid" aria-label="Settings">
+        <div class="setting-row">
+          <label for="volumeSlider">Master volume</label>
+          <input id="volumeSlider" type="range" min="0" max="100" step="1">
+          <small id="volumeValue">80%</small>
+        </div>
+        <div class="setting-row">
+          <label for="shakeSlider">Screen shake</label>
+          <input id="shakeSlider" type="range" min="0" max="100" step="5">
+          <small id="shakeValue">75%</small>
+        </div>
+        <div class="setting-row">
+          <label for="reducedFlashToggle">Reduced flashes</label>
+          <span></span>
+          <input id="reducedFlashToggle" type="checkbox">
+        </div>
+        <div class="setting-row">
+          <label for="damageNumbersToggle">Damage numbers</label>
+          <span></span>
+          <input id="damageNumbersToggle" type="checkbox">
+        </div>
+        <div class="setting-row">
+          <label for="autoPauseToggle">Pause when unfocused</label>
+          <span></span>
+          <input id="autoPauseToggle" type="checkbox">
+        </div>
+        <div class="setting-row">
+          <label for="uiScaleSelect">Text size</label>
+          <select id="uiScaleSelect">
+            <option value="100">100%</option>
+            <option value="125">125%</option>
+            <option value="150">150%</option>
+          </select>
+          <small>UI ONLY</small>
+        </div>
+        <div class="setting-row">
+          <label for="qualitySelect">Visual quality</label>
+          <select id="qualitySelect" aria-label="Visual quality">
+            <option value="0">High</option>
+            <option value="1">Medium</option>
+            <option value="2">Low</option>
+          </select>
+          <small>MANUAL</small>
+        </div>
+        <div class="setting-row">
+          <label for="fpsLimitSelect">Frame rate limit</label>
+          <select id="fpsLimitSelect" aria-label="Forced render frame rate">
+            <option value="0">Native</option>
+            <option value="30">30 FPS</option>
+            <option value="15">15 FPS</option>
+            <option value="10">10 FPS</option>
+            <option value="7">7 FPS</option>
+            <option value="5">5 FPS</option>
+          </select>
+          <small>RENDER ONLY</small>
+        </div>
+      </div>
+      <div id="saveStatus" class="save-status">LOCAL SAVE READY</div>
+      <section class="playtest-data" aria-label="Playtest data">
+        <div>
+          <strong>PLAYTEST DATA</strong>
+          <small id="telemetryStatus">NO RUNS RECORDED</small>
+        </div>
+        <button id="exportTelemetryButton" class="secondary compact-button">Export Log</button>
+        <button id="clearTelemetryButton" class="secondary compact-button danger-button">Clear</button>
+      </section>
+      <section class="practice-settings" aria-label="Practice and progress">
+        <button id="replayOnboardingButton" class="secondary">Training sector</button>
+        <label class="debug-tools-setting" for="debugToolsToggle">Debug tools<input id="debugToolsToggle" type="checkbox"></label>
+        <button id="resetProgressButton" class="secondary danger-button">Reset progress</button>
+        <div id="resetProgressConfirm" class="reset-progress-confirm hidden" role="group" aria-label="Confirm progress reset">
+          <p id="resetProgressMessage">Reset Fragments, purchases and records? Settings and playtest logs stay.</p>
+          <div class="button-row"><button id="cancelResetProgress" class="secondary">Cancel</button><button id="confirmResetProgress" class="secondary danger-button">Reset everything</button></div>
+        </div>
+        <span id="progressActionStatus" class="progress-action-status" role="status"></span>
+      </section>
+      <div class="button-row">
+        <button id="resumeButton" class="primary">Resume [P]</button>
+        <button id="restartButton" class="secondary hidden">Retry task</button>
+        <button id="pauseHangarButton" class="secondary danger-button">End run &amp; bank</button>
+      </div>
+    </main>
+  </div>
+
+  <div id="menuOverlay" class="overlay start-overlay">
+    <main class="start-screen">
+      <button id="menuSettingsButton" class="corner-button settings-corner" aria-label="Settings">⚙</button>
+      <div class="start-wallet"><small>FRAGMENTS</small><b id="menuFragmentCount">0</b></div>
+      <div class="start-title">
+        <p class="eyebrow">BUILD. SURVIVE. ADAPT.</p>
+        <h1>Bastion</h1>
+      </div>
+      <button id="menuLoadoutButton" class="menu-loadout" aria-label="Change starting loadout in Hangar">
+        <span id="startWeaponGlyph" class="loadout-glyph" aria-hidden="true"></span>
+        <span><small>STARTING LOADOUT</small><strong id="startWeaponName">Auto Cannon</strong><span id="startWeaponRole">Standard Core</span></span>
+        <b>Change ›</b>
+      </button>
+      <div class="start-actions">
+        <button id="startButton" class="primary play-button"><strong>Play</strong><span id="startRunMode">Survival · 10 min + continue</span></button>
+        <div class="training-entry-row"><button id="hangarMenuButton" class="secondary hangar-button">Hangar</button><button id="startTrainingButton" class="secondary training-entry">Training sector</button></div>
+        <button id="installButton" class="secondary install-button hidden">Install Fullscreen</button>
+      </div>
+    </main>
+  </div>
+
+  <div id="hangarOverlay" class="overlay hangar-overlay hidden">
+    <main class="hangar-screen">
+      <header class="hangar-header">
+        <button id="closeHangar" class="corner-button" aria-label="Close hangar">‹</button>
+        <div><p class="eyebrow">SHIP SYSTEMS</p><h2>Hangar</h2></div>
+        <div class="start-wallet hangar-wallet"><small>FRAGMENTS</small><b id="fragmentCount">0</b></div>
+        <p id="hangarStatusSummary" class="hangar-status-summary hidden"></p>
+      </header>
+      <nav class="hangar-tabs" aria-label="Hangar sections">
+        <button id="hangarWeaponTab" class="hangar-tab">Modules</button>
+        <button id="hangarUpgradeTab" class="hangar-tab selected">Upgrades</button>
+      </nav>
+      <section id="hangarUpgradesPanel" class="hangar-panel">
+        <section class="permanent-upgrades" aria-labelledby="permanentTitle">
+          <div class="hangar-section-title"><h3 id="permanentTitle">Permanent upgrades</h3><span>Apply to every run</span></div>
+          <div id="metaList" class="meta-list"></div>
+        </section>
+        <div class="hangar-section-title core-section-title"><h3>Starting core</h3></div>
+        <div id="corePicker" class="core-picker"></div>
+      </section>
+      <section id="hangarWeaponsPanel" class="hangar-panel hidden">
+        <div class="hangar-section-title"><h3>Modules</h3></div>
+        <div id="starterBrief" class="armory-selection" aria-label="Starting loadout"></div>
+        <div id="weaponPicker" class="weapon-picker armory-grid"></div>
+      </section>
+      <footer class="hangar-footer"><span id="bestRun">BEST 00:00</span><span id="victoryCount">0 VICTORIES</span></footer>
+    </main>
+  </div>
+
+  <div id="milestoneOverlay" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="milestoneTitle">
+    <main class="panel milestone-panel">
+      <p class="eyebrow">10 MINUTES · THREE BOSSES</p>
+      <h2 id="milestoneTitle">Bastion survived</h2>
+      <p id="milestoneReward" class="milestone-reward"></p>
+      <div class="milestone-copy">
+        <p>Bank your Fragments in Hangar, or face stronger waves with this ship.</p>
+        <p class="milestone-note">Keep your modules, upgrades and Matter. Your completion bonus stays earned even if the core falls later.</p>
+      </div>
+      <div class="button-row">
+        <button id="finishSurvivalButton" class="primary">Finish &amp; bank</button>
+        <button id="continueSurvivalButton" class="secondary">Continue survival</button>
+      </div>
+    </main>
+  </div>
+
+  <div id="buildOverlay" class="overlay hidden">
+    <main class="panel build-panel">
+      <header class="build-header">
+        <div>
+          <p class="eyebrow">COMBAT PAUSED</p>
+          <h2>Build</h2>
+        </div>
+        <div class="matter-wallet"><small>THIS RUN</small><div class="matter-large"><span id="buildMatter">0</span> MATTER</div></div>
+        <section id="trainingBuildBar" class="training-build-bar hidden" aria-label="Training">
+          <div class="training-main-row"><p id="trainingBuildAction" class="training-action"></p><button id="trainingBuildExitButton" class="training-button">Exit</button></div>
+          <div class="training-detail-row"><span id="trainingBuildProgress" class="training-progress"></span><span class="training-wallet"><b id="trainingBuildMatter">0</b> Matter</span></div>
+        </section>
+      </header>
+      <div class="build-content">
+        <aside class="catalog-wrap" aria-label="Unlocked modules">
+          <h3 class="build-section-label">Drag to buy a copy</h3>
+          <div id="catalog" class="catalog"></div>
+        </aside>
+        <section class="build-stage" aria-label="Ship">
+          <div class="build-grid-wrap" aria-label="Ship layout; scroll to pan a large ship">
+            <div>
+              <div id="buildGrid" class="build-grid"></div>
+            </div>
+          </div>
+          <div id="buildPreviewStatus" class="build-preview-status is-empty" aria-live="polite"></div>
+        </section>
+        <aside class="build-inspector" aria-label="Selected module">
+          <div id="buildSelection" class="build-selection"></div>
+          <button id="buildModulePreview" class="module-preview-trigger" aria-haspopup="dialog">Preview</button>
+          <div id="buildModuleDetails" class="build-module-details" aria-live="polite"></div>
+          <section id="buildUpgradePanel" class="build-upgrade-panel hidden" aria-label="Selected weapon upgrades">
+            <div id="upgradeList" class="upgrade-list"></div>
+          </section>
+        </aside>
+      </div>
+      <footer class="build-footer">
+        <span id="buildHint" class="subtitle" style="margin:0">Drag to attach · Select a ship module to upgrade or sell</span>
+        <button id="closeBuild" class="primary">Resume [B]</button>
+      </footer>
+    </main>
+  </div>
+
+  <div id="resultOverlay" class="overlay hidden">
+    <main class="panel result-panel">
+      <p class="eyebrow">RUN COMPLETE</p>
+      <h2 id="resultTitle" class="result-title">CORE LOST</h2>
+      <p id="resultSubtitle" class="subtitle" style="margin-inline:auto">The bastion will be rebuilt.</p>
+      <div class="result-stats">
+        <div class="result-stat"><b id="resultTime">00:00</b><span>TIME</span></div>
+        <div class="result-stat"><b id="resultBosses">0</b><span>BOSSES</span></div>
+        <div class="result-stat"><b id="resultFragments">+0</b><span>FRAGMENTS</span><small id="resultFragmentProgress" class="result-banked-balance"></small><small id="resultBankedBalance" class="result-banked-balance"></small></div>
+        <div class="result-stat hidden"><b id="resultKills">0</b><span>KILLS</span></div>
+      </div>
+      <p id="resultProgressHint" class="result-progress-hint"></p>
+      <h3 id="resultUnlockHeading" class="result-unlock-heading hidden">Available in Hangar</h3>
+      <div id="resultUnlocks" class="result-unlocks hidden" aria-labelledby="resultUnlockHeading"></div>
+      <section id="resultObjectiveCard" class="objective-card result-objective" aria-labelledby="resultObjectiveLabel">
+        <span id="resultObjectiveLabel" class="step-label">Next purchase</span>
+        <p id="resultObjectiveText">Earn Fragments for permanent Hangar unlocks.</p>
+        <progress id="resultObjectiveProgress" value="0" max="1" aria-labelledby="resultObjectiveText"></progress>
+      </section>
+      <div class="button-row">
+        <button id="hangarButton" class="primary">Return to Hangar</button>
+      </div>
+      <button id="resultExportTelemetry" class="telemetry-result-button">Export Playtest Log</button>
+    </main>
+  </div>
+
+  <div id="damageVignette"></div>
+  <section id="trainingHUD" class="training-hud hidden" aria-label="Training sector">
+    <div class="training-main-row"><p id="trainingAction" class="training-action"></p><button id="trainingPauseButton" class="training-button">Pause</button><button id="trainingExitButton" class="training-button">Exit</button></div>
+    <div class="training-detail-row"><span id="trainingProgress" class="training-progress"></span><span class="training-wallet"><b id="trainingMatter">0</b> Matter</span><button id="trainingOpenBuildButton" class="training-button primary">Build</button><button id="trainingFailureRetryButton" class="training-button primary hidden">Try again</button></div>
+  </section>
+  <section id="trainingCompleteOverlay" class="training-result hidden" aria-labelledby="trainingCompleteTitle">
+    <h2 id="trainingCompleteTitle">Training complete</h2>
+    <p><strong>Matter</strong> buys modules and weapon upgrades for this run.</p>
+    <p><strong>Fragments</strong> buy Hangar unlocks and permanent upgrades that stay.</p>
+    <button id="trainingReturnButton" class="training-button primary">Back to menu</button>
+  </section>
+  <div id="dangerBanner">CORE IMPACT</div>
+  <div class="bottom-dock">
+    <div id="toast" role="status"></div>
+    <div id="debugBar" class="hidden">
+      <button id="debugMatter">+100 MATTER</button>
+      <button id="debugBoss">SPAWN BOSS</button>
+      <button id="debugKillBoss">KILL BOSS</button>
+      <button id="debugStress">STRESS</button>
+      <button id="debugDamage">BREAK TILE</button>
+      <span id="debugStats">60 FPS</span>
+    </div>
+    <div class="hud-status">
+      <div class="health-shell">
+        <div class="health-label"><span>CORE HEALTH</span><span id="hudHpText">350 / 350</span></div>
+        <div class="health-bar"><div id="healthFill" class="health-fill"></div></div>
+      </div>
+      <div class="controls-tip" aria-label="Flight controls">
+        <span class="keyboard-control"><kbd>W / S</kbd> Thrust</span>
+        <span class="keyboard-control"><kbd>A / D</kbd> Turn</span>
+        <span class="keyboard-control"><kbd>B</kbd> Build</span>
+        <span class="keyboard-control"><kbd>P / Esc</kbd> Pause</span>
+        <span class="touch-control">Drag on empty space to steer</span>
+      </div>
+    </div>
+  </div>
+
+  <div id="modulePreviewDialog" class="module-preview-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="modulePreviewTitle" aria-describedby="modulePreviewSummary" tabindex="-1">
+    <section class="module-preview-sheet">
+      <header class="module-preview-header">
+        <div class="module-preview-heading"><span class="module-preview-label">Mechanic preview · Base module</span><h2 id="modulePreviewTitle"></h2></div>
+        <button id="modulePreviewClose" class="module-preview-button" type="button">Close</button>
+      </header>
+      <div class="module-preview-body">
+        <canvas id="modulePreviewCanvas" class="module-preview-canvas" width="576" height="324" role="img" aria-label="Module mechanic preview"></canvas>
+        <p id="modulePreviewSummary" class="module-preview-summary"></p>
+        <ul id="modulePreviewStats" class="module-preview-stats" aria-label="Base module stats"></ul>
+      </div>
+      <footer class="module-preview-footer">
+        <p id="modulePreviewStatus" class="module-preview-status" role="status"></p>
+        <div class="module-preview-controls">
+          <button id="modulePreviewPlayPause" class="module-preview-button" type="button">Pause preview</button>
+          <button id="modulePreviewReplay" class="module-preview-button" type="button">Replay</button>
+          <div id="modulePreviewActionSlot" class="module-preview-action-slot hidden"></div>
+        </div>
+      </footer>
+    </section>
+  </div>
+
+  <script src="telemetry.js"></script>
+  <script src="progression.js"></script>
+  <script src="progression-view.js"></script>
+  <script src="run-upgrades.js"></script>
+  <script src="campaign.js"></script>
+  <script src="training-view.js"></script>
+  <script src="training.js"></script>
+  <script src="training-arena.js"></script>
+  <script src="module-preview.js"></script>
+  <script src="module-preview-panel.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>

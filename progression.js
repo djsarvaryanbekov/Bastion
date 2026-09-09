@@ -1,0 +1,248 @@
+(function (root, factory) {
+  "use strict";
+
+  var progression = factory();
+  if (typeof module === "object" && module.exports) module.exports = progression;
+  if (root) root.DriftProgression = progression;
+})(typeof window !== "undefined" ? window : null, function () {
+  "use strict";
+
+  var MAX_PROGRESS = 1000000000;
+  // Whole credit units retain sub-Fragment rewards without save-time float drift.
+  var REWARD_SCALE = 600000;
+  var WEAPONS = ["cannon", "scatter", "flak", "laser", "missile", "cryo", "arc", "pulse", "rail", "mine", "ember", "gravity"];
+  var MODULE_TYPES = WEAPONS.concat(["armor", "shield", "drive", "repair", "reactor", "collector", "bulkhead"]);
+  var DEFAULT_TYPES = ["cannon", "armor"];
+  var COUNTERS = ["totalKills", "bossesDefeated", "totalUpgrades", "contractsCompleted"];
+  var DEFINITIONS = [
+    { type: "scatter", stat: "totalKills", target: 15, cost: 4, text: "Defeat 15 enemies across runs" },
+    { type: "shield", stat: "bestTime", target: 30, cost: 4, text: "Survive 30 seconds in one run" },
+    { type: "drive", stat: "totalKills", target: 30, cost: 36, text: "Defeat 30 enemies across runs" },
+    { type: "flak", stat: "totalKills", target: 45, cost: 36, text: "Defeat 45 enemies across runs" },
+    { type: "missile", stat: "bestTime", target: 60, cost: 44, text: "Survive 1 minute in one run" },
+    { type: "collector", stat: "bestTime", target: 120, cost: 44, text: "Survive 2 minutes in one run" },
+    { type: "repair", stat: "bestTime", target: 90, cost: 44, text: "Survive 90 seconds in one run" },
+    { type: "ember", stat: "bestTime", target: 180, cost: 48, text: "Survive 3 minutes in one run" },
+    { type: "laser", stat: "bestTime", target: 240, cost: 56, text: "Survive 4 minutes in one run" },
+    { type: "bulkhead", stat: "bestTime", target: 240, cost: 48, text: "Survive 4 minutes in one run" },
+    { type: "cryo", stat: "bestTime", target: 300, cost: 56, text: "Survive 5 minutes in one run" },
+    { type: "gravity", stat: "bestTime", target: 360, cost: 64, text: "Survive 6 minutes in one run" },
+    { type: "reactor", stat: "bestTime", target: 360, cost: 64, text: "Survive 6 minutes in one run" },
+    { type: "arc", stat: "bestTime", target: 420, cost: 72, text: "Survive 7 minutes in one run" },
+    { type: "pulse", stat: "bossesDefeated", target: 3, cost: 80, text: "Defeat 3 bosses across runs" },
+    { type: "rail", stat: "bossesDefeated", target: 5, cost: 96, text: "Defeat 5 bosses across runs" },
+    { type: "mine", stat: "bestTime", target: 480, cost: 80, text: "Survive 8 minutes in one run" }
+  ];
+  // Old gates are migration data only: earned access must survive the new pacing.
+  var LEGACY_GOALS = [
+    ["scatter", "totalKills", 15, 0], ["shield", "bestTime", 30, 0],
+    ["drive", "totalKills", 30, 0], ["flak", "totalKills", 45, 0],
+    ["missile", "bestTime", 45, 0], ["collector", "totalKills", 60, 0],
+    ["repair", "bestTime", 60, 0], ["ember", "totalKills", 75, 1],
+    ["laser", "totalKills", 75, 3], ["bulkhead", "totalKills", 90, 3],
+    ["cryo", "totalKills", 150, 3], ["gravity", "totalUpgrades", 2, 5],
+    ["reactor", "totalUpgrades", 2, 6], ["arc", "totalUpgrades", 3, 6],
+    ["pulse", "bossesDefeated", 1, 9], ["rail", "bossesDefeated", 2, 12],
+    ["mine", "totalKills", 350, 12]
+  ];
+  DEFINITIONS.forEach(Object.freeze);
+  Object.freeze(DEFINITIONS);
+
+  function isRecord(value) {
+    return value !== null && typeof value === "object" && !Array.isArray(value);
+  }
+
+  function boundedNumber(value, integer) {
+    if (typeof value !== "number" && typeof value !== "string") return 0;
+    var number = Number(value);
+    if (!Number.isFinite(number)) return 0;
+    number = Math.min(MAX_PROGRESS, Math.max(0, number));
+    return integer ? Math.floor(number) : number;
+  }
+
+  function validModules(value) {
+    if (!Array.isArray(value)) return [];
+    var result = [];
+    value.forEach(function (type) {
+      if (MODULE_TYPES.indexOf(type) >= 0 && result.indexOf(type) < 0) result.push(type);
+    });
+    return result;
+  }
+
+  function definitionFor(type) {
+    return DEFINITIONS.find(function (definition) { return definition.type === type; });
+  }
+
+  function goalComplete(progress, definition) {
+    if (!isRecord(progress)) return false;
+    return boundedNumber(progress[definition.stat], definition.stat !== "bestTime") >= definition.target ||
+      (Array.isArray(progress.legacyEligibleModules) && progress.legacyEligibleModules.indexOf(definition.type) >= 0);
+  }
+
+  function normalize(raw, legacySave) {
+    var hasProgression = isRecord(raw);
+    var source = hasProgression ? raw : {};
+    var hasPurchasesSchema = source.schemaVersion === 2 || source.schemaVersion === 3 || source.schemaVersion === 4;
+    var progress = {
+      schemaVersion: 4,
+      purchasedModules: hasPurchasesSchema ? validModules(source.purchasedModules) : [],
+      // Retain previously earned challenges without treating automatic unlocks as purchases.
+      legacyEligibleModules: validModules(hasPurchasesSchema ? source.legacyEligibleModules : source.unlockedWeapons),
+      totalKills: boundedNumber(source.totalKills, true),
+      bestTime: boundedNumber(source.bestTime, false),
+      bossesDefeated: boundedNumber(source.bossesDefeated, true),
+      totalUpgrades: boundedNumber(source.totalUpgrades, true),
+      contractsCompleted: boundedNumber(source.contractsCompleted, true)
+    };
+
+    if (!hasProgression && isRecord(legacySave)) {
+      // Old saves only tracked a best kill count, so it is a lower bound for lifetime kills.
+      progress.totalKills = boundedNumber(legacySave.bestKills, true);
+      progress.bestTime = boundedNumber(legacySave.bestTime, false);
+      progress.bossesDefeated = boundedNumber(legacySave.victories, true);
+    }
+
+    if (!hasPurchasesSchema && isRecord(legacySave)) {
+      var loadout = isRecord(legacySave.lastLoadout) ? legacySave.lastLoadout : {};
+      var selectedWeapon = loadout.selectedWeapon;
+      if (WEAPONS.indexOf(selectedWeapon) >= 0 && selectedWeapon !== "mine" && !isUnlocked(progress, selectedWeapon)) {
+        progress.purchasedModules.push(selectedWeapon);
+      }
+    }
+
+    if (source.schemaVersion !== 4) {
+      // Some old saves have the authoritative clear count only in their campaign.
+      var completed = isRecord(legacySave) && isRecord(legacySave.campaign) && Array.isArray(legacySave.campaign.completed) ? legacySave.campaign.completed : [];
+      var legacyClears = 0;
+      while (legacyClears < 15 && completed.indexOf("sector" + (Math.floor(legacyClears / 3) + 1) + "-" + (legacyClears % 3 + 1)) >= 0) legacyClears += 1;
+      progress.contractsCompleted = Math.max(progress.contractsCompleted, legacyClears);
+      LEGACY_GOALS.forEach(function (goal) {
+        var existedBeforeCampaign = goal[0] !== "ember" && goal[0] !== "gravity";
+        var gateMet = source.schemaVersion === 2 && existedBeforeCampaign || progress.contractsCompleted >= goal[3];
+        if (gateMet && progress[goal[1]] >= goal[2] && progress.legacyEligibleModules.indexOf(goal[0]) < 0) progress.legacyEligibleModules.push(goal[0]);
+      });
+    }
+
+    return progress;
+  }
+
+  // Counts are event deltas; elapsed is the current run's total survival time.
+  function apply(progress, delta) {
+    if (!isRecord(progress)) throw new TypeError("A progression object is required.");
+    delta = isRecord(delta) ? delta : {};
+    var eligibleBefore = DEFINITIONS.filter(function (definition) { return goalComplete(progress, definition); });
+    COUNTERS.forEach(function (counter) {
+      progress[counter] = boundedNumber(progress[counter], true);
+    });
+    progress.totalKills = boundedNumber(progress.totalKills + boundedNumber(delta.kills, true), true);
+    progress.bossesDefeated = boundedNumber(progress.bossesDefeated + boundedNumber(delta.bosses, true), true);
+    progress.totalUpgrades = boundedNumber(progress.totalUpgrades + boundedNumber(delta.upgrades, true), true);
+    progress.bestTime = Math.max(boundedNumber(progress.bestTime, false), boundedNumber(delta.elapsed, false));
+    return DEFINITIONS.filter(function (definition) {
+      return !isUnlocked(progress, definition.type) && eligibleBefore.indexOf(definition) < 0 && goalComplete(progress, definition);
+    }).map(function (definition) { return definition.type; });
+  }
+
+  function isUnlocked(progress, type) {
+    if (DEFAULT_TYPES.indexOf(type) >= 0) return true;
+    return MODULE_TYPES.indexOf(type) >= 0 && isRecord(progress) && Array.isArray(progress.purchasedModules) && progress.purchasedModules.indexOf(type) >= 0;
+  }
+
+  function objective(progress, type) {
+    var definition = definitionFor(type);
+    if (!definition) return null;
+    var current = isRecord(progress) ? boundedNumber(progress[definition.stat], definition.stat !== "bestTime") : 0;
+    var complete = goalComplete(progress, definition);
+    return {
+      text: definition.text,
+      current: complete ? definition.target : Math.min(current, definition.target),
+      target: definition.target,
+      complete: complete
+    };
+  }
+
+  function canPurchase(progress, type) {
+    var definition = definitionFor(type);
+    return Boolean(definition && !isUnlocked(progress, type) && goalComplete(progress, definition));
+  }
+
+  function purchase(progress, type, fragments) {
+    if (!Number.isFinite(fragments) || fragments < 0 || !canPurchase(progress, type)) return null;
+    var cost = definitionFor(type).cost;
+    if (fragments < cost) return null;
+    var purchased = validModules(progress.purchasedModules);
+    purchased.push(type);
+    progress.purchasedModules = purchased;
+    return { fragments: fragments - cost, cost: cost, type: type };
+  }
+
+  function status(progress, type) {
+    var known = MODULE_TYPES.indexOf(type) >= 0;
+    var definition = definitionFor(type);
+    var owned = isUnlocked(progress, type);
+    var complete = definition ? goalComplete(progress, definition) : known;
+    return {
+      owned: owned,
+      available: known && !owned && complete,
+      goalComplete: complete,
+      cost: definition ? definition.cost : (known ? 0 : null),
+      objective: objective(progress, type)
+    };
+  }
+
+  function nextObjective(progress) {
+    var nearest = null;
+    for (var i = 0; i < DEFINITIONS.length; i += 1) {
+      var type = DEFINITIONS[i].type;
+      if (isUnlocked(progress, type)) continue;
+      var next = objective(progress, type);
+      var candidate = { type: type, text: next.text, current: next.current, target: next.target, available: next.complete, cost: DEFINITIONS[i].cost };
+      if (candidate.available) return candidate;
+      if (!nearest || candidate.current / candidate.target > nearest.current / nearest.target) nearest = candidate;
+    }
+    return nearest;
+  }
+
+  function settleRunReward(snapshot, carryUnits) {
+    carryUnits = Number.isInteger(carryUnits) && carryUnits >= 0 && carryUnits < REWARD_SCALE ? carryUnits : 0;
+    snapshot = isRecord(snapshot) ? snapshot : {};
+    var kills = boundedNumber(snapshot.kills, true);
+    var milliseconds = Math.floor(boundedNumber(snapshot.elapsed, false) * 1000);
+    var earnedUnits = 0;
+    if (kills > 0 && milliseconds > 0) {
+      var bosses = Math.min(kills, boundedNumber(snapshot.bosses, true));
+      // Kill credit is time-paced so a short restart cannot front-load its 6F cap.
+      var killUnits = Math.min(6 * REWARD_SCALE, kills * 12000, milliseconds * 6);
+      var survivalUnits = Math.min(milliseconds, 600000) * 10 + Math.max(0, milliseconds - 600000) * 5;
+      // The first three bosses give 2F, 4F, 4F; later bosses keep earning 2F each.
+      var bossReward = Math.min(bosses, 1) * 2 + Math.min(Math.max(0, bosses - 1), 2) * 4 + Math.max(0, bosses - 3) * 2;
+      var completionReward = snapshot.completed === true && milliseconds >= 600000 && bosses >= 3 ? 10 : 0;
+      earnedUnits = killUnits + survivalUnits + (bossReward + completionReward) * REWARD_SCALE;
+    }
+    var totalUnits = carryUnits + earnedUnits;
+    return {
+      fragments: Math.floor(totalUnits / REWARD_SCALE),
+      carryUnits: totalUnits % REWARD_SCALE,
+      earnedUnits: earnedUnits,
+      scale: REWARD_SCALE
+    };
+  }
+
+  function runReward(snapshot) {
+    return settleRunReward(snapshot).fragments;
+  }
+
+  return Object.freeze({
+    normalize: normalize,
+    apply: apply,
+    isUnlocked: isUnlocked,
+    canPurchase: canPurchase,
+    purchase: purchase,
+    status: status,
+    objective: objective,
+    nextObjective: nextObjective,
+    runReward: runReward,
+    settleRunReward: settleRunReward,
+    definitions: DEFINITIONS
+  });
+});

@@ -1,0 +1,21 @@
+{
+  "name": "bastion",
+  "version": "1.0.0",
+  "description": "Local QA tooling for Bastion",
+  "main": "game.js",
+  "scripts": {
+    "build:playtest": "node tools/build-standalone.js",
+    "check": "node --check telemetry.js && node --check progression.js && node --check progression-view.js && node --check run-upgrades.js && node --check campaign.js && node --check training.js && node --check training-arena.js && node --check training-view.js && node --check module-preview.js && node --check module-preview-panel.js && node --check game.js && node --check service-worker.js && node --check tools/build-standalone.js",
+    "test": "node tools/progression-view-check.js && node tools/progression-flow-integration-check.js && node tools/module-preview-check.js && node tools/module-preview-integration-check.js && node tools/training-check.js && node tools/training-flow-integration-check.js && node tools/progression-check.js && node tools/campaign-check.js && node tools/upgrades-check.js && node tools/weapon-levels-check.js && node tools/economy-check.js && node tools/new-weapons-check.js && node tools/boss-check.js && node tools/enemy-pressure-check.js && node tools/sector-combat-check.js && node tools/sniper-penetration-check.js && node tools/local-shield-check.js && node tools/survival-integration-check.js && node tools/weapon-aim-check.js && node tools/projectile-readability-check.js && node tools/build-interaction-check.js && node tools/telemetry-check.js && node tools/telemetry-integration-check.js && node .artifact_build/runtime-check.js",
+    "test:browser": "node tools/survival-browser-check.js && node tools/upgrade-milestones-browser-check.js && node tools/build-interaction-browser-check.js && node tools/ship-ui-browser-check.js && node tools/settings-actions-browser-check.js && node tools/training-browser-check.js",
+    "test:standalone": "node tools/standalone-browser-check.js",
+    "test:training": "node tools/training-check.js && node tools/training-flow-integration-check.js && node tools/training-browser-check.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "playwright": "^1.62.1"
+  }
+}

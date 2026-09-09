@@ -1,0 +1,68 @@
+.training-hud,
+.training-result {
+  position: fixed;
+  z-index: 12;
+  top: max(12px, env(safe-area-inset-top));
+  left: 50%;
+  width: min(560px, calc(100vw - 24px));
+  transform: translateX(-50%);
+  padding: 10px 12px;
+  border: 1px solid #416471;
+  border-radius: 8px;
+  color: var(--text);
+  background: #101e29ed;
+  pointer-events: auto;
+}
+.training-main-row,
+.training-detail-row { display: flex; align-items: center; gap: 10px; }
+.training-main-row { align-items: flex-start; }
+.training-detail-row { margin-top: 4px; }
+.training-action { flex: 1; margin: 0; align-self: center; color: var(--text); font-size: .8125rem; line-height: 1.35; }
+.training-progress { flex: 1; color: var(--muted); font-size: .6875rem; line-height: 1.3; }
+.training-wallet { flex-shrink: 0; color: var(--muted); font-size: .6875rem; white-space: nowrap; }
+.training-wallet b { color: var(--gold); font-family: ui-monospace, monospace; }
+.training-button { flex-shrink: 0; min-height: 36px; padding: 7px 12px; border: 1px solid var(--line); border-radius: 6px; color: var(--text); background: #132735; cursor: pointer; font-family: inherit; font-weight: 600; font-size: .75rem; line-height: 1.25; }
+.training-button:hover { border-color: var(--cyan); }
+.training-button:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+.training-button.primary { color: #08101a; background: var(--gold); border-color: var(--gold); }
+.training-hud[data-status="failed"] { border-color: var(--red); }
+.training-result { padding: 16px; }
+.training-result h2 { margin: 0 0 10px; font-size: 1rem; line-height: 1.3; }
+.training-result p { margin: 6px 0; color: var(--muted); font-size: .75rem; line-height: 1.4; }
+.training-result p strong { color: var(--text); }
+.training-result > button { margin-top: 12px; }
+.training-entry { color: var(--muted); }
+.training-entry-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+.training-entry-row button { min-width: 0; min-height: 44px; margin: 0; padding: 10px 8px; font-size: .8125rem; }
+.training-active .hud-top,
+.training-active #survivalHud,
+.training-active #bossHud,
+.training-active .mobile-build,
+.training-active .mobile-settings { display: none !important; }
+.training-in-build .build-header { display: block; padding: 8px 14px; }
+.training-in-build .build-header > :not(.training-build-bar) { display: none; }
+.training-build-bar .training-detail-row { margin-top: 0; }
+.training-in-build .build-section-label { display: none; }
+.training-active .training-action-target {
+  outline: 2px solid var(--cyan);
+  outline-offset: -2px;
+}
+.training-active .training-action-target:focus-visible {
+  outline-offset: 2px;
+}
+@media (max-width: 700px) {
+  .training-hud,
+  .training-result { top: max(8px, env(safe-area-inset-top)); width: calc(100vw - 16px); padding: 8px 10px; }
+  .training-main-row,
+  .training-detail-row { gap: 8px; }
+  .training-action { font-size: .75rem; }
+  .training-progress,
+  .training-wallet { font-size: .75rem; }
+  .training-button { min-height: 44px; padding: 6px 9px; font-size: .75rem; }
+  .training-result h2 { font-size: .875rem; }
+  .training-result p { font-size: .75rem; }
+  .training-result > button { margin-top: 8px; }
+  .training-in-build .build-header { padding: 4px 8px; }
+  .training-in-build .build-footer { padding: 4px 8px; }
+  .training-in-build .build-footer .primary { min-height: 44px; padding: 7px 12px; font-size: .75rem; }
+}

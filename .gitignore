@@ -1,0 +1,13 @@
+node_modules/
+/.artifact_build/*
+!/.artifact_build/runtime-check.js
+/outputs/*
+!/outputs/Drift_Bastion_Playtest.html
+!/outputs/Drift_Bastion_Playtest_Package.zip
+/%SystemDrive%/
+.env
+.env.*
+!.env.example
+*.log
+.DS_Store
+Thumbs.db

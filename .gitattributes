@@ -1,0 +1,4 @@
+# Preserve exact standalone/source bytes across Windows and Linux checkouts.
+* -text
+*.png binary
+*.zip binary
