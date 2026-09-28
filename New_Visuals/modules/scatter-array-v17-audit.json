@@ -1,0 +1,31 @@
+{
+  "raw_size": [
+    1254,
+    1254
+  ],
+  "alpha_extrema": [
+    0,
+    255
+  ],
+  "transparent_pixels": 1170554,
+  "solid_bounds": [
+    180,
+    356,
+    1142,
+    908
+  ],
+  "estimated_pivot": [
+    795.0,
+    632.0
+  ],
+  "uniform_scale": 0.8108108108108109,
+  "solid_radius": 506.70551092239316,
+  "preview_rotation_degrees": 0,
+  "body_radius": 300.3044474188118,
+  "body_start_x": 491,
+  "fits_all_rotations": false,
+  "body_fits_all_rotations": true,
+  "barrel_overhang_allowed": true,
+  "production_ready": false,
+  "raw_preserved": true
+}

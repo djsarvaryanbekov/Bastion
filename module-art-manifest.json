@@ -1,0 +1,22 @@
+{
+  "platform": { "source": "platforms/Drift_Bastion_Platform_Square_v2.png", "pivot": [512,512], "scale": 0.0013966480446927375, "crop": [154,154,870,870] },
+  "mount": { "source": "modules/swivel-mount-v3.png", "pivot": [626,622], "scale": 0.00076 },
+  "cannon": { "source": "modules/auto-cannon-v2.png", "pivot": [627,750], "scale": 0.0014569058143078958, "bodyTop": 500, "rotates": true, "forward": -90, "mount": true, "movingPolygon": [[596,299],[659,299],[675,322],[675,414],[687,473],[687,532],[755,554],[817,638],[892,686],[892,832],[767,906],[767,968],[741,999],[515,999],[490,967],[490,904],[362,832],[362,686],[438,637],[496,555],[567,532],[567,473],[579,414],[579,322]] },
+  "missile": { "source": "modules/missile-pod-v5.png", "pivot": [627.5,676.5], "scale": 0.000796708588, "rotates": true, "forward": -90, "mount": true },
+  "rail": { "source": "modules/rail-lance-v1.png", "pivot": [627,970], "scale": 0.00130426276547, "bodyTop": 774, "rotates": true, "forward": -90, "mount": true },
+  "laser": { "source": "modules/piercing-laser-v2.png", "pivot": [627,800], "scale": 0.00084645336042, "bodyTop": 525, "rotates": true, "forward": -90, "mount": true },
+  "arc": { "source": "modules/arc-emitter-v16.png", "pivot": [627,712], "scale": 0.00138, "bodyTop": 430, "rotates": true, "forward": -90, "mount": true, "movingPolygon": [[595,351],[660,351],[672,412],[698,435],[718,528],[742,561],[767,688],[765,736],[799,774],[786,855],[740,891],[515,891],[469,855],[454,774],[487,735],[487,688],[510,560],[532,528],[552,435],[583,412]] },
+  "scatter": { "source": "modules/scatter-array-v28.png", "pivot": [972,565], "scale": 0.00074638680931, "bodyLeft": 610, "rotates": true, "forward": 180, "mount": true },
+  "flak": { "source": "modules/flak-battery-v6.png", "pivot": [730,790], "bodyTop": 455, "rotates": true, "forward": -90, "mount": true, "movingPolygon": [[636,160],[870,160],[949,264],[951,353],[933,545],[982,594],[986,802],[942,856],[870,885],[610,885],[550,835],[550,819],[484,819],[484,906],[409,969],[153,969],[60,875],[57,654],[112,550],[159,486],[237,458],[314,458],[394,506],[482,574],[484,612],[551,612],[583,551],[589,363],[582,347],[582,275]] },
+  "pulse": { "source": "modules/pulse-nova-v1.png", "span": 0.82 },
+  "cryo": { "source": "modules/cryo-projector-v1.png", "pivot": [627,680], "rotates": true, "forward": -90, "mount": true },
+  "mine": { "source": "modules/mine-layer-v1.png", "span": 0.8 },
+  "ember": { "source": "modules/ember-projector-v1.png", "pivot": [627,775], "bodyTop": 530, "rotates": true, "forward": -90, "mount": true },
+  "gravity": { "source": "modules/gravity-well-v1.png", "span": 0.8 },
+  "shield": { "source": "modules/shield-node-v2.png", "span": 0.82 },
+  "repair": { "source": "modules/repair-array-v6.png", "span": 0.82 },
+  "collector": { "source": "modules/matter-siphon-v4.png", "span": 0.82 },
+  "armor": { "source": "modules/armor-platform-v6.png", "span": 1, "integrated": true },
+  "bulkhead": { "source": "modules/aegis-bulkhead-v1.png", "span": 1, "integrated": true },
+  "core": { "source": "modules/standard-core-v1.png", "span": 1, "integrated": true }
+}

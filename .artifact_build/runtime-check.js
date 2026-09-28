@@ -118,6 +118,8 @@ vm.runInNewContext(fs.readFileSync("progression.js", "utf8"), sandbox, { filenam
 vm.runInNewContext(fs.readFileSync("progression-view.js", "utf8"), sandbox, { filename: "progression-view.js" });
 vm.runInNewContext(fs.readFileSync("run-upgrades.js", "utf8"), sandbox, { filename: "run-upgrades.js" });
 vm.runInNewContext(fs.readFileSync("campaign.js", "utf8"), sandbox, { filename: "campaign.js" });
+vm.runInNewContext(fs.readFileSync("upgrade-tree-view.js", "utf8"), sandbox, { filename: "upgrade-tree-view.js" });
+vm.runInNewContext(fs.readFileSync("test-range.js", "utf8"), sandbox, { filename: "test-range.js" });
 vm.runInNewContext(fs.readFileSync("game.js", "utf8"), sandbox, { filename: "game.js" });
 if (!sandbox.window.__driftBastion || typeof sandbox.frameCallback !== "function") {
   throw new Error("Game did not initialize its public state and animation loop.");

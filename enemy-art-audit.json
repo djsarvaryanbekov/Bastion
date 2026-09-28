@@ -1,0 +1,422 @@
+{
+  "scout": {
+    "source": "enemies/raw/scout-fighter-v1.png",
+    "sha256": "7e763e498fd95fa09fee343c03f775d1300a5e356b98481299670d5b874bc7af",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "sourceCrop": [
+      390,
+      285,
+      875,
+      890
+    ],
+    "opaqueBoundsInsideCrop": [
+      20,
+      32,
+      453,
+      570
+    ],
+    "finalCropInsideSource": [
+      402,
+      309,
+      851,
+      863
+    ],
+    "exportSize": [
+      207,
+      256
+    ]
+  },
+  "drone": {
+    "source": "enemies/raw/drone-v2.png",
+    "sha256": "e297068c9d1be38945d361543d9724b362c608c3bdbd241cdf2c310eb233dc6c",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "sourceCrop": [
+      0,
+      0,
+      1254,
+      1254
+    ],
+    "opaqueBoundsInsideCrop": [
+      494,
+      456,
+      760,
+      755
+    ],
+    "finalCropInsideSource": [
+      486,
+      448,
+      768,
+      763
+    ],
+    "exportSize": [
+      229,
+      256
+    ]
+  },
+  "hunter": {
+    "source": "enemies/raw/hunter-v1.png",
+    "sha256": "325887ac2ad27f2dbb441c1df74380f96f3721ac60168d175cff5827f656a335",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "sourceCrop": [
+      0,
+      0,
+      1254,
+      1254
+    ],
+    "opaqueBoundsInsideCrop": [
+      259,
+      169,
+      995,
+      1064
+    ],
+    "finalCropInsideSource": [
+      251,
+      161,
+      1003,
+      1072
+    ],
+    "exportSize": [
+      211,
+      256
+    ]
+  },
+  "raptor": {
+    "source": "enemies/raw/raptor-v1.png",
+    "sha256": "66119f89e343be64d51737fd3491fd93891326beac585d77b10e4280b12fd42d",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "sourceCrop": [
+      0,
+      0,
+      1254,
+      1254
+    ],
+    "opaqueBoundsInsideCrop": [
+      243,
+      137,
+      1011,
+      1054
+    ],
+    "finalCropInsideSource": [
+      235,
+      129,
+      1019,
+      1062
+    ],
+    "exportSize": [
+      215,
+      256
+    ]
+  },
+  "orbiter": {
+    "source": "enemies/raw/orbiter-v1.png",
+    "sha256": "1b8423dd609a3b3f9c905c4c3890d181fbe9bb95aa8ed5770d572edb98070887",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "sourceCrop": [
+      0,
+      0,
+      1254,
+      1254
+    ],
+    "opaqueBoundsInsideCrop": [
+      170,
+      180,
+      1084,
+      1075
+    ],
+    "finalCropInsideSource": [
+      162,
+      172,
+      1092,
+      1083
+    ],
+    "exportSize": [
+      256,
+      251
+    ]
+  },
+  "brute": {
+    "source": "enemies/raw/brute-v1.png",
+    "sha256": "adf539e43e1719a36eeff750068291f9656831eabb10486baab7a6b1d0603437",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "sourceCrop": [
+      0,
+      0,
+      1254,
+      1254
+    ],
+    "opaqueBoundsInsideCrop": [
+      129,
+      177,
+      1124,
+      1053
+    ],
+    "finalCropInsideSource": [
+      121,
+      169,
+      1132,
+      1061
+    ],
+    "exportSize": [
+      256,
+      226
+    ]
+  },
+  "bulwark": {
+    "source": "enemies/raw/bulwark-v1.png",
+    "sha256": "4ec72aca84e3eebc61b6efefd1c9178dd0538a47f5aaeb0cd93262adbd5fb683",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "sourceCrop": [
+      0,
+      0,
+      1254,
+      1254
+    ],
+    "opaqueBoundsInsideCrop": [
+      189,
+      166,
+      1065,
+      1004
+    ],
+    "finalCropInsideSource": [
+      181,
+      158,
+      1073,
+      1012
+    ],
+    "exportSize": [
+      256,
+      245
+    ]
+  },
+  "bolter": {
+    "source": "enemies/raw/bolter-concept-v1.png",
+    "sha256": "0d9c3ec909eda307e52c30501340dff68dd67085fbbc8cb4f1be6f7a3d94e5b2",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "sourceCrop": [
+      420,
+      80,
+      900,
+      770
+    ],
+    "opaqueBoundsInsideCrop": [
+      26,
+      59,
+      474,
+      628
+    ],
+    "finalCropInsideSource": [
+      438,
+      131,
+      900,
+      716
+    ],
+    "exportSize": [
+      202,
+      256
+    ]
+  },
+  "gunner": {
+    "source": "enemies/raw/gunner-triple-turret-v1.png",
+    "sha256": "c308d85ca672fb216ea60a4b2a755db50d5ba60c538007c5bc40fb2c63cc0de3",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "sourceCrop": [
+      25,
+      145,
+      1230,
+      1085
+    ],
+    "opaqueBoundsInsideCrop": [
+      16,
+      48,
+      1187,
+      913
+    ],
+    "finalCropInsideSource": [
+      33,
+      185,
+      1220,
+      1066
+    ],
+    "exportSize": [
+      256,
+      190
+    ]
+  },
+  "bomber": {
+    "source": "enemies/raw/bomber-v1.png",
+    "sha256": "339f49fac185e029be3910772ae4835289eef2665bc4f72dbcc69786634747cd",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "sourceCrop": [
+      0,
+      0,
+      1254,
+      1254
+    ],
+    "opaqueBoundsInsideCrop": [
+      238,
+      212,
+      1016,
+      938
+    ],
+    "finalCropInsideSource": [
+      230,
+      204,
+      1024,
+      946
+    ],
+    "exportSize": [
+      256,
+      239
+    ]
+  },
+  "splitter": {
+    "source": "enemies/raw/splitter-v1.png",
+    "sha256": "f152b6456e68dc07320f46f83012b34168b61ec55e8d102d0aac39172560a109",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "sourceCrop": [
+      0,
+      0,
+      1254,
+      1254
+    ],
+    "opaqueBoundsInsideCrop": [
+      311,
+      143,
+      943,
+      1030
+    ],
+    "finalCropInsideSource": [
+      303,
+      135,
+      951,
+      1038
+    ],
+    "exportSize": [
+      184,
+      256
+    ]
+  },
+  "sniper": {
+    "source": "enemies/raw/sniper-v1.png",
+    "sha256": "d2ed105c1d35a1bf63c6f87036ac991a866c19371c3ff5a003d6c5e09aa1956d",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "sourceCrop": [
+      390,
+      10,
+      875,
+      1200
+    ],
+    "opaqueBoundsInsideCrop": [
+      25,
+      27,
+      449,
+      1166
+    ],
+    "finalCropInsideSource": [
+      407,
+      29,
+      847,
+      1184
+    ],
+    "exportSize": [
+      98,
+      256
+    ]
+  },
+  "colossus": {
+    "source": "enemies/raw/colossus-v1.png",
+    "sha256": "769e5ce9b830247697f1df378b055204db7b0e9c392aa71faa2a12956e14cb3f",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "sourceCrop": [
+      0,
+      0,
+      1254,
+      1254
+    ],
+    "opaqueBoundsInsideCrop": [
+      149,
+      46,
+      1105,
+      1209
+    ],
+    "finalCropInsideSource": [
+      141,
+      38,
+      1113,
+      1217
+    ],
+    "exportSize": [
+      211,
+      256
+    ]
+  },
+  "mini": {
+    "source": "enemies/raw/mini-v1.png",
+    "sha256": "e55761a3b7405c1eb397efeb2b09e1435e0237661f13c9717b3a8f4eb2c67b78",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "sourceCrop": [
+      0,
+      0,
+      1254,
+      1254
+    ],
+    "opaqueBoundsInsideCrop": [
+      498,
+      429,
+      757,
+      762
+    ],
+    "finalCropInsideSource": [
+      490,
+      421,
+      765,
+      770
+    ],
+    "exportSize": [
+      202,
+      256
+    ]
+  }
+}

@@ -29,8 +29,8 @@ api.save.campaign.selectedOperation = "sector5-3";
 api.startRun();
 assert.equal(api.current().state, "playing");
 assert.equal(api.ui.startButton.disabled, false);
-assert.equal(Object.keys(api.MODULES).length, 19, "The module catalogue is unchanged");
-assert.equal(api.current().nextBossAt, 120);
+assert.equal(Object.keys(api.MODULES).length, 18, "The module catalogue is unchanged");
+assert.equal(api.current().nextBossAt, 180);
 
 // Real core modifiers still apply to both starter and newly attached modules.
 const profiles = [];
@@ -39,7 +39,7 @@ for (const core of cores.cores) {
   api.save.campaign.purchasedCores = [core.id];
   api.save.campaign.selectedCore = core.id;
   const game = new api.Game(); api.activate(game);
-  assert.ok(Math.abs(game.ship.tiles.get("0,-1").maxHp - api.MODULES.cannon.hp * 1.5 * core.moduleHpMultiplier) < 1e-8, "Starter HP applies the 1.5 multiplier and selected core modifier");
+  assert.ok(Math.abs(game.ship.tiles.get("0,-1").maxHp - api.MODULES.cannon.hp * core.moduleHpMultiplier) < 1e-8, "Starter uses baseline HP with the selected core modifier");
   api.setKeys({ KeyW: true, KeyD: true }); game.updateMovement(1 / 30); api.setKeys({});
   const speed = Math.hypot(game.ship.vx, game.ship.vy);
   profiles.push({ id: core.id, speed });
@@ -72,44 +72,22 @@ assert.ok(cores.isCoreAvailable(reloaded.campaign, "salvager", reloaded.progress
 assert.ok(progression.canPurchase(reloaded.progression, "gravity"));
 assert.deepEqual(plain(api.sanitizeSave(reloaded)), plain(reloaded), "Migration must be idempotent");
 
-// Milestone: no premature completion, paused choice, same live ship, no reward duplication.
-reset(); api.startRun();
-const game = api.current();
-game.state = "building"; game.matter = 1000;
-assert.ok(api.buyRunUpgrade("cannon", "tune", 0));
-assert.ok(api.buyRunUpgrade("cannon", "twin", 1));
-api.select("cannon"); api.placePurchasedModule(1, 0); api.closeBuild();
-game.enemies.length = 0; game.enemyById.clear(); game.kills = 350;
-game.elapsed = 599.9; game.bossesDefeated = 3; game.checkSurvival();
-assert.equal(game.survivalCompleted, false);
-game.elapsed = 600; game.bossesDefeated = 2; game.checkSurvival();
-assert.equal(game.survivalCompleted, false, "Elapsed time alone cannot skip the last boss");
-game.bossesDefeated = 3; game.checkSurvival();
-assert.equal(game.state, "milestone"); assert.equal(api.ui.milestoneOverlay.classList.contains("hidden"), false);
-const ship = game.ship, upgrades = plain(game.upgrades), matter = game.matter;
-const fragments = api.save.fragments;
-game.update(1); assert.equal(game.elapsed, 600, "The decision pauses combat");
-api.continueSurvival();
-assert.equal(api.current(), game); assert.equal(game.ship, ship);
-assert.deepEqual(plain(game.upgrades), upgrades); assert.equal(game.matter, matter);
-assert.equal(game.nextBossAt, 780); assert.equal(game.recoveryUntil, 608);
-assert.equal(api.save.fragments, fragments, "Continuation must not pay a reward twice");
-game.checkSurvival(); assert.equal(game.state, "playing", "The checkpoint must not reopen");
-const payout = progression.runReward({ elapsed: 600, kills: 350, bosses: 3, completed: true });
-game.applyDamageToTile("0,0", 1e9);
-assert.equal(game.finished, true); assert.equal(api.save.fragments, fragments + payout);
-game.finishRun(true, true); assert.equal(api.save.fragments, fragments + payout);
-assert.ok(game.survivalCompleted, "Death after continuing keeps the completion bonus");
-api.returnToMenu(); api.startRun();
-assert.equal(api.current().upgrades.cannon, undefined); assert.equal(api.current().continued, false);
-assert.equal(api.save.fragments, fragments + payout);
 
-reset(); api.startRun();
-const banked = api.current(); banked.elapsed = 600; banked.bossesDefeated = 3; banked.kills = 300;
-banked.checkSurvival(); api.ui.finishSurvivalButton.listeners.click();
-assert.equal(banked.finished, true); assert.equal(api.ui.resultTitle.textContent, "SURVIVAL COMPLETE");
-const firstBank = api.save.fragments; api.ui.finishSurvivalButton.listeners.click();
-assert.equal(api.save.fragments, firstBank);
-
-console.log(JSON.stringify({ passed: true, profiles, completionPayout: firstBank,
-  checked: ["ungated Play", "19 unchanged modules", "core modifiers", "legacy ownership/currency/access round-trip", "600s and three boss checkpoint", "same ship continuation", "death retains earned bonus", "one payout", "fresh run reset"] }, null, 2));
+// The same ship continues past ten minutes without a checkpoint or duplicated payout.
+reset();api.startRun();const game=api.current();game.state='building';game.matter=1000;
+assert.ok(api.buyRunUpgrade('cannon','base1',0));assert.ok(api.buyRunUpgrade('cannon','base2',1));api.select('cannon');assert.ok(api.placePurchasedModule(1,0));api.closeBuild();
+const ship=game.ship,matter=game.matter,upgrades=plain(game.upgrades);
+game.elapsed=600;game.kills=10000;game.killsByMinute=[10000];game.bossesDefeated=3;game.checkSurvival();assert.equal(game.state,'playing');assert.equal(game.survivalCompleted,false);assert.equal(api.ui.milestoneOverlay.classList.contains('hidden'),true);
+assert.equal(game.ship,ship);assert.equal(game.matter,matter);assert.deepEqual(plain(game.upgrades),upgrades);assert.equal(api.save.fragments,0);
+game.finishRun(false,true);assert.equal(api.save.fragments,56);assert.equal(game.state,'result');game.finishRun(false,true);assert.equal(api.save.fragments,56);
+api.returnToMenu();api.startRun();assert.equal(api.current().matter,0);assert.deepEqual(plain(api.current().upgrades),{});assert.equal(api.current().ship.tiles.size,2);assert.equal(api.save.fragments,56);
+// Removed Drive licenses are archived and refunded once; existing settings and bonuses survive.
+reset();const old=api.defaultSave();old.version=8;old.fragments=17;old.fragmentCarryUnits=123;old.meta={core:0,modules:10,matter:8,drive:6,damage:10};old.campaign={purchasedCores:['striker'],selectedCore:'striker'};old.progression.purchasedModules=['drive','scatter'];old.settings.uiScale=125;
+const migrated=api.sanitizeSave(old);assert.equal(migrated.fragments,53);assert.equal(migrated.fragmentCarryUnits,123);assert.equal(migrated.settings.uiScale,125);assert.deepEqual(plain(migrated.progression.retiredModules),['drive']);assert.deepEqual(plain(migrated.progression.purchasedModules),['scatter']);
+assert.equal(migrated.campaign.coreRanks.striker.modules,25);assert.equal(migrated.campaign.legacyBonuses.striker.modules,.25);assert.equal(migrated.campaign.coreRanks.standard.damage,25);assert.ok(Math.abs(migrated.campaign.legacyBonuses.striker.damage-.15)<1e-9);assert.deepEqual(plain(api.sanitizeSave(migrated)),plain(migrated));
+Object.assign(api.save,migrated);const probe=new api.Game();const damage=probe.coreBonus('damage');api.save.campaign.selectedCore='standard';api.save.campaign.coreRanks.standard.damage=0;assert.equal(probe.coreBonus('damage'),damage,'Active run snapshots its core ranks');
+old.meta={core:10,modules:0,matter:0,drive:0,damage:0};
+const coreOnly=api.sanitizeSave(old);
+assert.ok(350*(1+coreOnly.campaign.coreRanks.standard.modules*.01+coreOnly.campaign.legacyBonuses.standard.modules)>=450-1e-9,'Preserve legacy core HP above new rank cap');
+assert.deepEqual(plain(api.sanitizeSave(coreOnly)),plain(coreOnly));
+console.log(JSON.stringify({passed:true,profiles,checks:['Endless past 600 seconds','Same ship and purchases','One payout and run reset','Owned licenses and settings preserved','Drive refunded exactly once','Legacy bonuses preserved beyond new cap','Active core snapshot']}));

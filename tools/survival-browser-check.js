@@ -91,7 +91,7 @@ const server = http.createServer((req, res) => {
     await page.locator("#continueSurvivalButton").click();
     let state = await page.evaluate(() => window.__driftBastion.getState());
     assert.equal(state.continued, true); assert.equal(state.matter, 77); assert.equal(state.upgrades.cannon.level, 1);
-    await page.locator("#bankRunButton").click(); await page.clock.runFor(400);
+    await page.locator("#pauseButton").click(); await page.locator("#pauseHangarButton").click(); await page.clock.runFor(400);
     assert.equal(await page.locator("#resultOverlay").isVisible(), true);
     const payout = await page.locator("#resultFragments").innerText(); assert.match(payout, /^\+\d+$/);
     await page.locator("#hangarButton").click();

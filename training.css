@@ -35,7 +35,7 @@
 .training-entry-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
 .training-entry-row button { min-width: 0; min-height: 44px; margin: 0; padding: 10px 8px; font-size: .8125rem; }
 .training-active .hud-top,
-.training-active #survivalHud,
+.training-active #controlHint,
 .training-active #bossHud,
 .training-active .mobile-build,
 .training-active .mobile-settings { display: none !important; }

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+     width="1024" height="1024" viewBox="0 0 1024 1024">
+  <title>Drift Bastion — flat square mounting platform</title>
+  <desc>716 pixel square chassis centered on a transparent 1024 pixel canvas. Uniform flat armor, no central disk, no panel seams, no clipped corners. Identical edge couplers join across a 716 pixel cell pitch.</desc>
+  <defs>
+    <g id="north-coupler">
+      <rect x="474" y="154" width="76" height="46" fill="#353E48"/>
+      <rect x="480" y="154" width="64" height="38" fill="#5F6D78"/>
+      <rect x="497" y="154" width="30" height="24" fill="#24333E"/>
+      <rect x="501" y="154" width="22" height="20" fill="#46BDCF"/>
+    </g>
+  </defs>
+  <g id="platform">
+    <g id="chassis" inkscape:groupmode="layer" inkscape:label="Square chassis">
+      <rect id="footprint" x="154" y="154" width="716" height="716" fill="#353E48"/>
+      <rect x="162" y="162" width="700" height="700" fill="#82909C"/>
+      <path d="M162 162H862L852 172H172V852L162 862Z" fill="#DAE1E7"/>
+      <path d="M862 162V862H162L172 852H852V172Z" fill="#73818C"/>
+      <rect id="flat-armor" x="172" y="172" width="680" height="680" fill="#B8C0C8"/>
+    </g>
+    <g id="couplers" inkscape:groupmode="layer" inkscape:label="Four matching edge couplers">
+      <use href="#north-coupler"/>
+      <use href="#north-coupler" transform="rotate(90 512 512)"/>
+      <use href="#north-coupler" transform="rotate(180 512 512)"/>
+      <use href="#north-coupler" transform="rotate(270 512 512)"/>
+    </g>
+  </g>
+</svg>

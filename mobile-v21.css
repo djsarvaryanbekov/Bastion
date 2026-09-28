@@ -1,0 +1,706 @@
+/* Responsive V21 UI supplied with the player feedback build. Kept separate from PC workspace styles so desktop rules remain isolated. */
+/* V20 phone pass: restore the embedded touch prototype under the new PC UI. */
+@media (hover:none) and (pointer:coarse), (max-width:760px) {
+  html, body.pc-game { width:100%; height:100%; min-height:100%; margin:0; overflow:hidden; overscroll-behavior:none; background:#020508; }
+  body.pc-game { position:fixed; inset:0; }
+  #pcViewport { left:0; top:0; width:100vw; height:100dvh; max-width:none; max-height:none; transform:none; }
+  .pc-game #gameCanvas { touch-action:none; }
+  .pc-game #mobileControls { display:block!important; position:absolute; inset:0; z-index:70; pointer-events:none; }
+  .pc-game .touch-control { display:block!important; }
+  .pc-game .keyboard-control { display:none!important; }
+  .pc-game .pc-fullscreen { display:none!important; }
+
+  /* Main menu: no desktop two-column composition on a phone. */
+  .pc-game .start-overlay { background:linear-gradient(180deg,rgba(5,13,22,.38),rgba(10,22,34,.95) 58%,#0b1824 100%); }
+  .pc-game .start-screen {
+    display:flex; flex-direction:column; justify-content:flex-end; align-items:stretch;
+    width:100%; height:100%; overflow-y:auto;
+    padding:calc(76px + env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) calc(18px + env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));
+    gap:10px;
+  }
+  .pc-game .pc-hero { display:none; }
+  .pc-game .pc-menu-mark { top:calc(18px + env(safe-area-inset-top)); left:max(16px,env(safe-area-inset-left)); }
+  .pc-game .pc-brand { font-size:.82rem; }
+  .pc-game .pc-tagline { margin-top:5px; font-size:.48rem; }
+  .pc-game .start-title,.pc-game .start-actions,.pc-game .menu-loadout { width:min(100%,500px); margin-left:auto; margin-right:auto; }
+  .pc-game .start-title h1 { margin:5px 0 8px; font-size:clamp(2rem,12vw,3.6rem); line-height:.94; }
+  .pc-game .start-title .eyebrow { display:none; }
+  .pc-game .pc-menu-copy { display:none; }
+  .pc-game .start-actions { gap:7px; }
+  .pc-game .start-actions button { min-height:46px; padding:10px 14px; }
+  .pc-game .play-button strong { font-size:1rem; }
+  .pc-game .menu-loadout { min-height:60px; padding:7px 0; }
+  .pc-game .menu-loadout .loadout-glyph { width:44px; height:44px; }
+  .pc-game .start-wallet { top:calc(16px + env(safe-area-inset-top)); right:calc(62px + env(safe-area-inset-right)); gap:7px; }
+  .pc-game .start-wallet small { display:none; }
+  .pc-game .start-wallet b { font-size:.95rem; }
+  .pc-game .settings-corner { top:calc(10px + env(safe-area-inset-top)); right:calc(10px + env(safe-area-inset-right)); width:44px; height:44px; }
+
+  /* Gameplay HUD leaves the play field and joystick readable. */
+  .pc-game #hud { padding:0; }
+  .pc-game .hud-top { left:max(10px,env(safe-area-inset-left)); right:calc(58px + env(safe-area-inset-right)); top:calc(8px + env(safe-area-inset-top)); }
+  .pc-game .hud-stack { display:flex; flex-wrap:nowrap; gap:7px; width:100%; align-items:flex-start; }
+  .pc-game .hud-chip { min-width:62px; padding:0 0 0 8px; }
+  .pc-game .hud-chip label { font-size:.48rem; margin-bottom:3px; }
+  .pc-game .hud-chip b { font-size:.78rem; }
+  .pc-game .health-shell { width:min(34vw,145px); min-width:94px; }
+  .pc-game .health-label { font-size:.58rem; margin-bottom:5px; }
+  .pc-game .hud-actions { display:none!important; }
+  .pc-game #bossHud { top:calc(58px + env(safe-area-inset-top)); width:min(62vw,390px); }
+  .pc-game #controlHint { bottom:calc(92px + env(safe-area-inset-bottom)); left:12px; right:94px; width:auto; font-size:.62rem; opacity:.82; }
+  .pc-game .bottom-dock { left:calc(10px + env(safe-area-inset-left)); right:calc(92px + env(safe-area-inset-right)); bottom:calc(10px + env(safe-area-inset-bottom)); }
+
+  .pc-game .mobile-move-zone { position:absolute; }
+  .pc-game .move-joystick { width:112px; height:112px; border-color:rgba(84,214,206,.48); background:radial-gradient(circle,rgba(84,214,206,.08) 0 34%,transparent 35%),rgba(4,12,22,.44); box-shadow:none; }
+  .pc-game .joystick-knob { width:46px; height:46px; margin:-23px 0 0 -23px; border-color:#54d6ce; background:rgba(16,55,65,.9); box-shadow:0 0 12px rgba(84,214,206,.22); }
+  .pc-game .mobile-build { right:calc(14px + env(safe-area-inset-right)); bottom:calc(14px + env(safe-area-inset-bottom)); width:68px; height:68px; border-radius:14px; }
+  .pc-game .mobile-settings { right:calc(10px + env(safe-area-inset-right)); top:calc(8px + env(safe-area-inset-top)); width:46px; height:46px; border-radius:10px; }
+
+  /* Hangar becomes a touch-first vertical workspace. */
+  .pc-game .hangar-screen { width:100%; height:100%; padding:calc(10px + env(safe-area-inset-top)) max(10px,env(safe-area-inset-right)) calc(10px + env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left)); overflow:hidden; }
+  .pc-game .hangar-header { padding:0 0 8px; margin:0 0 6px; min-height:46px; }
+  .pc-game .hangar-header h2 { font-size:1.15rem; }
+  .pc-game .hangar-status-summary { display:none; }
+  .pc-game .hangar-tabs { grid-column:auto; grid-row:auto; display:flex; flex-direction:row; gap:5px; margin:0 0 8px; padding:0 0 6px; overflow-x:auto; border:0; border-bottom:1px solid var(--line); }
+  .pc-game .hangar-tab { flex:0 0 auto; display:block; min-width:112px; min-height:44px; padding:9px 10px; font-size:.72rem; text-align:center; }
+  .pc-game .hangar-tab small,.pc-game .hangar-nav-index { display:none!important; }
+  .pc-game .hangar-panel { min-height:0; overflow:auto; padding-right:2px; }
+  .pc-game .armory-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; }
+  .pc-game .pick-button { min-height:142px; padding:10px; }
+  .pc-game .pick-button .module-glyph,.pc-game .pick-button .module-icon { height:66px; width:66px; }
+  .pc-game .pick-button strong { font-size:.76rem; }
+  .pc-game .pick-role { font-size:.62rem; }
+  .pc-game #corePicker,.pc-game .meta-list { grid-template-columns:1fr; gap:8px; margin:8px 0; }
+  .pc-game .hangar-footer { display:none; }
+
+  /* Build mode: horizontal catalog, game board, compact inspector. */
+  .pc-game .build-panel { width:100%; height:100%; max-width:none; max-height:none; }
+  .pc-game .build-header { min-height:54px; padding:calc(7px + env(safe-area-inset-top)) 9px 7px; gap:7px; }
+  .pc-game .build-header h2 { font-size:1rem; }
+  .pc-game .build-header .matter-large { display:none; }
+  .pc-game .pc-build-tabs { gap:4px; }
+  .pc-game .pc-build-tabs button,.pc-game #closeBuild { min-height:38px; padding:8px 9px; font-size:.65rem; }
+  .pc-game .build-content { display:grid; grid-template-columns:1fr; grid-template-rows:112px minmax(0,1fr) 122px; overflow:hidden; }
+  .pc-game .catalog-wrap { grid-column:1; grid-row:1; padding:7px 8px; border:0; border-bottom:1px solid var(--line); overflow:hidden; }
+  .pc-game .build-section-label,.pc-game .pc-catalog-search { display:none; }
+  .pc-game .catalog { display:flex; gap:8px; overflow-x:auto; overflow-y:hidden; padding:0 0 4px; }
+  .pc-game .catalog-group { flex:0 0 auto; margin:0; }
+  .pc-game .catalog-group-title { padding:2px 0 5px; font-size:.48rem; }
+  .pc-game .catalog-group-items { display:flex; gap:5px; }
+  .pc-game .catalog-card { grid-template-columns:38px minmax(70px,1fr); width:132px; min-height:72px; padding:6px; gap:4px 6px; }
+  .pc-game .catalog-card .module-glyph,.pc-game .catalog-card .module-icon { width:38px; height:38px; }
+  .pc-game .catalog-card strong { font-size:.62rem; }
+  .pc-game .catalog-card .catalog-cost { grid-column:2; grid-row:2; font-size:.58rem; }
+  .pc-game .build-stage { grid-column:1; grid-row:2; min-height:0; }
+  .pc-game .build-grid-wrap { padding:8px; }
+  .pc-game .build-grid { padding:7px; gap:4px; }
+  .pc-game .build-preview-status { min-height:34px; padding:6px 10px; font-size:.58rem; }
+  .pc-game .build-inspector { grid-column:1; grid-row:3; padding:8px 10px; gap:5px; border:0; border-top:1px solid var(--line); overflow:auto; }
+  .pc-game .pc-inspector-art { display:none; }
+  .pc-game .build-selection { padding:0 0 5px; gap:5px; }
+  .pc-game .build-selection strong { font-size:.82rem; }
+  .pc-game .build-selection p { display:none; }
+  .pc-game .selection-price { width:auto; margin-left:auto; padding:0; font-size:.65rem; }
+  .pc-game .selection-price small { display:none!important; }
+  .pc-game .build-module-details { font-size:.62rem; }
+  .pc-game .build-module-details p { display:none; }
+  .pc-game .build-footer { display:none; }
+  .pc-game .pc-tree-open .build-upgrade-panel { grid-column:1; grid-row:2 / 4; padding:10px; }
+  .pc-game .pc-tree-open:not(.pc-has-tree) .pc-tree-hint { grid-column:1; grid-row:2; padding:14px; }
+
+  /* Pause/settings/results stay usable without desktop-sized padding. */
+  .pc-game #pauseOverlay:not(.settings-view) .pause-panel,.pc-game .settings-view .pause-panel { padding:calc(18px + env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) calc(18px + env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left)); }
+  .pc-game #pauseOverlay:not(.settings-view) .pause-actions { width:100%; max-width:420px; margin-top:18px; }
+  .pc-game #pauseTitle { font-size:1.7rem; }
+  .pc-game .settings-grid { grid-template-columns:1fr; gap:7px; }
+  .pc-game .settings-section-title { grid-column:1; }
+  .pc-game .setting-row { min-height:48px; padding:10px; }
+  .pc-game .result-panel { padding:calc(20px + env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) calc(18px + env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left)); }
+  .pc-game .result-title { font-size:1.55rem; margin:10px 0; }
+  .pc-game .result-stats { margin:14px 0; padding:10px 0; }
+  .pc-game .result-stat b { font-size:1.25rem; }
+  .pc-game .module-preview-dialog { padding:calc(8px + env(safe-area-inset-top)) max(8px,env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left)); }
+  .pc-game .module-preview-header,.pc-game .module-preview-body,.pc-game .module-preview-footer { padding:10px; }
+}
+
+@media (hover:none) and (pointer:coarse) and (orientation:landscape),
+       (max-width:760px) and (orientation:landscape) {
+  .pc-game .start-screen { padding-top:calc(48px + env(safe-area-inset-top)); padding-bottom:calc(8px + env(safe-area-inset-bottom)); gap:6px; }
+  .pc-game .start-title h1 { font-size:clamp(1.8rem,8vh,2.8rem); margin:0 0 3px; }
+  .pc-game .start-actions { grid-template-columns:1.25fr .85fr .85fr; gap:6px; }
+  .pc-game .training-entry-row { display:contents; }
+  .pc-game .start-actions button { min-height:40px; padding:7px 10px; }
+  .pc-game .menu-loadout { min-height:48px; }
+  .pc-game .menu-loadout .loadout-glyph { width:36px; height:36px; }
+  .pc-game .move-joystick { width:100px; height:100px; }
+  .pc-game .joystick-knob { width:42px; height:42px; margin:-21px 0 0 -21px; }
+  .pc-game .mobile-build { width:60px; height:60px; }
+  .pc-game .mobile-settings { width:42px; height:42px; }
+  .pc-game .build-content { grid-template-rows:88px minmax(0,1fr) 92px; }
+  .pc-game .catalog-card { width:116px; min-height:58px; }
+  .pc-game .catalog-card .module-glyph,.pc-game .catalog-card .module-icon { width:32px; height:32px; }
+  .pc-game .hangar-tab { min-width:96px; min-height:38px; padding:7px 8px; }
+}
+
+@media (max-width:500px) {
+  .pc-game .hud-boss { display:none; }
+  .pc-game .health-shell { width:42vw; }
+  .pc-game .armory-grid { grid-template-columns:1fr 1fr; }
+}
+
+/* V21: mobile-native Hangar / Build / Upgrades / Settings. Desktop remains unchanged. */
+@media (hover:none) and (pointer:coarse), (max-width:760px) {
+  .pc-game button,.pc-game select,.pc-game input { touch-action:manipulation; }
+  .pc-game .hangar-panel,.pc-game .pc-settings-scroll,.pc-game .systems-list,
+  .pc-game .systems-detail,.pc-game .catalog,.pc-game .pc-installed-families,
+  .pc-game .run-upgrade-track,.pc-game .research-viewport,.pc-game .research-detail {
+    -webkit-overflow-scrolling:touch;
+    overscroll-behavior:contain;
+  }
+
+  /* ---------- HANGAR ---------- */
+  .pc-game .hangar-screen {
+    display:flex!important;
+    flex-direction:column;
+    grid-template-columns:none!important;
+    grid-template-rows:none!important;
+    gap:0!important;
+    padding:calc(8px + env(safe-area-inset-top)) max(10px,env(safe-area-inset-right)) 0 max(10px,env(safe-area-inset-left));
+    background:linear-gradient(180deg,#0a1823 0,#0b1720 100%);
+  }
+  .pc-game .hangar-header {
+    order:0;
+    display:grid!important;
+    grid-template-columns:44px minmax(0,1fr) auto!important;
+    grid-template-rows:auto!important;
+    align-items:center;
+    gap:10px;
+    min-height:52px;
+    margin:0!important;
+    padding:0 2px 8px!important;
+    border-bottom:1px solid rgba(105,142,159,.34);
+  }
+  .pc-game .hangar-header .corner-button { width:42px; height:42px; min-height:42px; }
+  .pc-game .hangar-header .eyebrow { display:none; }
+  .pc-game .hangar-header h2 { margin:0; font-size:1.08rem; font-weight:600; letter-spacing:.02em; }
+  .pc-game .hangar-wallet {
+    position:static!important;
+    display:flex!important;
+    align-items:baseline;
+    gap:6px;
+    padding:7px 10px;
+    border:1px solid #36505c;
+    background:#102431;
+    border-radius:8px;
+  }
+  .pc-game .hangar-wallet small { display:none; }
+  .pc-game .hangar-wallet b { font-size:.95rem; color:var(--gold); }
+
+  .pc-game .hangar-tabs {
+    order:3;
+    display:grid!important;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    flex:0 0 auto;
+    width:calc(100% + max(10px,env(safe-area-inset-left)) + max(10px,env(safe-area-inset-right)));
+    margin:6px calc(-1 * max(10px,env(safe-area-inset-right))) 0 calc(-1 * max(10px,env(safe-area-inset-left)))!important;
+    padding:6px max(8px,env(safe-area-inset-right)) calc(6px + env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left))!important;
+    gap:4px!important;
+    border:0!important;
+    border-top:1px solid #2d4653!important;
+    background:rgba(7,17,25,.97);
+    overflow:visible!important;
+  }
+  .pc-game .hangar-tab {
+    min-width:0!important;
+    min-height:52px!important;
+    padding:7px 3px!important;
+    display:grid!important;
+    place-items:center;
+    border:1px solid transparent!important;
+    border-radius:7px!important;
+    background:transparent!important;
+    color:#8fa8b5!important;
+    font-size:.63rem!important;
+    line-height:1.15;
+  }
+  .pc-game .hangar-tab strong { font-size:.64rem; font-weight:600; text-align:center; white-space:normal; }
+  .pc-game .hangar-tab.selected {
+    color:#eaf8fa!important;
+    border-color:#3b6670!important;
+    background:#16313a!important;
+    box-shadow:inset 0 2px 0 #6bd4d1;
+  }
+  .pc-game .hangar-panel {
+    order:2;
+    display:block;
+    flex:1 1 auto;
+    min-height:0;
+    padding:10px 2px 8px!important;
+    overflow:auto!important;
+  }
+  .pc-game .hangar-panel.hidden { display:none!important; }
+  .pc-game .hangar-section-title { margin:0 0 9px; }
+  .pc-game .hangar-section-title h3 { font-size:.9rem; }
+  .pc-game .pc-hangar-context { margin:0 0 10px!important; padding:0 0 9px!important; gap:4px 10px!important; }
+  .pc-game .pc-hangar-context span { font-size:.52rem; }
+  .pc-game .pc-hangar-context strong { font-size:.8rem; }
+  .pc-game .pc-hangar-context small { display:none; }
+
+  /* Module armory: compact, tappable cards rather than giant desktop tiles. */
+  .pc-game #hangarWeaponsPanel { display:flex; flex-direction:column; }
+  .pc-game #hangarWeaponsPanel.hidden { display:none!important; }
+  .pc-game .armory-selection { flex:0 0 auto; margin:0 0 8px; padding:9px 10px; min-height:54px; border-radius:8px; }
+  .pc-game .armory-grid {
+    display:grid!important;
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:8px!important;
+    overflow:visible!important;
+  }
+  .pc-game .pick-button {
+    min-height:124px!important;
+    padding:9px!important;
+    border-radius:8px!important;
+    background:linear-gradient(155deg,#142b37,#0e1f2a)!important;
+  }
+  .pc-game .pick-button .module-glyph,.pc-game .pick-button .module-icon { width:54px!important; height:54px!important; }
+  .pc-game .pick-button strong { font-size:.72rem!important; line-height:1.2; }
+  .pc-game .pick-role { font-size:.58rem!important; line-height:1.25; }
+  .pc-game .unlock-requirement,.pc-game .module-unlock-cost,.pc-game .ownership-state { font-size:.58rem!important; }
+
+  /* Cores + permanent calibration: horizontal selector, then focused detail. */
+  .pc-game #corePicker.systems-workspace,
+  .pc-game #metaList.systems-workspace {
+    display:grid!important;
+    grid-template-columns:1fr!important;
+    grid-template-rows:auto minmax(0,1fr)!important;
+    gap:8px!important;
+    margin:0!important;
+    min-height:0!important;
+    flex:1 1 auto;
+  }
+  .pc-game #pcCoresPanel #corePicker.systems-workspace { grid-template-rows:auto 118px minmax(0,1fr)!important; }
+  .pc-game .systems-list {
+    grid-column:1!important;
+    display:flex!important;
+    flex-direction:row!important;
+    gap:7px!important;
+    overflow-x:auto!important;
+    overflow-y:hidden!important;
+    padding:0 0 5px;
+  }
+  .pc-game .systems-selector {
+    flex:0 0 132px;
+    width:132px!important;
+    min-height:60px!important;
+    padding:9px 10px!important;
+    grid-template-columns:20px minmax(0,1fr)!important;
+    gap:5px 7px!important;
+    border-radius:7px;
+  }
+  .pc-game .systems-selector strong { font-size:.7rem!important; line-height:1.2!important; }
+  .pc-game .systems-selector small { font-size:.5rem!important; line-height:1.25!important; }
+  .pc-game .systems-index { font-size:.58rem; }
+  .pc-game #hangarUpgradesPanel .systems-hero { display:none!important; }
+  .pc-game #pcCoresPanel .systems-hero {
+    display:flex!important;
+    min-height:0!important;
+    height:118px!important;
+    overflow:hidden!important;
+    padding:3px;
+    border-block:1px solid #294450;
+    background:radial-gradient(ellipse,#20424c55,transparent 70%);
+  }
+  .pc-game #pcCoresPanel .systems-core-art { height:88px!important; margin:0!important; }
+  .pc-game #pcCoresPanel .systems-core-art .module-icon { height:88px!important; width:120px!important; }
+  .pc-game #pcCoresPanel .systems-hero>p,.pc-game #pcCoresPanel .systems-hero>.eyebrow { display:none; }
+  .pc-game #pcCoresPanel .systems-hero>strong { font-size:.78rem!important; }
+  .pc-game .systems-detail {
+    grid-column:1!important;
+    min-height:0!important;
+    padding:10px 4px calc(14px + env(safe-area-inset-bottom))!important;
+    border-left:0!important;
+    overflow:auto!important;
+    gap:10px!important;
+  }
+  .pc-game .systems-detail h3 { font-size:1.08rem!important; margin:0!important; }
+  .pc-game .systems-description { font-size:.72rem!important; line-height:1.55!important; }
+  .pc-game .systems-note { font-size:.62rem!important; line-height:1.5!important; }
+  .pc-game .systems-stats { gap:8px!important; padding:10px 0!important; font-size:.67rem!important; }
+  .pc-game .systems-ranks { padding:8px 0!important; }
+  .pc-game .systems-action { min-height:48px!important; padding:12px!important; font-size:.76rem!important; border-radius:7px!important; }
+
+  /* Research also stops being a desktop split view. */
+  .pc-game #pcResearchPanel { overflow:hidden!important; }
+  .pc-game .research-workspace { height:100%; min-height:0; }
+  .pc-game .research-header { flex-direction:column!important; align-items:stretch!important; gap:7px!important; padding:0 0 8px!important; }
+  .pc-game .research-header h3 { margin:0!important; font-size:1rem!important; }
+  .pc-game .research-header p { display:none; }
+  .pc-game .research-controls { max-width:none!important; justify-content:flex-start!important; flex-wrap:nowrap!important; overflow-x:auto; }
+  .pc-game .research-controls button { min-height:36px!important; white-space:nowrap; }
+  .pc-game .research-body {
+    display:grid!important;
+    grid-template-columns:1fr!important;
+    grid-template-rows:minmax(210px,46%) minmax(0,1fr)!important;
+    min-height:0;
+  }
+  .pc-game .research-detail { border-left:0!important; border-top:1px solid var(--line); padding:12px!important; }
+  .pc-game .research-detail h3 { font-size:1rem!important; }
+  .pc-game .research-art { width:64px!important; height:64px!important; margin:0 0 7px 10px!important; }
+  .pc-game .research-art .module-icon { width:64px!important; height:64px!important; }
+
+  /* ---------- BUILD / UPGRADE ---------- */
+  body.pc-game:not(.training-in-build) .build-header {
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) auto auto!important;
+    grid-template-rows:auto auto!important;
+    align-items:center!important;
+    gap:7px 8px!important;
+    min-height:0!important;
+    padding:calc(7px + env(safe-area-inset-top)) 9px 7px!important;
+    background:#0b1a26;
+  }
+  body.pc-game:not(.training-in-build) .build-header>div:first-child { grid-column:1; grid-row:1; min-width:80px; white-space:nowrap; }
+  body.pc-game:not(.training-in-build) .build-header .eyebrow { display:none!important; }
+  body.pc-game:not(.training-in-build) .build-header h2 { margin:0!important; font-size:1.05rem!important; }
+  body.pc-game:not(.training-in-build) .matter-wallet {
+    grid-column:2; grid-row:1;
+    display:block!important;
+    padding:6px 9px;
+    border:1px solid #38515d;
+    border-radius:7px;
+    background:#102430;
+  }
+  body.pc-game:not(.training-in-build) .matter-wallet small { display:none!important; }
+  body.pc-game:not(.training-in-build) .build-header .matter-large { display:block!important; font-size:.68rem!important; white-space:nowrap; color:var(--gold); }
+  body.pc-game:not(.training-in-build) #closeBuild { grid-column:3; grid-row:1; min-width:72px; min-height:38px; padding:7px 9px; font-size:.64rem; }
+  body.pc-game:not(.training-in-build) .pc-build-tabs {
+    grid-column:1 / -1; grid-row:2;
+    display:grid!important;
+    grid-template-columns:1fr 1fr;
+    width:100%;
+    gap:4px!important;
+    padding:3px;
+    margin:0!important;
+    border:1px solid #304b58;
+    border-radius:8px;
+    background:#08151f;
+  }
+  body.pc-game:not(.training-in-build) .pc-build-tabs button {
+    min-height:38px!important;
+    border:0!important;
+    border-radius:6px!important;
+    background:transparent!important;
+    font-size:.68rem!important;
+  }
+  body.pc-game:not(.training-in-build) .pc-build-tabs button.selected { background:#1a3a43!important; color:#edfafa!important; box-shadow:inset 0 0 0 1px #477780; }
+
+  .pc-game .build-content {
+    position:relative;
+    display:grid!important;
+    grid-template-columns:1fr!important;
+    grid-template-rows:minmax(0,1fr) auto 120px!important;
+    min-height:0!important;
+    overflow:hidden!important;
+    background:#08131d;
+  }
+  .pc-game .build-stage { grid-column:1!important; grid-row:1!important; min-height:0!important; position:relative; overflow:hidden; }
+  .pc-game .build-grid-wrap { padding:8px!important; overflow:auto!important; }
+  .pc-game .build-grid { padding:10px!important; gap:4px!important; }
+  .pc-game .build-preview-status { min-height:28px!important; padding:5px 8px!important; font-size:.55rem!important; }
+  .pc-game .pc-build-guide {
+    position:absolute;
+    z-index:4;
+    top:7px; left:7px; right:7px;
+    margin:0!important;
+    padding:7px 9px!important;
+    min-height:0;
+    gap:7px!important;
+    border-left-width:2px!important;
+    background:rgba(13,34,45,.94)!important;
+  }
+  .pc-game .pc-build-guide small,.pc-game .pc-build-guide p { display:none!important; }
+  .pc-game .pc-build-guide strong { margin:0!important; font-size:.68rem!important; }
+  .pc-game .pc-build-guide button { min-height:34px!important; padding:6px 9px!important; font-size:.6rem!important; }
+
+  /* Inspector is a compact action strip between ship and module tray. */
+  .pc-game .build-inspector {
+    grid-column:1!important; grid-row:2!important;
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) auto!important;
+    align-items:center;
+    gap:5px 8px!important;
+    max-height:104px!important;
+    padding:7px 9px!important;
+    border:0!important;
+    border-top:1px solid #2d4652!important;
+    background:#0e202b!important;
+    overflow:auto!important;
+  }
+  .pc-game .pc-inspector-art { display:none!important; }
+  .pc-game .build-selection { grid-column:1; margin:0!important; padding:0!important; min-width:0; border:0!important; }
+  .pc-game .build-selection .module-glyph,.pc-game .build-selection .module-icon { width:30px!important; height:30px!important; }
+  .pc-game .build-selection strong { font-size:.74rem!important; }
+  .pc-game .build-selection .module-role { font-size:.52rem!important; }
+  .pc-game .selection-price { font-size:.6rem!important; white-space:nowrap; }
+  .pc-game .build-module-details { grid-column:1; font-size:.58rem!important; padding:0!important; }
+  .pc-game .build-module-details p,.pc-game .build-module-details .installed-module-heading { display:none!important; }
+  .pc-game .build-detail-actions { margin:0!important; gap:5px!important; }
+  .pc-game .build-detail-actions button { min-height:34px!important; padding:6px 8px!important; font-size:.58rem!important; }
+  .pc-game #buildModulePreview { display:none!important; }
+  .pc-game #pcOpenFamilyTree { grid-column:2; grid-row:1 / span 2; min-height:42px!important; max-width:112px; padding:7px 9px!important; font-size:.6rem!important; }
+
+  /* Library becomes a real bottom tray. */
+  .pc-game .catalog-wrap {
+    grid-column:1!important; grid-row:3!important;
+    min-height:0!important;
+    padding:6px 8px calc(6px + env(safe-area-inset-bottom))!important;
+    border:0!important;
+    border-top:1px solid #2d4652!important;
+    background:#0c1c27!important;
+    overflow:hidden!important;
+  }
+  .pc-game .catalog-wrap>.build-section-label { display:block!important; margin:0 0 5px!important; font-size:.52rem!important; color:#87a5b2; }
+  .pc-game .pc-catalog-search { display:none!important; }
+  .pc-game #catalog {
+    display:flex!important;
+    flex-wrap:nowrap!important;
+    gap:6px!important;
+    overflow-x:auto!important;
+    overflow-y:hidden!important;
+    padding:0 0 2px!important;
+  }
+  .pc-game .catalog-group { flex:0 0 auto!important; margin:0!important; }
+  .pc-game .catalog-group-title { display:none!important; }
+  .pc-game .catalog-group-items { display:flex!important; flex-wrap:nowrap!important; gap:6px!important; }
+  .pc-game .catalog-card {
+    flex:0 0 116px!important;
+    width:116px!important;
+    min-height:72px!important;
+    grid-template-columns:34px minmax(0,1fr)!important;
+    grid-template-rows:auto auto!important;
+    padding:6px!important;
+    border-radius:7px!important;
+    background:#132936!important;
+  }
+  .pc-game .catalog-card .module-glyph,.pc-game .catalog-card .module-icon { width:34px!important; height:34px!important; }
+  .pc-game .catalog-card strong { font-size:.59rem!important; line-height:1.15!important; }
+  .pc-game .catalog-card .catalog-cost { font-size:.54rem!important; }
+
+  /* Upgrade workspace: installed families on top, tree gets the rest. */
+  .pc-game .pc-tree-open .build-content {
+    grid-template-columns:1fr!important;
+    grid-template-rows:92px minmax(0,1fr)!important;
+  }
+  .pc-game .pc-tree-open .catalog-wrap {
+    grid-column:1!important; grid-row:1!important;
+    padding:7px 8px!important;
+    border-top:0!important;
+    border-bottom:1px solid #2d4652!important;
+  }
+  .pc-game .pc-tree-open .catalog-wrap>.build-section-label { display:none!important; }
+  .pc-game .pc-tree-open .pc-installed-families {
+    display:flex!important;
+    flex-direction:row!important;
+    gap:6px!important;
+    overflow-x:auto!important;
+    overflow-y:hidden!important;
+    padding:0 0 2px!important;
+  }
+  .pc-game .pc-tree-open .pc-family-help { display:none!important; }
+  .pc-game .pc-tree-open .pc-family-card {
+    flex:0 0 138px!important;
+    width:138px!important;
+    min-height:72px!important;
+    margin:0!important;
+    padding:7px!important;
+    gap:7px!important;
+    border-radius:7px!important;
+  }
+  .pc-game .pc-tree-open .pc-family-art,.pc-game .pc-tree-open .pc-family-art .module-icon { width:34px!important; height:34px!important; }
+  .pc-game .pc-tree-open .pc-family-label { gap:3px!important; }
+  .pc-game .pc-tree-open .pc-family-label strong { font-size:.64rem!important; }
+  .pc-game .pc-tree-open .pc-family-label small { font-size:.52rem!important; }
+  .pc-game .pc-tree-open .build-stage,.pc-game .pc-tree-open .build-inspector { display:none!important; }
+  .pc-game .pc-tree-open .build-upgrade-panel {
+    display:block;
+    grid-column:1!important; grid-row:2!important;
+    min-height:0!important;
+    max-height:none!important;
+    padding:8px!important;
+    border:0!important;
+    overflow:hidden!important;
+    background:#091721!important;
+  }
+  .pc-game .pc-tree-open .upgrade-list,.pc-game .pc-tree-open .upgrade-card { height:100%!important; min-height:0!important; }
+  .pc-game .pc-tree-open .run-upgrade-track {
+    height:100%!important;
+    min-height:0!important;
+    max-height:none!important;
+    overflow:auto!important;
+    padding:8px!important;
+    margin:0!important;
+    border:1px solid #29434f!important;
+    border-radius:8px!important;
+    background:#08131c!important;
+    touch-action:pan-x pan-y;
+  }
+  .pc-game .pc-tree-open .run-upgrade-track .upgrade-option { flex-basis:196px!important; width:196px!important; padding:9px!important; border-radius:7px!important; }
+  .pc-game .pc-tree-open .run-upgrade-track .upgrade-option strong { font-size:.7rem!important; }
+  .pc-game .pc-tree-open .run-upgrade-track .upgrade-option small,
+  .pc-game .pc-tree-open .run-upgrade-track .upgrade-delta { font-size:.58rem!important; }
+  .pc-game .pc-tree-open .run-path-node { flex-basis:118px!important; width:118px!important; min-height:56px!important; font-size:.63rem!important; }
+  .pc-game .pc-tree-open .pc-tree-hint { grid-column:1!important; grid-row:2!important; padding:16px!important; }
+  /* A selected family has a real tree; keep the empty-state help out of its workspace. */
+  .pc-game .pc-tree-open:has(.pc-family-card) .pc-tree-hint { display:none!important; }
+  .pc-game .pc-tree-open:not(:has(.pc-family-card)) .build-upgrade-panel { display:none!important; }
+  .pc-game .pc-tree-open .pc-tree-hint>strong { font-size:1rem!important; }
+  .pc-game .pc-tree-open .pc-tree-hint p { font-size:.7rem; }
+
+  /* ---------- SETTINGS ---------- */
+  .pc-game #pauseOverlay.settings-view .pause-panel {
+    display:flex!important;
+    flex-direction:column;
+    height:100%!important;
+    padding:calc(10px + env(safe-area-inset-top)) max(10px,env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) max(10px,env(safe-area-inset-left))!important;
+    overflow:hidden!important;
+    background:#0b1a25!important;
+  }
+  .pc-game #pauseOverlay.settings-view .pause-panel>.eyebrow { display:none; }
+  .pc-game #pauseOverlay.settings-view #pauseTitle { margin:2px 0 8px!important; font-size:1.25rem!important; }
+  .pc-game #pauseOverlay.settings-view #settingsContent {
+    display:flex!important;
+    flex-direction:column!important;
+    grid-template-columns:none!important;
+    gap:0!important;
+    min-height:0!important;
+    overflow:hidden!important;
+    flex:1 1 auto;
+  }
+  .pc-game .pc-settings-nav {
+    display:flex!important;
+    flex-direction:row!important;
+    flex:0 0 auto;
+    gap:5px!important;
+    padding:0 0 7px!important;
+    border:0!important;
+    border-bottom:1px solid #304955!important;
+    overflow-x:auto!important;
+  }
+  .pc-game .pc-settings-nav button {
+    flex:0 0 auto;
+    min-height:38px!important;
+    padding:7px 10px!important;
+    border:1px solid #35515f!important;
+    border-radius:7px!important;
+    background:#102632!important;
+    font-size:.64rem!important;
+    white-space:nowrap;
+  }
+  .pc-game .pc-settings-scroll {
+    flex:1 1 auto;
+    min-height:0;
+    overflow:auto!important;
+    padding:10px 0 16px!important;
+  }
+  .pc-game .settings-intro { display:none; }
+  .pc-game .settings-grid { display:flex!important; flex-direction:column!important; gap:16px!important; }
+  .pc-game .pc-settings-section { gap:7px!important; }
+  .pc-game .pc-settings-section .settings-section-title {
+    margin:0!important;
+    padding:4px 1px 3px!important;
+    font-size:.88rem!important;
+    font-weight:600!important;
+    color:#e4f1f5!important;
+  }
+  .pc-game .setting-row {
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) auto!important;
+    grid-template-rows:auto auto!important;
+    align-items:center!important;
+    gap:8px 12px!important;
+    min-height:62px!important;
+    padding:11px 12px!important;
+    border:1px solid #2f4854!important;
+    border-radius:8px!important;
+    background:#112733!important;
+  }
+  .pc-game .setting-row label { grid-column:1; grid-row:1; font-size:.74rem!important; line-height:1.25; }
+  .pc-game .setting-row>span:empty { display:none!important; }
+  .pc-game .setting-row small { grid-column:2; grid-row:1; align-self:center; font-size:.62rem!important; color:#a9bec8; }
+  .pc-game .setting-row input[type="range"] {
+    grid-column:1 / -1!important; grid-row:2!important;
+    width:100%!important; min-height:30px;
+    margin:0!important;
+  }
+  .pc-game .setting-row select {
+    grid-column:1 / -1!important; grid-row:2!important;
+    width:100%!important; min-height:44px!important;
+    padding:9px 10px!important;
+    font-size:16px!important;
+    border-radius:7px;
+  }
+  .pc-game .setting-row input[type="checkbox"] {
+    grid-column:2!important; grid-row:1!important;
+    width:24px!important; height:24px!important;
+    margin:0!important;
+  }
+  .pc-game .settings-controls { margin:8px 0 0!important; padding:12px 2px!important; font-size:.65rem!important; line-height:1.6!important; }
+  .pc-game #advancedSettings { margin-top:10px; }
+  .pc-game #pauseOverlay.settings-view .pause-actions {
+    display:grid!important;
+    grid-template-columns:1fr 1fr!important;
+    gap:6px!important;
+    flex:0 0 auto;
+    width:100%!important;
+    margin:0!important;
+    padding:8px 0 0!important;
+    border-top:1px solid #304955!important;
+    background:#0b1a25;
+  }
+  .pc-game #pauseOverlay.settings-view .pause-actions button { min-height:44px!important; padding:8px 10px!important; font-size:.68rem!important; }
+
+  /* Make every scrollable mobile surface clearly end above safe area. */
+  .pc-game .hangar-panel,.pc-game .pc-settings-scroll { scrollbar-width:thin; }
+}
+
+@media (hover:none) and (pointer:coarse) and (orientation:landscape),
+       (max-width:760px) and (orientation:landscape) {
+  .pc-game .hangar-header { min-height:44px; padding-bottom:5px!important; }
+  .pc-game .hangar-tab { min-height:44px!important; }
+  .pc-game .hangar-panel { padding-top:6px!important; }
+  .pc-game #pcCoresPanel #corePicker.systems-workspace { grid-template-rows:auto minmax(0,1fr)!important; }
+  .pc-game #pcCoresPanel .systems-hero { display:none!important; }
+  .pc-game #corePicker.systems-workspace,.pc-game #metaList.systems-workspace { grid-template-rows:auto minmax(0,1fr)!important; }
+  .pc-game .systems-selector { flex-basis:118px; width:118px!important; min-height:54px!important; }
+  .pc-game .research-body { grid-template-columns:minmax(0,1.2fr) minmax(220px,.8fr)!important; grid-template-rows:1fr!important; }
+  .pc-game .research-detail { border-top:0!important; border-left:1px solid var(--line)!important; }
+
+  .pc-game .build-content { grid-template-rows:minmax(0,1fr) 78px 94px!important; }
+  .pc-game .build-inspector { max-height:78px!important; padding:5px 8px!important; }
+  .pc-game .catalog-wrap { padding-top:4px!important; }
+  .pc-game .catalog-card { min-height:58px!important; flex-basis:108px!important; width:108px!important; }
+  .pc-game .catalog-card .module-glyph,.pc-game .catalog-card .module-icon { width:28px!important; height:28px!important; }
+  .pc-game .pc-tree-open .build-content { grid-template-rows:76px minmax(0,1fr)!important; }
+  .pc-game .pc-tree-open .pc-family-card { min-height:58px!important; flex-basis:126px!important; width:126px!important; }
+
+  .pc-game #pauseOverlay.settings-view .pause-panel { padding-top:calc(6px + env(safe-area-inset-top))!important; }
+  .pc-game #pauseOverlay.settings-view #pauseTitle { font-size:1.05rem!important; margin-bottom:5px!important; }
+  .pc-game .pc-settings-nav { padding-bottom:5px!important; }
+  .pc-game .setting-row { min-height:54px!important; padding:8px 10px!important; }
+  .pc-game .settings-grid { gap:10px!important; }
+}
+
+@media (max-width:390px) {
+  .pc-game .hangar-tab strong { font-size:.58rem; }
+  .pc-game .armory-grid { grid-template-columns:1fr!important; }
+  .pc-game .pick-button {
+    min-height:92px!important;
+    display:grid!important;
+    grid-template-columns:58px minmax(0,1fr)!important;
+    grid-template-rows:auto auto!important;
+    align-items:center!important;
+  }
+  .pc-game .pick-button .module-glyph,.pc-game .pick-button .module-icon { grid-row:1 / span 2; width:50px!important; height:50px!important; }
+  .pc-game .pick-button strong,.pc-game .pick-button .pick-role { grid-column:2!important; }
+  .pc-game .build-content { grid-template-rows:minmax(0,1fr) auto 112px!important; }
+}

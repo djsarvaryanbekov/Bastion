@@ -1,0 +1,622 @@
+{
+  "platform": {
+    "source": "platforms/Drift_Bastion_Platform_Square_v2.png",
+    "sha256": "93b7543e8b16eea114d377948e85cbf9f61d82bc7681b14c6fee2ed01f76d965",
+    "sourceSize": [
+      1024,
+      1024
+    ],
+    "solidBounds": [
+      154,
+      154,
+      870,
+      870
+    ],
+    "crop": [
+      154,
+      154,
+      870,
+      870
+    ],
+    "pivot": [
+      512,
+      512
+    ],
+    "tileScale": 0.0013966480446927375,
+    "bodyRadiusInTiles": 0.7071067811865476,
+    "transparentPixels": 535920,
+    "exportSize": [
+      256,
+      256
+    ]
+  },
+  "mount": {
+    "source": "modules/swivel-mount-v3.png",
+    "sha256": "958d8e3aace9edc1b337fc4c4b233adecb1a8a28e577a1aaa932bce9e2fc65af",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "solidBounds": [
+      179,
+      174,
+      1073,
+      1070
+    ],
+    "crop": [
+      177,
+      172,
+      1075,
+      1072
+    ],
+    "pivot": [
+      626,
+      622
+    ],
+    "tileScale": 0.00076,
+    "bodyRadiusInTiles": 0.40928663794460723,
+    "transparentPixels": 892119,
+    "exportSize": [
+      255,
+      256
+    ]
+  },
+  "cannon": {
+    "source": "modules/auto-cannon-v2.png",
+    "sha256": "1413b0a009cf2c2c3e6853f8cae3a4fb0fe7f0a16c5a53b8a6146fb804b211e5",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "solidBounds": [
+      364,
+      301,
+      890,
+      997
+    ],
+    "crop": [
+      362,
+      299,
+      892,
+      999
+    ],
+    "pivot": [
+      627,
+      750
+    ],
+    "tileScale": 0.0014569058143078957,
+    "bodyRadiusInTiles": 0.39804469273743015,
+    "transparentPixels": 1366769,
+    "exportSize": [
+      194,
+      256
+    ]
+  },
+  "missile": {
+    "source": "modules/missile-pod-v5.png",
+    "sha256": "d7d47e449a2497bbc88394b09580a9a53971c0600f7c105f10d788b4c1195ec1",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "solidBounds": [
+      120,
+      393,
+      1135,
+      960
+    ],
+    "crop": [
+      118,
+      391,
+      1137,
+      962
+    ],
+    "pivot": [
+      627.5,
+      676.5
+    ],
+    "tileScale": 0.000796708588,
+    "bodyRadiusInTiles": 0.42742097778309607,
+    "transparentPixels": 1095087,
+    "exportSize": [
+      256,
+      143
+    ]
+  },
+  "rail": {
+    "source": "modules/rail-lance-v1.png",
+    "sha256": "19af22e8ff6eab2aa2f977b7f086332a1c8fdfc0871e062d772c5f979db1ff59",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "solidBounds": [
+      370,
+      123,
+      884,
+      1163
+    ],
+    "crop": [
+      368,
+      121,
+      886,
+      1165
+    ],
+    "pivot": [
+      627,
+      970
+    ],
+    "tileScale": 0.00130426276547,
+    "bodyRadiusInTiles": 0.3547259050339088,
+    "transparentPixels": 1296591,
+    "exportSize": [
+      127,
+      256
+    ]
+  },
+  "laser": {
+    "source": "modules/piercing-laser-v2.png",
+    "sha256": "d33f33b9e0c6398c306a4487c8f2e87fcc404b360194553652f618119aced4b7",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "solidBounds": [
+      197,
+      183,
+      1055,
+      1115
+    ],
+    "crop": [
+      195,
+      181,
+      1057,
+      1117
+    ],
+    "pivot": [
+      627,
+      800
+    ],
+    "tileScale": 0.00084645336042,
+    "bodyRadiusInTiles": 0.3761187671208787,
+    "transparentPixels": 1048256,
+    "exportSize": [
+      236,
+      256
+    ]
+  },
+  "arc": {
+    "source": "modules/arc-emitter-v16.png",
+    "sha256": "e409e1868f1567963e62cecc0c51e7dc95a19799518da209e7c576a856141a06",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "solidBounds": [
+      454,
+      352,
+      799,
+      891
+    ],
+    "crop": [
+      452,
+      350,
+      801,
+      893
+    ],
+    "pivot": [
+      627,
+      712
+    ],
+    "tileScale": 0.00138,
+    "bodyRadiusInTiles": 0.39905629678029136,
+    "transparentPixels": 1448465,
+    "exportSize": [
+      165,
+      256
+    ]
+  },
+  "scatter": {
+    "source": "modules/scatter-array-v28.png",
+    "sha256": "76789753087c91a800b7005e06040cb281560c02eb62353577f541ad8afb375f",
+    "sourceSize": [
+      1402,
+      1122
+    ],
+    "solidBounds": [
+      99,
+      108,
+      1334,
+      1023
+    ],
+    "crop": [
+      97,
+      106,
+      1336,
+      1025
+    ],
+    "pivot": [
+      972,
+      565
+    ],
+    "tileScale": 0.00074638680931,
+    "bodyRadiusInTiles": 0.41091830779523264,
+    "transparentPixels": 842053,
+    "exportSize": [
+      256,
+      190
+    ]
+  },
+  "flak": {
+    "source": "modules/flak-battery-v6.png",
+    "sha256": "fbf44630db43b54ee0b9978f0d81b252cf75d77ce5021e67087334e574a435d2",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "solidBounds": [
+      61,
+      163,
+      986,
+      965
+    ],
+    "crop": [
+      59,
+      161,
+      988,
+      967
+    ],
+    "pivot": [
+      730,
+      790
+    ],
+    "tileScale": 0.000629867119719011,
+    "bodyRadiusInTiles": 0.43,
+    "transparentPixels": 1120713,
+    "exportSize": [
+      256,
+      222
+    ]
+  },
+  "pulse": {
+    "source": "modules/pulse-nova-v1.png",
+    "sha256": "40e67a6775bff75d0ab88dac9b0c60522cd436662baa7175b1ac6a9d2362b074",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "solidBounds": [
+      163,
+      165,
+      1090,
+      1071
+    ],
+    "crop": [
+      161,
+      163,
+      1092,
+      1073
+    ],
+    "pivot": [
+      626.5,
+      618
+    ],
+    "tileScale": 0.0008845738942826321,
+    "bodyRadiusInTiles": 0.4752321279576598,
+    "transparentPixels": 853471,
+    "exportSize": [
+      256,
+      250
+    ]
+  },
+  "cryo": {
+    "source": "modules/cryo-projector-v1.png",
+    "sha256": "bcec4f3b703b6ddfb31c77213d65641f0dc515082573ef7fadfd7a2ed707d641",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "solidBounds": [
+      90,
+      163,
+      1165,
+      1032
+    ],
+    "crop": [
+      88,
+      161,
+      1167,
+      1034
+    ],
+    "pivot": [
+      627,
+      680
+    ],
+    "tileScale": 0.000747673458426445,
+    "bodyRadiusInTiles": 0.43,
+    "transparentPixels": 852747,
+    "exportSize": [
+      256,
+      207
+    ]
+  },
+  "mine": {
+    "source": "modules/mine-layer-v1.png",
+    "sha256": "e2209e5cc15325f85de2a7ac882c56b3163da37f390af819579ec78a3fb91cb3",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "solidBounds": [
+      111,
+      120,
+      1143,
+      1125
+    ],
+    "crop": [
+      109,
+      118,
+      1145,
+      1127
+    ],
+    "pivot": [
+      627,
+      622.5
+    ],
+    "tileScale": 0.0007751937984496124,
+    "bodyRadiusInTiles": 0.529903366917532,
+    "transparentPixels": 661014,
+    "exportSize": [
+      256,
+      249
+    ]
+  },
+  "ember": {
+    "source": "modules/ember-projector-v1.png",
+    "sha256": "250454e5950f5d7b7fb9c4b01825d12aab47eaea64a7a0e4a96f3d34a9804afc",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "solidBounds": [
+      129,
+      146,
+      1124,
+      1110
+    ],
+    "crop": [
+      127,
+      144,
+      1126,
+      1112
+    ],
+    "pivot": [
+      627,
+      775
+    ],
+    "tileScale": 0.0008125583247277022,
+    "bodyRadiusInTiles": 0.43,
+    "transparentPixels": 943919,
+    "exportSize": [
+      256,
+      248
+    ]
+  },
+  "gravity": {
+    "source": "modules/gravity-well-v1.png",
+    "sha256": "5d4e3409c9090fe64889a605b8107a8eb664a08458b3bba9637528a0ad48d225",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "solidBounds": [
+      100,
+      122,
+      1154,
+      1132
+    ],
+    "crop": [
+      98,
+      120,
+      1156,
+      1134
+    ],
+    "pivot": [
+      627,
+      627
+    ],
+    "tileScale": 0.0007590132827324478,
+    "bodyRadiusInTiles": 0.44262385252900655,
+    "transparentPixels": 711917,
+    "exportSize": [
+      256,
+      245
+    ]
+  },
+  "shield": {
+    "source": "modules/shield-node-v2.png",
+    "sha256": "b5ce5b649301837e0d98c58282fef8e8244a6120ff3680bf37c5145bcf38886e",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "solidBounds": [
+      108,
+      120,
+      1145,
+      1133
+    ],
+    "crop": [
+      106,
+      118,
+      1147,
+      1135
+    ],
+    "pivot": [
+      626.5,
+      626.5
+    ],
+    "tileScale": 0.0007907425265188042,
+    "bodyRadiusInTiles": 0.4758289457499369,
+    "transparentPixels": 891063,
+    "exportSize": [
+      256,
+      250
+    ]
+  },
+  "repair": {
+    "source": "modules/repair-array-v6.png",
+    "sha256": "a9dd2fac46efb71ad342827ab39a56c0860ead32914a494b435ce12bbd610b77",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "solidBounds": [
+      131,
+      275,
+      1123,
+      979
+    ],
+    "crop": [
+      129,
+      273,
+      1125,
+      981
+    ],
+    "pivot": [
+      627,
+      627
+    ],
+    "tileScale": 0.0008266129032258064,
+    "bodyRadiusInTiles": 0.422023734717068,
+    "transparentPixels": 1036172,
+    "exportSize": [
+      256,
+      182
+    ]
+  },
+  "collector": {
+    "source": "modules/matter-siphon-v4.png",
+    "sha256": "2819d824260a962f849a3028851ab84f9a88aa36f99c005b3f49e24659706df7",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "solidBounds": [
+      155,
+      164,
+      1096,
+      1089
+    ],
+    "crop": [
+      153,
+      162,
+      1098,
+      1091
+    ],
+    "pivot": [
+      625.5,
+      626.5
+    ],
+    "tileScale": 0.0008714133900106269,
+    "bodyRadiusInTiles": 0.4332708211489038,
+    "transparentPixels": 875542,
+    "exportSize": [
+      256,
+      252
+    ]
+  },
+  "armor": {
+    "source": "modules/armor-platform-v6.png",
+    "sha256": "ed4a14b5698353ccf87e4759739dd4b36892e6daa989518fe0c80ff8507a0f73",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "solidBounds": [
+      114,
+      113,
+      1141,
+      1109
+    ],
+    "crop": [
+      112,
+      111,
+      1143,
+      1111
+    ],
+    "pivot": [
+      627.5,
+      611
+    ],
+    "tileScale": 0.0009737098344693282,
+    "bodyRadiusInTiles": 0.6951621658592119,
+    "transparentPixels": 539976,
+    "exportSize": [
+      256,
+      248
+    ]
+  },
+  "bulkhead": {
+    "source": "modules/aegis-bulkhead-v1.png",
+    "sha256": "ceebdbe2365bd9c7f5389fa4ec5940c8a3ed56e92471aad16192b61700b5768d",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "solidBounds": [
+      79,
+      108,
+      1176,
+      1145
+    ],
+    "crop": [
+      77,
+      106,
+      1178,
+      1147
+    ],
+    "pivot": [
+      627.5,
+      626.5
+    ],
+    "tileScale": 0.0009115770282588879,
+    "bodyRadiusInTiles": 0.6166335165162304,
+    "transparentPixels": 562903,
+    "exportSize": [
+      256,
+      242
+    ]
+  },
+  "core": {
+    "source": "modules/standard-core-v1.png",
+    "sha256": "3d6b52e67b222ffb9de97bc44e34e37d1c550c1eac815e3414b5007a3d072183",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "solidBounds": [
+      150,
+      149,
+      1104,
+      1077
+    ],
+    "crop": [
+      148,
+      147,
+      1106,
+      1079
+    ],
+    "pivot": [
+      627,
+      613
+    ],
+    "tileScale": 0.0010482180293501049,
+    "bodyRadiusInTiles": 0.6968072220868274,
+    "transparentPixels": 673327,
+    "exportSize": [
+      256,
+      249
+    ]
+  }
+}

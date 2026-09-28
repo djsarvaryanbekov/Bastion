@@ -163,10 +163,10 @@ api.save.fragmentCarryUnits = 347680;
 api.storeSave();
 storageMap.set("unrelated-preview-sentinel", "leave-intact");
 const initial = persistent(), definitions = plain(api.MODULES);
-assert.equal(api.openModulePreview("core", "build"), false, "The fixed core is not one of the 19 module previews");
+assert.equal(api.openModulePreview("core", "build"), false, "The fixed core is not one of the 18 module previews");
 assert.equal(api.openModulePreview("unknown-module", "hangar"), false);
 api.renderStarterPicker();
-assert.equal(api.ui.weaponPicker.children.length, 19);
+assert.equal(api.ui.weaponPicker.children.length, 18);
 for (const type of Object.keys(api.MODULES)) {
   assert.equal(card(type).disabled, false, type + " remains inspectable regardless of purchase eligibility");
   const selection = plain(api.selection());
@@ -183,16 +183,16 @@ for (const type of Object.keys(api.MODULES)) {
   closePreview();
 }
 assert.deepEqual(plain(api.MODULES), definitions, "A schematic simulation cannot mutate live module definitions");
-assert.deepEqual(Array.from(new Set(runtime.__previewIcons.map(icon => icon.type))).sort(), Object.keys(api.MODULES).sort(),
-  "All 19 schematic module paths must invoke the actual game's glyph callback");
+assert.deepEqual(Array.from(new Set(runtime.__previewIcons.map(icon => icon.type))).sort(), Object.keys(api.MODULES).concat("core").sort(),
+  "All 18 modules and the Core must invoke the actual game's glyph callback");
 assert.ok(runtime.__previewIcons.every(icon => icon.previewContext && icon.previewWrites > 0 && icon.mainWrites === 0),
   "Each actual glyph callback must draw only into the provided preview context");
 const countsBeforeDefaultGlyph = {...runtime.__previewDrawCounts};
 api.drawModuleGlyph({type: "cannon", aim: 0}, 0, 0);
 assert.ok(runtime.__previewDrawCounts.main > countsBeforeDefaultGlyph.main);
 assert.equal(runtime.__previewDrawCounts.preview, countsBeforeDefaultGlyph.preview, "The unchanged three-argument gameplay call must still use the main canvas");
-report.checks.push("All 19 cards preview while locked, poor or owned; no purchase, loadout change, storage write, or shared-definition mutation");
-report.checks.push("All 19 actual module glyph callbacks draw on preview canvas only; existing gameplay call still draws on its own canvas");
+report.checks.push("All 18 cards preview while locked, poor or owned; no purchase, loadout change, storage write, or shared-definition mutation");
+report.checks.push("All 18 actual module glyph callbacks draw on preview canvas only; existing gameplay call still draws on its own canvas");
 
 // Visibility and user pause stop the real dialog's RAF; resume cannot replay hidden time.
 fire(card("shield"));
@@ -260,7 +260,7 @@ animate();
 const timeBeforeBuy = panel().scene.time;
 fire(buyOnce);
 assert.equal(panel().scene.time, timeBeforeBuy, "Updating ownership/actions must not restart the scene");
-assert.equal(api.save.fragments, 16);
+assert.equal(api.save.fragments, 12);
 assert.equal(api.save.fragmentCarryUnits, 347680, "Buying a licence spends whole Fragments only; the saved fractional reward is retained");
 assert.equal(api.save.progression.purchasedModules.filter(type => type === "scatter").length, 1);
 assert.equal(api.save.lastLoadout.selectedWeapon, starterBefore, "Unlocking a licence cannot silently equip a different starter");
@@ -278,18 +278,6 @@ assert.equal(api.save.lastLoadout.selectedWeapon, "scatter", "Only the explicit 
 closePreview();
 report.checks.push("Explicit licence purchase charges once; stale balance/type/double clicks are rejected; starter selection is separate");
 
-api.save.progression.totalKills = 30; api.save.fragments = 40;
-api.storeSave(); api.renderStarterPicker();
-fire(card("drive"));
-const eligibleAction = element("modulePreviewAction");
-assert.equal(eligibleAction.disabled, false);
-api.save.progression.totalKills = 29; api.storeSave();
-const eligibilityChanged = persistent();
-fire(eligibleAction);
-assert.deepEqual(persistent(), eligibilityChanged, "A stale purchase must also revalidate challenge eligibility");
-assert.equal(api.save.progression.purchasedModules.includes("drive"), false);
-closePreview();
-
 // New eligibility stays silent in combat; optional previews remain available through explicit actions.
 api.save.progression.totalKills = 29;
 api.storeSave();
@@ -303,13 +291,13 @@ assert.equal(panel().open, false);
 assert.equal(previewFrames().length, 0);
 const notification = api.ui.toast.children.find(child => child.className === "toast-preview");
 assert.equal(notification, undefined, "New eligibility must not add an in-combat purchase or preview notification");
-assert.ok(game.runUnlocks.includes("drive"), "The silent discovery must still appear in the run result");
+assert.equal(game.runUnlocks.length, 0, "Currency-only licenses do not fabricate combat discoveries");
 const liveBefore = snapshotGame(game), liveSave = plain(api.save), liveTelemetry = telemetry();
-assert.equal(api.openModulePreview("drive", "unlock"), true);
-assert.equal(panel().type, "drive");
+assert.equal(api.openModulePreview("reactor", "unlock"), true);
+assert.equal(panel().type, "reactor");
 assert.equal(game.state, "paused");
 assert.equal(panel().actionDisabled, true, "A live run cannot buy a permanent licence from the preview");
-assert.equal(api.modulePreviewAction("drive", "buy"), false);
+assert.equal(api.modulePreviewAction("reactor", "buy"), false);
 const pausedTelemetry = telemetry();
 assert.equal(api.openModulePreview("cannon", "unlock"), true);
 assert.deepEqual(telemetry(), pausedTelemetry, "Switching previews must not nest pause events or overwrite the original run state");

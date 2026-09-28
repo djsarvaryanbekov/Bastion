@@ -131,10 +131,10 @@ function buyCannon(x = 1, y = 0) {
 
 function upgradeCannon() {
   if (api.current().state !== "building") clickAction("trainingOpenBuildButton");
-  const before = api.current().weaponDefinitions.cannon.cooldown;
-  assert.equal(api.buyRunUpgrade("cannon", "tune", 0), true);
+  const before = api.current().weaponDefinitions.cannon.damage;
+  assert.equal(api.buyRunUpgrade("cannon", "base1", 0), true);
   assert.equal(api.current().upgrades.cannon.level, 1);
-  assert.ok(api.current().weaponDefinitions.cannon.cooldown < before);
+  assert.ok(api.current().weaponDefinitions.cannon.damage > before);
   assert.equal(api.current().state, "building", "Upgrading must leave Build open until Resume");
   assert.equal(state().completed, false);
 }
@@ -195,7 +195,7 @@ upgradeCannon();
 api.closeBuild();
 const upgrades = clearStage("upgrades", null, observed);
 for (const group of ["construction", "upgrades"]) assert.equal(new Set(observed.volleys.filter(volley => volley.group === group).map(volley => volley.key)).size, 2, "Both Cannons must really fire in " + group);
-assert.ok(observed.volleys.filter(volley => volley.group === "upgrades").every(volley => volley.cooldown < api.MODULES.cannon.cooldown), "Every actual Cannon volley uses the family upgrade");
+assert.ok(observed.volleys.filter(volley => volley.group === "upgrades").every(volley => volley.damage > api.MODULES.cannon.damage), "Every actual Cannon volley uses the family upgrade");
 assert.ok(observed.hostileProjectiles > 0, "The final bolter must fire through the ordinary hostile-projectile path");
 assert.deepEqual(persistence(), baseline, "All training actions and automatic completion must preserve permanent progress until exit");
 const finishedTime = api.current().elapsed;
@@ -261,7 +261,7 @@ const beforeLoss = persistence();
 startLesson();
 upgradeCannon();
 api.closeBuild();
-assert.equal(api.current().matter, 10);
+assert.equal(api.current().matter, 22);
 api.current().applyDamageToTile("0,-1", 1000000);
 api.current().update(1 / 60);
 assert.equal(Array.from(api.current().ship.tiles.values()).filter(tile => tile.type === "cannon").length, 0);

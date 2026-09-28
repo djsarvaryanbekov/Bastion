@@ -122,22 +122,23 @@ function bossEmissionRate(age) {
   game.updateSpawner(1);
   return 10 - game.ambientSpawnClock;
 }
-for (const [age, rate] of [[0, .3], [30, .3], [60, .65], [90, 1], [900, 1]]) {
+for (const [age, rate] of [[0, .6], [30, .6], [60, .6], [90, .6], [900, .6]]) {
   assert.ok(Math.abs(bossEmissionRate(age) - rate) < 1e-9,
-    "Boss entry eases spawning, then returns to the normal bounded rate during a prolonged fight");
+    "Boss spawning remains at 60% throughout a prolonged fight");
 }
 const pressureProbe = api.create();
 const freshDrone = pressureProbe.spawnEnemy("drone", 1000, 0);
 pressureProbe.damageEnemy(freshDrone, api.modules.cannon.damage);
 assert.ok(freshDrone.dead, "Opening drones must remain vulnerable to one baseline cannon shot.");
 pressureProbe.bossesDefeated = 3;
+pressureProbe.elapsed = 600;
 const veteranDrone = pressureProbe.spawnEnemy("drone", 1000, 0);
 pressureProbe.damageEnemy(veteranDrone, api.modules.cannon.damage);
-assert.ok(!veteranDrone.dead, "Later sectors must make damage investment matter.");
+assert.ok(veteranDrone.dead, "The same drone must remain vulnerable to the same shot at ten minutes.");
 pressureProbe.bossesDefeated = 10000;
+pressureProbe.elapsed = 1000000;
 const lateDrone = pressureProbe.spawnEnemy("drone", 1000, 0);
-assert.ok(lateDrone.hp <= api.modules.cannon.damage * 2,
-  "Late common enemies must stay killable without becoming health sponges.");
+assert.equal(lateDrone.maxHp, freshDrone.maxHp, "Endless must preserve ordinary enemy stats.");
 assert.ok(Number.isFinite(lateDrone.speed) && lateDrone.speed < 230, "Common swarm bodies must stay escapable by baseline movement.");
 
 function createBoss(encounter) {
@@ -153,7 +154,7 @@ function createBoss(encounter) {
 }
 
 const chargeProbe = createBoss(2);
-chargeProbe.boss.attackIndex = 1;
+chargeProbe.boss.attackIndex = 0;
 chargeProbe.updateBoss(chargeProbe.boss, 1 / 30);
 assert.equal(chargeProbe.boss.attackPattern, "charge");
 assert.ok(chargeProbe.boss.attackChargeMax >= 1, "A body-width charge needs a full-second dodge warning.");
@@ -192,6 +193,50 @@ const lateBoss = createBoss(10001).boss;
 assert.ok(Number.isFinite(lateBoss.hp) && lateBoss.hp <= 100000000);
 assert.ok(lateBoss.shotCount <= 18 && lateBoss.shotDamage <= 72 && lateBoss.speed <= 120);
 
+// Every ordinary type, including heavies, must preserve its stats across run progress.
+const staticProbe = api.create();
+const enemyTypes = ["drone", "scout", "hunter", "orbiter", "brute", "bolter", "gunner", "bulwark", "splitter", "mini", "raptor", "sniper", "bomber", "colossus"];
+function spawnStats(type) {
+  const enemy = staticProbe.spawnEnemy(type, 1000, 0);
+  const stats = [enemy.hp, enemy.maxHp, enemy.damage, enemy.speed, enemy.shield, enemy.maxShield, enemy.radius, enemy.reward];
+  enemy.dead = true;
+  staticProbe.compactEnemies();
+  return stats;
+}
+const initialStats = Object.fromEntries(enemyTypes.map(type => [type, spawnStats(type)]));
+for (const time of [0, 120, 330, 600, 900, 1800, 3600, 1000000]) {
+  staticProbe.elapsed = time;
+  for (const kills of [0, 3, 10000]) {
+    staticProbe.bossesDefeated = kills;
+    for (const type of enemyTypes) assert.deepEqual(spawnStats(type), initialStats[type], `${type}: stats changed at ${time}s after ${kills} bosses`);
+  }
+}
+
+const phaseProbe = createBoss(2);
+phaseProbe.boss.x = -450;
+phaseProbe.updateBoss(phaseProbe.boss, 1 / 30);
+assert.equal(phaseProbe.boss.attackPattern, "aimed", "A distant target needs a ranged attack, not an unreachable dash.");
+phaseProbe.boss.x = -250;
+phaseProbe.boss.hp = phaseProbe.boss.maxHp * .49;
+for (const [attackIndex, pattern] of [[0, "charge"], [1, "charge"], [2, "aimed"]]) {
+  phaseProbe.boss.attackIndex = attackIndex;
+  phaseProbe.boss.attackCharge = 0;
+  phaseProbe.boss.fireClock = 0;
+  phaseProbe.updateBoss(phaseProbe.boss, 1 / 30);
+  assert.equal(phaseProbe.boss.attackPattern, pattern);
+  assert.equal(phaseProbe.boss.combatPhase, 2);
+}
+stormProbe.boss.hp = stormProbe.boss.maxHp * .49;
+stormProbe.boss.attackCharge = 0;
+stormProbe.boss.fireClock = 0;
+stormProbe.updateBoss(stormProbe.boss, 1 / 30);
+assert.ok(Math.abs(stormProbe.boss.volleyAngle - previewAngle - Math.PI / 3) < 1e-9);
+assert.equal(stormProbe.boss.attackChargeMax, 1.25);
+const origin = [stormProbe.boss.x, stormProbe.boss.y];
+stormProbe.ship.y += 200;
+stormProbe.updateBoss(stormProbe.boss, .5);
+assert.deepEqual([stormProbe.boss.x, stormProbe.boss.y], origin, "Telegraph origin must stay fixed after player movement.");
+
 console.log(JSON.stringify({ passed: true, results, damageOverride: false,
-  verified: ["Opening lethality", "Scripted steering outcomes reported", "Later common enemy damage threshold", "Bounded scaling", "Locked and avoidable charge corridor", "Storm telegraph and escape gap"],
+  verified: ["Opening lethality", "Scripted steering outcomes reported", "Static ordinary enemy stats across time and boss kills", "Bounded boss scaling", "Locked and avoidable charge corridor", "Storm telegraph and escape gap"],
   limits: "Deterministic scripted steering, no purchases or meta upgrades. Controlled boss fixtures clear the unplayed opening before jumping to120s, then retain real damage and ongoing arrivals. Full-run scenarios retain all enemies. This does not replace human playtesting." }, null, 2));

@@ -8,9 +8,9 @@
 
   var CORES = [
     { id: "standard", name: "Standard Core", description: "Balanced hull and systems.", requiredTime: 0, requiredBosses: 0, cost: 0, hpMultiplier: 1, moduleHpMultiplier: 1, speedMultiplier: 1, cooldownMultiplier: 1, matterMultiplier: 1 },
-    { id: "striker", name: "Striker Core", description: "Weapons recharge 15% sooner. All installed modules have 25% less HP.", requiredTime: 180, requiredBosses: 1, cost: 20, hpMultiplier: 1, moduleHpMultiplier: .75, speedMultiplier: 1, cooldownMultiplier: .85, matterMultiplier: 1 },
-    { id: "bulwark", name: "Bulwark Core", description: "+35% HP for all installed modules. -15% movement speed.", requiredTime: 360, requiredBosses: 3, cost: 32, hpMultiplier: 1, moduleHpMultiplier: 1.35, speedMultiplier: .85, cooldownMultiplier: 1, matterMultiplier: 1 },
-    { id: "salvager", name: "Salvager Core", description: "+20% Matter from regular enemies. Reloads take 10% longer.", requiredTime: 600, requiredBosses: 5, cost: 44, hpMultiplier: 1, moduleHpMultiplier: 1, speedMultiplier: 1, cooldownMultiplier: 1.1, matterMultiplier: 1.2 }
+    { id: "striker", name: "Striker Core", description: "Weapons recharge 15% sooner. All installed modules have 25% less HP.", requiredTime: 0, requiredBosses: 0, cost: 64, hpMultiplier: 1, moduleHpMultiplier: .75, speedMultiplier: 1, cooldownMultiplier: .85, matterMultiplier: 1 },
+    { id: "bulwark", name: "Bulwark Core", description: "+35% HP for all installed modules. -15% movement speed.", requiredTime: 0, requiredBosses: 0, cost: 80, hpMultiplier: 1, moduleHpMultiplier: 1.35, speedMultiplier: .85, cooldownMultiplier: 1, matterMultiplier: 1 },
+    { id: "salvager", name: "Salvager Core", description: "+20% Matter from regular enemies. Reloads take 10% longer.", requiredTime: 0, requiredBosses: 0, cost: 96, hpMultiplier: 1, moduleHpMultiplier: 1, speedMultiplier: 1, cooldownMultiplier: 1.1, matterMultiplier: 1.2 }
   ];
   var LEGACY_CORE_CLEARS = { striker: 3, bulwark: 6, salvager: 9 };
   var LEGACY_OPERATION_IDS = [];
@@ -63,7 +63,9 @@
       mastered: validIds(raw.mastered, function (id) { return has(completed, id); }),
       purchasedCores: validIds(raw.purchasedCores, getCore),
       legacyEligibleCores: validIds(raw.legacyEligibleCores, getCore),
-      selectedCore: "standard"
+      selectedCore: "standard",
+      coreRanks: {},
+      legacyBonuses: {}
     };
     if (raw.schemaVersion !== 2) {
       var legacyClears = 0;
@@ -72,6 +74,15 @@
         if (core.id !== "standard" && legacyClears >= LEGACY_CORE_CLEARS[core.id] && !has(state.legacyEligibleCores, core.id)) state.legacyEligibleCores.push(core.id);
       });
     }
+    CORES.forEach(function(core) {
+      var source = isRecord(raw.coreRanks) && isRecord(raw.coreRanks[core.id]) ? raw.coreRanks[core.id] : {};
+      state.coreRanks[core.id] = {};
+      state.legacyBonuses[core.id] = {};
+      ["modules", "damage", "drive", "matter"].forEach(function(stat) {
+        state.coreRanks[core.id][stat] = Math.min(25, Math.floor(number(source[stat])));
+        state.legacyBonuses[core.id][stat] = Math.min(1,number(raw.legacyBonuses && raw.legacyBonuses[core.id] && raw.legacyBonuses[core.id][stat]));
+      });
+    });
     if (isCoreOwned(state, raw.selectedCore)) state.selectedCore = raw.selectedCore;
     return state;
   }
@@ -80,7 +91,7 @@
     var core = getCore(id);
     if (!core) return "Unknown core";
     if (core.id === "standard") return "Always available";
-    return "Survive " + core.requiredTime / 60 + " minutes in one run or defeat " + core.requiredBosses + (core.requiredBosses === 1 ? " boss" : " bosses") + " across runs";
+    return "Unlock for " + core.cost + " Fragments";
   }
 
   function purchaseCore(state, id, fragments, progressionState) {

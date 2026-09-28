@@ -1,0 +1,86 @@
+[
+  {
+    "raw": "auto-cannon-v1.png",
+    "dimensions": [
+      1254,
+      1254
+    ],
+    "alpha_bbox": [
+      105,
+      21,
+      1210,
+      1254
+    ],
+    "solid_bbox": [
+      323,
+      68,
+      931,
+      1073
+    ],
+    "transparent_pixels": 1255264,
+    "opaque_pixels": 980,
+    "estimated_source_pivot": [
+      627,
+      780
+    ],
+    "preview_uniform_scale": 0.9005289978886514,
+    "body_region_top": 500,
+    "note": "Pivot is visually estimated, NOT verified production metadata. Preview only."
+  },
+  {
+    "raw": "auto-cannon-v2.png",
+    "dimensions": [
+      1254,
+      1254
+    ],
+    "alpha_bbox": [
+      105,
+      53,
+      1210,
+      1212
+    ],
+    "solid_bbox": [
+      364,
+      301,
+      890,
+      997
+    ],
+    "transparent_pixels": 1351830,
+    "opaque_pixels": 1034,
+    "estimated_source_pivot": [
+      627,
+      750
+    ],
+    "preview_uniform_scale": 1.0431445630444534,
+    "body_region_top": 500,
+    "note": "Pivot is visually estimated, NOT verified production metadata. Preview only."
+  },
+  {
+    "raw": "missile-pod-v1.png",
+    "dimensions": [
+      1254,
+      1254
+    ],
+    "alpha_bbox": [
+      79,
+      48,
+      1198,
+      1212
+    ],
+    "solid_bbox": [
+      87,
+      272,
+      1167,
+      989
+    ],
+    "transparent_pixels": 943604,
+    "opaque_pixels": 1591,
+    "estimated_source_pivot": [
+      627,
+      695
+    ],
+    "preview_uniform_scale": 0.4632768566394622,
+    "body_region_top": 0,
+    "note": "Pivot is visually estimated, NOT verified production metadata. Preview only."
+  }
+]

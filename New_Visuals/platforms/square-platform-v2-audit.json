@@ -1,0 +1,36 @@
+{
+  "source": "C:\\Users\\User\\Documents\\ChatGPT\\Incremental\\outputs\\experiments\\2026-09-19-flat-square-platform\\Drift_Bastion_Platform_Square_v2.png",
+  "format": "PNG",
+  "size": [
+    1024,
+    1024
+  ],
+  "source_mode": "RGBA",
+  "alpha_extrema": [
+    0,
+    255
+  ],
+  "transparent_pixels": 535920,
+  "opaque_pixels": 512656,
+  "bbox_alpha_128": [
+    154,
+    154,
+    870,
+    870
+  ],
+  "bbox_any_alpha": [
+    154,
+    154,
+    870,
+    870
+  ],
+  "center_alpha": 255,
+  "footprint_fraction": [
+    0.69921875,
+    0.69921875
+  ],
+  "center_offset": [
+    0.0,
+    0.0
+  ]
+}

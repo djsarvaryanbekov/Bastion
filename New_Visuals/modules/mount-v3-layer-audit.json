@@ -1,0 +1,56 @@
+{
+  "weapon": {
+    "raw_file": "missile-pod-v5.png",
+    "raw_size": [
+      1254,
+      1254
+    ],
+    "solid_bounds": [
+      120,
+      393,
+      1135,
+      960
+    ],
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "transparent_pixels": 1095087,
+    "estimated_source_center": [
+      627.5,
+      676.5
+    ],
+    "uniform_scale": 0.5704433497536946,
+    "prepared_width": 579
+  },
+  "mount": {
+    "raw_file": "swivel-mount-v3.png",
+    "raw_size": [
+      1254,
+      1254
+    ],
+    "solid_bounds": [
+      179,
+      174,
+      1073,
+      1070
+    ],
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "transparent_pixels": 892119,
+    "estimated_source_center": [
+      626.0,
+      622.0
+    ],
+    "uniform_scale": 0.3579418344519016,
+    "prepared_width": 320
+  },
+  "layer_order": [
+    "platform",
+    "fixed mount",
+    "rotating launcher"
+  ],
+  "production_ready": false
+}

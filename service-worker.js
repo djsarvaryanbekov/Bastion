@@ -1,6 +1,6 @@
 "use strict";
 
-var CACHE_NAME = "drift-bastion-v25-bastion";
+var CACHE_NAME = "drift-bastion-v28-module-art";
 var APP_SHELL = [
   "./",
   "./index.html",
@@ -13,11 +13,14 @@ var APP_SHELL = [
   "./progression.js",
   "./progression-view.js",
   "./run-upgrades.js",
+  "./upgrade-tree-view.js",
   "./campaign.js",
   "./training.js",
   "./training-arena.js",
   "./training-view.js",
   "./game.js",
+  "./module-art-data.js",
+  "./module-art.js",
   "./manifest.webmanifest",
   "./icon.svg",
   "./icon-192.png",

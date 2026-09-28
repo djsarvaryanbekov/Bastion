@@ -1,0 +1,30 @@
+{
+  "raw_size": [
+    1254,
+    1254
+  ],
+  "solid_bounds": [
+    370,
+    123,
+    884,
+    1163
+  ],
+  "estimated_pivot": [
+    627,
+    970
+  ],
+  "uniform_scale": 0.933852140077821,
+  "prepared_width": 480,
+  "alpha_extrema": [
+    0,
+    255
+  ],
+  "transparent_pixels": 1296591,
+  "fully_opaque_pixels": 2249,
+  "rail_gap_alpha_extrema": [
+    0,
+    0
+  ],
+  "production_ready": false,
+  "note": "Estimated rear-breech pivot. Overhang allowed for rails, not body. Raw file preserved."
+}

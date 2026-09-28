@@ -1,0 +1,21 @@
+{
+  "raw_size": [
+    1254,
+    1254
+  ],
+  "solid_bounds": [
+    370,
+    352,
+    884,
+    960
+  ],
+  "alpha_extrema": [
+    0,
+    255
+  ],
+  "transparent_pixels": 1353288,
+  "opaque_pixels": 662,
+  "solid_height_to_width": 1.183,
+  "raw_preserved": true,
+  "user_approved": false
+}

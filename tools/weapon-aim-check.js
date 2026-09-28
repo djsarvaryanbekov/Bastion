@@ -194,7 +194,7 @@ for (const type of api.weapons) {
   const { game, tile, shots } = makeGame(type);
   addTarget(game, 100, 0);
   game.updateWeapons(0);
-  for (let step = 1; step <= 300; step += 1) game.updateWeapons(fixedStep);
+  for (let step = 1; step <= 300; step += 1) { game.updateWeaponStatuses(fixedStep); game.updateWeapons(fixedStep); }
   cadence[type] = shots();
   assert.equal(cadence[type], expectedShots[type], `${type}: visual aiming must preserve the existing ten-second firing cadence`);
   if (type === "pulse") nearAngle(tile.aim, forward, "The radial Pulse glyph must not spin toward a target");

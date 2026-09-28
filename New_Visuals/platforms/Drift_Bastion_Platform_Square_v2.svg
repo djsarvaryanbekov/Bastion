@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+     width="1024" height="1024" viewBox="0 0 1024 1024">
+  <title>Drift Bastion — square platform with structural frame</title>
+  <desc>Full square 716 pixel footprint. Light flat armor sits inside a graphite frame. Small internal corner reinforcements and recessed connector collars provide mechanical detail without cutting the outer silhouette. No surface texture, central mechanism or radial seams.</desc>
+  <defs>
+    <g id="corner-brace">
+      <path d="M160 160H220V170H176V176H170V220H160Z" fill="#566572"/>
+      <path d="M160 160H220V164H164V220H160Z" fill="#8796A2"/>
+      <path d="M174 174H206L174 206Z" fill="#44515E"/>
+    </g>
+    <g id="north-coupler">
+      <path d="M463 154H561V201L551 211H473L463 201Z" fill="#26323D"/>
+      <path d="M469 154H555V199L548 205H476L469 199Z" fill="#758591"/>
+      <path d="M475 154H549V195L544 199H480L475 195Z" fill="#354552"/>
+      <rect x="485" y="154" width="54" height="35" fill="#1F2B35"/>
+      <path d="M483 154H489V186H483ZM535 154H541V186H535Z" fill="#A5B2BA"/>
+      <rect x="501" y="154" width="22" height="25" fill="#46BDCF"/>
+      <rect x="489" y="189" width="46" height="7" fill="#5D707E"/>
+    </g>
+  </defs>
+  <g id="platform">
+    <g id="frame" inkscape:groupmode="layer" inkscape:label="Square structural frame">
+      <rect id="footprint" x="154" y="154" width="716" height="716" fill="#29343E"/>
+      <path d="M158 158H866V162H162V866H158Z" fill="#596A78"/>
+      <path d="M866 158V866H158V862H862V158Z" fill="#1F2932"/>
+      <path d="M196 178H828L846 196V828L828 846H196L178 828V196Z" fill="#1E2A34"/>
+    </g>
+    <g id="armor" inkscape:groupmode="layer" inkscape:label="Uninterrupted armor and bevel faces">
+      <path d="M198 182H826L842 198V826L826 842H198L182 826V198Z" fill="#8795A0"/>
+      <path d="M198 182H826L820 190H202L190 202V820L182 826V198Z" fill="#D7DFE5"/>
+      <path d="M826 182L842 198V826L826 842H198L202 834H822L834 822V202Z" fill="#72838F"/>
+      <path id="flat-armor" d="M202 190H822L834 202V822L822 834H202L190 822V202Z" fill="#B8C0C8"/>
+    </g>
+    <g id="braces" inkscape:groupmode="layer" inkscape:label="Internal corner reinforcement">
+      <use href="#corner-brace"/>
+      <use href="#corner-brace" transform="rotate(90 512 512)"/>
+      <use href="#corner-brace" transform="rotate(180 512 512)"/>
+      <use href="#corner-brace" transform="rotate(270 512 512)"/>
+    </g>
+    <g id="couplers" inkscape:groupmode="layer" inkscape:label="Recessed connector collars">
+      <use href="#north-coupler"/>
+      <use href="#north-coupler" transform="rotate(90 512 512)"/>
+      <use href="#north-coupler" transform="rotate(180 512 512)"/>
+      <use href="#north-coupler" transform="rotate(270 512 512)"/>
+    </g>
+  </g>
+</svg>

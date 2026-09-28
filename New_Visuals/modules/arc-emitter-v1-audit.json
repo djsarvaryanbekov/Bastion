@@ -1,0 +1,32 @@
+{
+  "raw_size": [
+    1254,
+    1254
+  ],
+  "solid_bounds": [
+    249,
+    220,
+    1005,
+    1058
+  ],
+  "alpha_extrema": [
+    0,
+    255
+  ],
+  "transparent_pixels": 1121177,
+  "fully_opaque_pixels": 1541,
+  "estimated_pivot": [
+    627,
+    700
+  ],
+  "uniform_scale": 0.6613756613756614,
+  "width": 500,
+  "solid_radius": 327.55259783366495,
+  "fits_all_rotations": true,
+  "gap_alpha_extrema": [
+    0,
+    1
+  ],
+  "production_ready": false,
+  "raw_preserved": true
+}

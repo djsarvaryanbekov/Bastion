@@ -1,0 +1,16 @@
+{
+  "scout": { "source": "enemies/raw/scout-fighter-v1.png", "crop": [390, 285, 875, 890], "scale": 1.45, "forward": -90 },
+  "drone": { "source": "enemies/raw/drone-v2.png", "crop": [0, 0, 1254, 1254], "scale": 1.15, "forward": -90 },
+  "hunter": { "source": "enemies/raw/hunter-v1.png", "crop": [0, 0, 1254, 1254], "scale": 2.25, "forward": -90 },
+  "raptor": { "source": "enemies/raw/raptor-v1.png", "crop": [0, 0, 1254, 1254], "scale": 2.05, "forward": -90 },
+  "orbiter": { "source": "enemies/raw/orbiter-v1.png", "crop": [0, 0, 1254, 1254], "scale": 2.05, "forward": -90 },
+  "brute": { "source": "enemies/raw/brute-v1.png", "crop": [0, 0, 1254, 1254], "scale": 2.0, "forward": -90 },
+  "bulwark": { "source": "enemies/raw/bulwark-v1.png", "crop": [0, 0, 1254, 1254], "scale": 2.0, "forward": -90 },
+  "bolter": { "source": "enemies/raw/bolter-concept-v1.png", "crop": [420, 80, 900, 770], "scale": 2.35, "forward": 90 },
+  "gunner": { "source": "enemies/raw/gunner-triple-turret-v1.png", "crop": [25, 145, 1230, 1085], "scale": 2.45, "forward": 90 },
+  "bomber": { "source": "enemies/raw/bomber-v1.png", "crop": [0, 0, 1254, 1254], "scale": 2.0, "forward": -90 },
+  "splitter": { "source": "enemies/raw/splitter-v1.png", "crop": [0, 0, 1254, 1254], "scale": 2.0, "forward": -90 },
+  "sniper": { "source": "enemies/raw/sniper-v1.png", "crop": [390, 10, 875, 1200], "scale": 2.55, "forward": -90 },
+  "colossus": { "source": "enemies/raw/colossus-v1.png", "crop": [0, 0, 1254, 1254], "scale": 2.0, "forward": -90 },
+  "mini": { "source": "enemies/raw/mini-v1.png", "crop": [0, 0, 1254, 1254], "scale": 1.9, "forward": -90 }
+}

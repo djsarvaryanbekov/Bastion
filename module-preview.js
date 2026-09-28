@@ -6,7 +6,7 @@
 })(typeof window !== "undefined" ? window : globalThis, function (root) {
   "use strict";
 
-  var TYPES = ["cannon", "laser", "missile", "scatter", "arc", "rail", "flak", "pulse", "cryo", "mine", "ember", "gravity", "shield", "repair", "reactor", "drive", "collector", "armor", "bulkhead"];
+  var TYPES = ["cannon", "laser", "missile", "scatter", "arc", "rail", "flak", "pulse", "cryo", "mine", "ember", "gravity", "shield", "repair", "reactor", "collector", "armor", "bulkhead"];
   var WIDTH = 540, HEIGHT = 300, UNIT = .55, TILE = 36;
   var LIMITS = { enemies: 8, projectiles: 64, effects: 48 };
   var SPEEDS = { cannon: 560, missile: 180, scatter: 520, rail: 900, cryo: 500, mine: 220 };
@@ -293,7 +293,7 @@
     weapons.forEach(function (module) {
       var type = module.type, def = type === "cannon" && scene.type !== "cannon" ? scene.weapon : scene.def;
       if (!def || !def.cooldown) return;
-      var boosted = scene.type === "reactor" && Math.abs(module.x - scene.main.x) + Math.abs(module.y - scene.main.y) === TILE;
+      var boosted = scene.type === "reactor" && Math.max(Math.abs(module.x - scene.main.x), Math.abs(module.y - scene.main.y)) === TILE;
       module.cooldown -= dt * (boosted ? 1 + scene.def.cooldownBonus : 1);
       if (module.cooldown > 0) return;
       var targets = type === "flak" ? scene.projectiles.filter(function (shot) { return shot.hostile && shot.life > 0; }) : [];
@@ -329,7 +329,7 @@
     }
     if (scene.type === "reactor" || scene.type === "bulkhead") {
       context.fillStyle = def.color + "20";
-      [[TILE, 0], [-TILE, 0], [0, TILE], [0, -TILE]].forEach(function (offset) { context.fillRect(origin.x + offset[0] - 18, origin.y + offset[1] - 18, 36, 36); });
+      (scene.type === "reactor" ? [[TILE,0],[-TILE,0],[0,TILE],[0,-TILE],[TILE,TILE],[-TILE,TILE],[TILE,-TILE],[-TILE,-TILE]] : [[TILE,0],[-TILE,0],[0,TILE],[0,-TILE]]).forEach(function (offset) { context.fillRect(origin.x + offset[0] - 18, origin.y + offset[1] - 18, 36, 36); });
     }
     // Static guide remains legible when reduced motion pauses the first frame.
     if (scene.time === 0 && scene.enemies.length) {
@@ -358,7 +358,7 @@
     scene.modules.forEach(function (module) {
       context.fillStyle = module.flash > 0 ? "#456473" : "#132937"; context.strokeStyle = module.color; context.lineWidth = module === scene.main ? 2 : 1;
       context.fillRect(module.x - 16, module.y - 16, 32, 32); context.strokeRect(module.x - 16, module.y - 16, 32, 32);
-      if (drawIcon && module.type !== "core") { context.save(); drawIcon(context, module.type, module.x, module.y, 22, module.color); context.restore(); }
+      if (drawIcon) { context.save(); drawIcon(context, module.type, module.x, module.y, 22, module.color); context.restore(); }
       else label(module.type === "core" ? "▲" : module.glyph, module.x, module.y + 6, module.color);
       context.fillStyle = "#253a44"; context.fillRect(module.x - 15, module.y + 20, 30, 3);
       context.fillStyle = module.hp < module.maxHp * .5 ? "#ff897c" : "#70ffc2"; context.fillRect(module.x - 15, module.y + 20, 30 * module.hp / module.maxHp, 3);

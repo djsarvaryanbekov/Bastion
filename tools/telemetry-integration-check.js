@@ -30,14 +30,14 @@ for (let index = 0; index < 150; index++) {
 assert.equal(game.kills, 150);
 const fundsBeforeBuild = game.matter;
 api.openBuild();
-assert.equal(api.buyRunUpgrade("cannon", "tune", 0), true);
-assert.equal(api.buyRunUpgrade("cannon", "tune", 0), false, "A stale duplicate upgrade must not generate a transaction");
-assert.equal(api.buyRunUpgrade("cannon", "twin", 1), true);
+assert.equal(api.buyRunUpgrade("cannon", "base1", 0), true);
+assert.equal(api.buyRunUpgrade("cannon", "base1", 0), false, "A stale duplicate upgrade must not generate a transaction");
+assert.equal(api.buyRunUpgrade("cannon", "base2", 1), true);
 api.select("cannon"); assert.equal(api.placePurchasedModule(1, 0), true);
 const afterBuy = game.matter;
 assert.equal(api.sellInstalledModule("1,0"), true);
 const refund = game.matter - afterBuy;
-assert.ok(refund > 0);
+assert.equal(refund, 0);
 assert.equal(api.sellInstalledModule("1,0"), false, "A stale duplicate sale must not generate a transaction");
 api.select("shield"); assert.equal(api.placePurchasedModule(1, 0), true);
 api.closeBuild();

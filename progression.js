@@ -11,28 +11,123 @@
   // Whole credit units retain sub-Fragment rewards without save-time float drift.
   var REWARD_SCALE = 600000;
   var WEAPONS = ["cannon", "scatter", "flak", "laser", "missile", "cryo", "arc", "pulse", "rail", "mine", "ember", "gravity"];
-  var MODULE_TYPES = WEAPONS.concat(["armor", "shield", "drive", "repair", "reactor", "collector", "bulkhead"]);
+  var MODULE_TYPES = WEAPONS.concat(["armor", "shield", "repair", "reactor", "collector", "bulkhead"]);
   var DEFAULT_TYPES = ["cannon", "armor"];
   var COUNTERS = ["totalKills", "bossesDefeated", "totalUpgrades", "contractsCompleted"];
   var DEFINITIONS = [
-    { type: "scatter", stat: "totalKills", target: 15, cost: 4, text: "Defeat 15 enemies across runs" },
-    { type: "shield", stat: "bestTime", target: 30, cost: 4, text: "Survive 30 seconds in one run" },
-    { type: "drive", stat: "totalKills", target: 30, cost: 36, text: "Defeat 30 enemies across runs" },
-    { type: "flak", stat: "totalKills", target: 45, cost: 36, text: "Defeat 45 enemies across runs" },
-    { type: "missile", stat: "bestTime", target: 60, cost: 44, text: "Survive 1 minute in one run" },
-    { type: "collector", stat: "bestTime", target: 120, cost: 44, text: "Survive 2 minutes in one run" },
-    { type: "repair", stat: "bestTime", target: 90, cost: 44, text: "Survive 90 seconds in one run" },
-    { type: "ember", stat: "bestTime", target: 180, cost: 48, text: "Survive 3 minutes in one run" },
-    { type: "laser", stat: "bestTime", target: 240, cost: 56, text: "Survive 4 minutes in one run" },
-    { type: "bulkhead", stat: "bestTime", target: 240, cost: 48, text: "Survive 4 minutes in one run" },
-    { type: "cryo", stat: "bestTime", target: 300, cost: 56, text: "Survive 5 minutes in one run" },
-    { type: "gravity", stat: "bestTime", target: 360, cost: 64, text: "Survive 6 minutes in one run" },
-    { type: "reactor", stat: "bestTime", target: 360, cost: 64, text: "Survive 6 minutes in one run" },
-    { type: "arc", stat: "bestTime", target: 420, cost: 72, text: "Survive 7 minutes in one run" },
-    { type: "pulse", stat: "bossesDefeated", target: 3, cost: 80, text: "Defeat 3 bosses across runs" },
-    { type: "rail", stat: "bossesDefeated", target: 5, cost: 96, text: "Defeat 5 bosses across runs" },
-    { type: "mine", stat: "bestTime", target: 480, cost: 80, text: "Survive 8 minutes in one run" }
-  ];
+  {
+    "type": "scatter",
+    "stat": "totalKills",
+    "target": 0,
+    "cost": 8,
+    "text": "Available for 8 Fragments"
+  },
+  {
+    "type": "shield",
+    "stat": "totalKills",
+    "target": 0,
+    "cost": 16,
+    "text": "Available for 16 Fragments"
+  },
+  {
+    "type": "flak",
+    "stat": "totalKills",
+    "target": 0,
+    "cost": 20,
+    "text": "Available for 20 Fragments"
+  },
+  {
+    "type": "missile",
+    "stat": "totalKills",
+    "target": 0,
+    "cost": 24,
+    "text": "Available for 24 Fragments"
+  },
+  {
+    "type": "collector",
+    "stat": "totalKills",
+    "target": 0,
+    "cost": 24,
+    "text": "Available for 24 Fragments"
+  },
+  {
+    "type": "repair",
+    "stat": "totalKills",
+    "target": 0,
+    "cost": 24,
+    "text": "Available for 24 Fragments"
+  },
+  {
+    "type": "ember",
+    "stat": "totalKills",
+    "target": 0,
+    "cost": 28,
+    "text": "Available for 28 Fragments"
+  },
+  {
+    "type": "bulkhead",
+    "stat": "totalKills",
+    "target": 0,
+    "cost": 28,
+    "text": "Available for 28 Fragments"
+  },
+  {
+    "type": "laser",
+    "stat": "totalKills",
+    "target": 0,
+    "cost": 32,
+    "text": "Available for 32 Fragments"
+  },
+  {
+    "type": "cryo",
+    "stat": "totalKills",
+    "target": 0,
+    "cost": 32,
+    "text": "Available for 32 Fragments"
+  },
+  {
+    "type": "gravity",
+    "stat": "totalKills",
+    "target": 0,
+    "cost": 36,
+    "text": "Available for 36 Fragments"
+  },
+  {
+    "type": "reactor",
+    "stat": "totalKills",
+    "target": 0,
+    "cost": 36,
+    "text": "Available for 36 Fragments"
+  },
+  {
+    "type": "arc",
+    "stat": "totalKills",
+    "target": 0,
+    "cost": 40,
+    "text": "Available for 40 Fragments"
+  },
+  {
+    "type": "pulse",
+    "stat": "totalKills",
+    "target": 0,
+    "cost": 40,
+    "text": "Available for 40 Fragments"
+  },
+  {
+    "type": "rail",
+    "stat": "totalKills",
+    "target": 0,
+    "cost": 44,
+    "text": "Available for 44 Fragments"
+  },
+  {
+    "type": "mine",
+    "stat": "totalKills",
+    "target": 0,
+    "cost": 44,
+    "text": "Available for 44 Fragments"
+  }
+];
   // Old gates are migration data only: earned access must survive the new pacing.
   var LEGACY_GOALS = [
     ["scatter", "totalKills", 15, 0], ["shield", "bestTime", 30, 0],
@@ -85,6 +180,8 @@
     var hasPurchasesSchema = source.schemaVersion === 2 || source.schemaVersion === 3 || source.schemaVersion === 4;
     var progress = {
       schemaVersion: 4,
+      retiredModules: (Array.isArray(source.retiredModules) && source.retiredModules.indexOf("drive") >= 0 || Array.isArray(source.purchasedModules) && source.purchasedModules.indexOf("drive") >= 0) ? ["drive"] : [],
+      branchLicenses: Array.isArray(source.branchLicenses) ? source.branchLicenses.filter(function (key) { return typeof key === "string" && /^[a-z]+:[a-z]+$/.test(key); }) : [],
       purchasedModules: hasPurchasesSchema ? validModules(source.purchasedModules) : [],
       // Retain previously earned challenges without treating automatic unlocks as purchases.
       legacyEligibleModules: validModules(hasPurchasesSchema ? source.legacyEligibleModules : source.unlockedWeapons),
@@ -206,24 +303,24 @@
   function settleRunReward(snapshot, carryUnits) {
     carryUnits = Number.isInteger(carryUnits) && carryUnits >= 0 && carryUnits < REWARD_SCALE ? carryUnits : 0;
     snapshot = isRecord(snapshot) ? snapshot : {};
-    var kills = boundedNumber(snapshot.kills, true);
     var milliseconds = Math.floor(boundedNumber(snapshot.elapsed, false) * 1000);
-    var earnedUnits = 0;
-    if (kills > 0 && milliseconds > 0) {
-      var bosses = Math.min(kills, boundedNumber(snapshot.bosses, true));
-      // Kill credit is time-paced so a short restart cannot front-load its 6F cap.
-      var killUnits = Math.min(6 * REWARD_SCALE, kills * 12000, milliseconds * 6);
-      var survivalUnits = Math.min(milliseconds, 600000) * 10 + Math.max(0, milliseconds - 600000) * 5;
-      // The first three bosses give 2F, 4F, 4F; later bosses keep earning 2F each.
-      var bossReward = Math.min(bosses, 1) * 2 + Math.min(Math.max(0, bosses - 1), 2) * 4 + Math.max(0, bosses - 3) * 2;
-      var completionReward = snapshot.completed === true && milliseconds >= 600000 && bosses >= 3 ? 10 : 0;
-      earnedUnits = killUnits + survivalUnits + (bossReward + completionReward) * REWARD_SCALE;
-    }
+    var bosses = boundedNumber(snapshot.bosses, true);
+    var minutes = Array.isArray(snapshot.killsByMinute) ? snapshot.killsByMinute : [];
+    var killUnits = 0;
+    minutes.forEach(function (count, minute) {
+      if (minute * 60000 <= milliseconds) killUnits += Math.min(5000, boundedNumber(count, true)) * 1200;
+    });
+    var survivalUnits = milliseconds * 10;
+    var bossReward = 0;
+    for (var boss = 0; boss < Math.min(bosses, 5); boss += 1) bossReward += 8 + 4 * boss;
+    bossReward += Math.max(0, bosses - 5) * 24;
+    var earnedUnits = killUnits + survivalUnits + bossReward * REWARD_SCALE;
     var totalUnits = carryUnits + earnedUnits;
     return {
       fragments: Math.floor(totalUnits / REWARD_SCALE),
       carryUnits: totalUnits % REWARD_SCALE,
       earnedUnits: earnedUnits,
+      sources: { kills: killUnits / REWARD_SCALE, time: survivalUnits / REWARD_SCALE, bosses: bossReward },
       scale: REWARD_SCALE
     };
   }

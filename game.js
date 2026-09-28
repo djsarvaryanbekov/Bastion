@@ -3,6 +3,8 @@
 
     var TAU = Math.PI * 2;
     var TILE_SIZE = 42;
+    var moduleArt = window.DriftModuleArt || null;
+    var enemyArt = window.DriftEnemyArt || null;
     var FIXED_STEP = 1 / 30;
     var MAX_SIMULATION_STEPS = 3;
     var SPATIAL_CELL_SIZE = 110;
@@ -10,7 +12,7 @@
     var MAX_ACTIVE_ENEMIES = 420;
     var MAX_ACTIVE_PROJECTILES = 900;
     var SIMPLE_PROJECTILE_RENDER_BUDGETS = [180, 120, 80];
-    var SAVE_VERSION = 8;
+    var SAVE_VERSION = 9;
     var SAVE_KEY = "drift-bastion-save-v2";
     var SAVE_BACKUP_KEY = SAVE_KEY + "-backup";
     var LEGACY_SAVE_KEY = "drift-bastion-save-v1";
@@ -23,7 +25,7 @@
     var trainingApi = window.DriftTraining || null;
     var trainingArenaApi = window.DriftTrainingArena || null;
     var trainingViewApi = window.DriftTrainingView || null;
-    var META_PURCHASE_CAP = 3;
+    var META_PURCHASE_CAP = 25;
     var CORE_COLORS = { standard: "#ffffff", striker: "#ff9b6a", bulwark: "#8ac7ff", salvager: "#a8ff70" };
     var SHOT_COLORS = { hostile: "#ff7359", hostileCore: "#fff1cf", hostileRim: "#29151d" };
 
@@ -125,33 +127,26 @@
         summary: "Shields nearby modules.",
         description: "Regenerating local shield protecting nearby tiles."
       },
-      drive: {
-        id: "drive", name: "Drive Node", glyph: "D", color: "#ff8ee8",
-        baseCost: 26, scale: 1.18, hp: 60, mass: 1.1,
-        driveBonus: .12,
-        summary: "Move and turn faster.",
-        description: "+12% thrust, top speed, and rotation."
-      },
       repair: {
         id: "repair", name: "Repair Array", glyph: "+", color: "#7dff9b",
         baseCost: 32, scale: 1.20, hp: 50, mass: 1.15,
-        repairAmount: 5, repairInterval: 1.5, repairRadius: 1.5, repairDelay: 3,
+        repairAmount: 5, repairInterval: 1.5, repairRadius: 1.5, repairDelay: 2,
         summary: "Repairs nearby tiles out of danger.",
-        description: "Repairs nearby tiles after 3s without damage. Overlapping repair areas do not stack."
+        description: "Repairs nearby tiles after 2s without damage. Overlapping repair areas do not stack."
       },
       reactor: {
         id: "reactor", name: "Reactor Link", glyph: "O", color: "#ffe06a",
         baseCost: 45, scale: 1.23, hp: 45, mass: 1.25,
         cooldownBonus: .25,
         summary: "Adjacent weapons fire faster.",
-        description: "Adjacent weapons recharge 25% faster."
+        description: "Weapons in the surrounding 3×3 area fire 25% faster; bonuses add."
       },
       collector: {
         id: "collector", name: "Matter Siphon", glyph: "$", color: "#a8ff70",
         baseCost: 24, scale: 1.20, hp: 38, mass: .9,
         matterBonus: .10,
         summary: "Earn more Matter from kills.",
-        description: "+10% Matter from every kill. Stacks globally."
+        description: "+10% Matter; each further Siphon adds 80% of the previous bonus."
       },
       bulkhead: {
         id: "bulkhead", name: "Aegis Bulkhead", glyph: "B", color: "#9bb4c8",
@@ -164,31 +159,35 @@
 
     var WEAPON_TYPES = ["cannon", "laser", "missile", "scatter", "arc", "rail", "flak", "pulse", "cryo", "mine", "ember", "gravity"];
     // Mines need room and timing to matter, so they stay an in-run purchase.
-    var START_WEAPONS = WEAPON_TYPES.filter(function (type) { return type !== "mine"; });
+    var START_WEAPONS = WEAPON_TYPES.slice();
 
     var META_DEFS = [
-      { id: "core", name: "Legacy Core Integrity", description: "Previously purchased core HP is retained.", max: 10, legacy: true },
-      { id: "modules", name: "Reinforced Modules", description: "+5% module HP per rank", bonusPercent: 5, unit: "module HP", max: 10 },
-      { id: "matter", name: "Matter Converter", description: "+5% Matter income per rank", bonusPercent: 5, unit: "Matter income", max: 10 },
-      { id: "drive", name: "Drive Tuning", description: "+3% movement per rank", bonusPercent: 3, unit: "movement", max: 10 },
-      { id: "damage", name: "Weapon Calibration", description: "+4% weapon damage per rank", bonusPercent: 4, unit: "weapon damage", max: 10 }
+      { id: "modules", name: "Hull Integrity", bonusPercent: 1, unit: "core and module HP", max: 25 },
+      { id: "matter", name: "Matter Converter", bonusPercent: 1, unit: "Matter income", max: 25 },
+      { id: "drive", name: "Movement Tuning", bonusPercent: 1, unit: "thrust, speed and turn", max: 25 },
+      { id: "damage", name: "Weapon Calibration", bonusPercent: 1, unit: "weapon damage", max: 25 }
     ];
 
     var ENEMY_DEFS = {
-      scout: { name: "Scout", hp: 12, speed: 132, radius: 12, damage: 4, reward: 1, color: "#ff4f67", sides: 20, directChase: true },
-      drone: { name: "Swarm Drone", hp: 9, speed: 165, radius: 8, damage: 3, reward: 1, color: "#ff5e75", sides: 0, directChase: true },
-      hunter: { name: "Hunter", hp: 22, speed: 250, radius: 11, damage: 7, reward: 2, color: "#ff9b55", sides: 3, turnRate: .48 },
-      raptor: { name: "Raptor", hp: 48, speed: 340, radius: 14, damage: 16, reward: 4, color: "#ff3ea5", sides: 3, turnRate: .22 },
-      orbiter: { name: "Orbiter", hp: 34, speed: 118, radius: 13, damage: 9, reward: 2, color: "#54dfff", sides: 4 },
-      brute: { name: "Brute", hp: 62, speed: 102, radius: 19, damage: 18, reward: 3, color: "#a987ff", sides: 24, directChase: true },
-      bulwark: { name: "Bulwark", hp: 85, speed: 74, radius: 21, damage: 18, reward: 4, color: "#9b83ff", sides: 6, shield: 45, directChase: true },
-      bolter: { name: "Bolt Drone", hp: 22, speed: 78, radius: 12, damage: 5, reward: 2, color: "#72d8ff", sides: 4 },
-      gunner: { name: "Gunner", hp: 40, speed: 64, radius: 14, damage: 9, reward: 3, color: "#65e8ff", sides: 4 },
-      bomber: { name: "Bomber", hp: 38, speed: 104, radius: 15, damage: 26, reward: 3, color: "#ffd45c", sides: 5, blastRadius: 2.25 },
-      splitter: { name: "Splitter", hp: 56, speed: 88, radius: 16, damage: 21, reward: 4, color: "#ffd96a", sides: 6, directChase: true },
-      sniper: { name: "Sniper", hp: 46, speed: 58, radius: 16, damage: 24, reward: 5, color: "#57a7ff", sides: 4 },
-      colossus: { name: "Colossus", hp: 170, speed: 70, radius: 28, damage: 50, reward: 8, color: "#f56fff", sides: 28, directChase: true },
-      mini: { name: "Shard", hp: 10, speed: 205, radius: 7, damage: 7, reward: 1, color: "#ffca68", sides: 3, directChase: true }
+      scout: { name: "Scout", hp: 12, speed: 132, radius: 12, halfLength: 14, halfWidth: 10, damage: 4, reward: 1, color: "#ff4f67", sides: 20, directChase: true },
+      drone: { name: "Swarm Drone", hp: 9, speed: 165, radius: 8, halfLength: 10, halfWidth: 7, damage: 3, reward: 1, color: "#ff5e75", sides: 0, directChase: true },
+      hunter: { name: "Hunter", hp: 22, speed: 250, radius: 11, halfLength: 15, halfWidth: 8, damage: 7, reward: 2, color: "#ff9b55", sides: 3, turnRate: .48 },
+      raptor: { name: "Raptor", hp: 48, speed: 340, radius: 14, halfLength: 18, halfWidth: 10, damage: 16, reward: 4, color: "#ff3ea5", sides: 3, turnRate: .22 },
+      orbiter: { name: "Orbiter", hp: 34, speed: 118, radius: 13, halfLength: 14, halfWidth: 14, damage: 9, reward: 2, color: "#54dfff", sides: 4 },
+      brute: { name: "Brute", hp: 62, speed: 102, radius: 19, halfLength: 18, halfWidth: 25, damage: 18, reward: 3, color: "#a987ff", sides: 24, directChase: true },
+      bulwark: { name: "Bulwark", hp: 85, speed: 74, radius: 21, halfLength: 20, halfWidth: 24, damage: 18, reward: 4, color: "#9b83ff", sides: 6, shield: 45, directChase: true },
+      bolter: { name: "Bolt Drone", hp: 22, speed: 78, radius: 12, halfLength: 17, halfWidth: 11, muzzleOffset: 17, damage: 5, reward: 2, color: "#72d8ff", sides: 4 },
+      gunner: { name: "Gunner", hp: 40, speed: 64, radius: 14, halfLength: 15, halfWidth: 23, muzzleOffset: 16, damage: 9, reward: 3, color: "#65e8ff", sides: 4 },
+      bomber: { name: "Bomber", hp: 38, speed: 104, radius: 15, halfLength: 19, halfWidth: 12, damage: 26, reward: 3, color: "#ffd45c", sides: 5, blastRadius: 2.25 },
+      splitter: { name: "Splitter", hp: 56, speed: 88, radius: 16, halfLength: 18, halfWidth: 12, damage: 21, reward: 4, color: "#ffd96a", sides: 6, directChase: true },
+      sniper: { name: "Sniper", hp: 46, speed: 58, radius: 16, halfLength: 28, halfWidth: 10, muzzleOffset: 28, damage: 24, reward: 5, color: "#57a7ff", sides: 4 },
+      colossus: { name: "Colossus", hp: 170, speed: 70, radius: 28, halfLength: 28, halfWidth: 28, damage: 50, reward: 8, color: "#f56fff", sides: 28, directChase: true },
+      mini: { name: "Shard", hp: 10, speed: 205, radius: 7, halfLength: 10, halfWidth: 5, damage: 7, reward: 1, color: "#ffca68", sides: 3, directChase: true }
+    };
+    var ENEMY_VISUAL_TURN_RATES = {
+      scout: 3.4, drone: 4.2, hunter: 3.8, raptor: 3.2, orbiter: 3,
+      brute: 2.2, bulwark: 1.8, bolter: 8, gunner: 7.5, bomber: 4,
+      splitter: 2.8, sniper: 6.5, colossus: 1.2, mini: 4.5
     };
 
     var ENEMY_PHASES = [
@@ -209,16 +208,20 @@
       { level: 8, at: 480, packetSize: 12, ambientInterval: 2.5, squadSize: 23, directions: 5, assaultInterval: 13, heavySquads: 2,
         assaultRanged: 2, ambientRangedChance: .18, rangedPool: [["gunner", 75], ["sniper", 25]], heavyPool: [["brute", 55], ["bulwark", 40], ["colossus", 5]], pool: [["drone", 46], ["scout", 24], ["hunter", 10], ["raptor", 7], ["orbiter", 5], ["splitter", 4], ["bomber", 4]] },
       { level: 9, at: 540, packetSize: 14, ambientInterval: 2.2, squadSize: 25, directions: 5, assaultInterval: 12, heavySquads: 2,
-        assaultRanged: 3, ambientRangedChance: .20, rangedPool: [["gunner", 60], ["sniper", 40]], heavyPool: [["brute", 50], ["bulwark", 44], ["colossus", 6]], pool: [["drone", 48], ["scout", 24], ["hunter", 8], ["raptor", 6], ["orbiter", 5], ["splitter", 5], ["bomber", 4]] }
+        assaultRanged: 3, ambientRangedChance: .20, rangedPool: [["gunner", 60], ["sniper", 40]], heavyPool: [["brute", 50], ["bulwark", 44], ["colossus", 6]], pool: [["drone", 48], ["scout", 24], ["hunter", 8], ["raptor", 6], ["orbiter", 5], ["splitter", 5], ["bomber", 4]] },
+      { level:10, at:720, packetSize:16, ambientInterval:2.3, squadSize:26, directions:5, assaultInterval:13, heavySquads:2, assaultRanged:3, ambientRangedChance:.20, rangedPool:[["bolter",40],["gunner",45],["sniper",15]], heavyPool:[["brute",40],["bulwark",40],["colossus",20]], pool:[["drone",35],["scout",15],["hunter",20],["raptor",10],["orbiter",10],["splitter",5],["bomber",5]] },
+      { level:11, at:960, packetSize:18, ambientInterval:2.1, squadSize:28, directions:5, assaultInterval:12, heavySquads:3, assaultRanged:3, ambientRangedChance:.22, rangedPool:[["bolter",30],["gunner",50],["sniper",20]], heavyPool:[["brute",25],["bulwark",45],["colossus",30]], pool:[["drone",30],["scout",10],["hunter",20],["raptor",15],["orbiter",10],["splitter",10],["bomber",5]] },
+      { level:12, at:1200, packetSize:20, ambientInterval:2, squadSize:30, directions:6, assaultInterval:12, heavySquads:3, assaultRanged:4, ambientRangedChance:.24, rangedPool:[["bolter",25],["gunner",50],["sniper",25]], heavyPool:[["brute",20],["bulwark",40],["colossus",40]], pool:[["drone",25],["scout",10],["hunter",20],["raptor",20],["orbiter",10],["splitter",10],["bomber",5]] }
     ];
 
-    var BOSS_SPAWN_TIME = 120;
+    var BOSS_SPAWN_TIME = 180;
     var BOSS_WARNING_LEAD = 5;
-    var BOSS_REPEAT_INTERVAL = 180;
+    var BOSS_REPEAT_INTERVAL = 210;
     var SURVIVAL_DURATION = 600;
     var SURVIVAL_BOSS_TIMES = [120, 330, 570];
     var BOSS_RECOVERY_SECONDS = 8;
     var BOSS_BASE_HP = 850;
+    var SURVIVAL_BOSS_HP = [BOSS_BASE_HP, 4500, 12000];
 
     function isWeaponType(type) {
       return WEAPON_TYPES.indexOf(type) >= 0;
@@ -319,7 +322,7 @@
     };
     ["hudBossProgress", "buildUpgradePanel", "upgradeList",
       "resultBosses", "resultUnlocks", "resultObjectiveText", "resultObjectiveProgress", "uiScaleSelect",
-      "survivalHud", "survivalProgress", "bankRunButton", "startRunMode",
+      "startRunMode",
       "milestoneOverlay", "milestoneReward", "finishSurvivalButton", "continueSurvivalButton",
       "corePicker",
       "replayOnboardingButton", "debugToolsToggle", "resetProgressButton", "resetProgressConfirm",
@@ -451,7 +454,13 @@
     }
 
     function metaCost(level) {
-      return 5 * Math.pow(level + 1, 2);
+      return 1 + Math.floor(level / 5);
+    }
+
+    function selectedCoreRanks() { return save.campaign.coreRanks[save.campaign.selectedCore]; }
+    function coreBonus(stat, neutral) {
+      if (neutral) return 0;
+      return selectedCoreRanks()[stat] * .01 + (save.campaign.legacyBonuses[save.campaign.selectedCore][stat] || 0);
     }
 
     function runFragmentReward(kills, elapsed, bosses, completed) {
@@ -460,7 +469,7 @@
 
     function settleFragmentReward(run) {
       return progression.settleRunReward({ kills: run.kills, elapsed: run.elapsed, bosses: run.bossesDefeated,
-        completed: run.survivalCompleted === true }, save.fragmentCarryUnits);
+        killsByMinute: run.killsByMinute }, save.fragmentCarryUnits);
     }
 
     function defaultSave() {
@@ -510,10 +519,27 @@
       clean.guidance.complete = guidance.complete === true || clean.guidance.step === 4;
       clean.progression = progression.normalize(parsed.progression, parsed);
       clean.campaign = campaign.normalize(parsed.campaign, clean.progression);
-      META_DEFS.forEach(function (def) {
-        clean.meta[def.id] = Math.round(clamp(Number(parsed.meta && parsed.meta[def.id]) || 0, 0, def.max));
+      ["core","modules","matter","drive","damage"].forEach(function (id) {
+        clean.meta[id] = Math.round(clamp(Number(parsed.meta && parsed.meta[id]) || 0, 0, 10));
       });
 
+      if (!parsed.campaign || !parsed.campaign.coreRanks) {
+        campaign.cores.forEach(function(core) {
+          if (!campaign.isCoreOwned(clean.campaign, core.id)) return;
+          var legacy = parsed.meta || {};
+          var ranks = clean.campaign.coreRanks[core.id];
+          ranks.modules = Math.min(25, Math.max(Math.round((Number(legacy.modules) || 0) * 5), Math.ceil((Number(legacy.core) || 0) * 1000 / 350)));
+          ranks.damage = Math.min(25, Math.round((Number(legacy.damage) || 0) * 4));
+          ranks.drive = Math.min(25, Math.round((Number(legacy.drive) || 0) * 3));
+          ranks.matter = Math.min(25, Math.round((Number(legacy.matter) || 0) * 5));
+          var retained=clean.campaign.legacyBonuses[core.id];
+          retained.modules=Math.max(0,Math.max((Number(legacy.modules)||0)*.05,(Number(legacy.core)||0)*10/350)-ranks.modules*.01);
+          retained.damage=Math.max(0,(Number(legacy.damage)||0)*.04-ranks.damage*.01);
+          retained.drive=Math.max(0,(Number(legacy.drive)||0)*.03-ranks.drive*.01);
+          retained.matter=Math.max(0,(Number(legacy.matter)||0)*.05-ranks.matter*.01);
+        });
+      }
+      if (Number(parsed.version) < 9 && parsed.progression && Array.isArray(parsed.progression.purchasedModules) && parsed.progression.purchasedModules.indexOf("drive") >= 0) clean.fragments += 36;
       var sourceSettings = parsed.settings && typeof parsed.settings === "object" ? parsed.settings : {};
       clean.settings.muted = Boolean(sourceSettings.muted !== undefined ? sourceSettings.muted : parsed.muted);
       clean.settings.masterVolume = clamp(Number(sourceSettings.masterVolume), 0, 1);
@@ -571,6 +597,7 @@
     }
 
     function storeSave() {
+      if (game && game.testRange) return;
       if (game && game.training) return true;
       try {
         save.version = SAVE_VERSION;
@@ -683,6 +710,7 @@
     var toastTimer = 0;
     var game = null;
     var trainingSession = null;
+    var mouseInput = { active: false, pointerId: null, x: 0, y: 0 };
     var modulePreviewSession = null;
     var modulePreviewPanel = null;
     var modulePreviewNew = new Set();
@@ -697,6 +725,7 @@
     }
 
     function moduleAvailable(type) {
+      if (game && game.testRange) return Boolean(MODULES[type]);
       return game && game.training ? ["cannon", "armor", "shield"].indexOf(type) >= 0 : progression.isUnlocked(save.progression, type);
     }
 
@@ -719,6 +748,7 @@
         inBuild: game.state === "building", selectedCatalogType: selectedBuildModule,
         selectedTileType: selected ? selected.type : null, matter: game.matter,
         cannonCost: modulePrice("cannon"), cannonUpgradeCost: upgradeOptions.length ? upgradeOptions[0].cost : null,
+        cannonDamageBonusPercent: Math.round((cannonDef.damage / MODULES.cannon.damage - 1) * 100),
         cannonRateBonusPercent: Math.round((MODULES.cannon.cooldown / cannonDef.cooldown - 1) * 100),
         touch: Boolean(window.matchMedia && window.matchMedia("(pointer: coarse)").matches),
         pendingPlacement: Boolean(buildInteraction.pendingCellKey), inputEngaged: false, paused: game.state === "paused"
@@ -817,12 +847,13 @@
         // The suspended run remains paused until the player resumes it.
         game.state = "paused";
         settingsOpenedFromMenu = false;
+        showSettingsPage(false);
         ui.pauseEyebrow.textContent = "RUN PRESERVED";
         ui.pauseTitle.textContent = "Paused";
         ui.resumeButton.textContent = "Resume [P]";
         ui.restartButton.classList.add("hidden");
         ui.pauseHangarButton.classList.remove("hidden");
-        ui.pauseHangarButton.textContent = "End run & bank";
+        ui.pauseHangarButton.textContent = "End run";
         ui.pauseOverlay.classList.remove("hidden");
         syncSettingsUi();
         updateHud();
@@ -869,8 +900,9 @@
     function resize() {
       var qualityTier = currentQualityTier();
       dpr = Math.min(qualityTier > 1 ? 1 : (qualityTier > 0 ? 1.25 : 1.5), window.devicePixelRatio || 1);
-      viewWidth = innerWidth;
-      viewHeight = innerHeight;
+      var viewport = document.getElementById("pcViewport");
+      viewWidth = viewport ? viewport.clientWidth : innerWidth;
+      viewHeight = viewport ? viewport.clientHeight : innerHeight;
       canvas.width = Math.floor(viewWidth * dpr);
       canvas.height = Math.floor(viewHeight * dpr);
       canvas.style.width = viewWidth + "px";
@@ -888,6 +920,7 @@
     }
 
     function showToast(message, previewType) {
+      ui.toast.classList.remove("success");
       ui.toast.textContent = message;
       if (previewType) {
         var previewButton = document.createElement("button");
@@ -909,14 +942,14 @@
       var activeRun = Boolean(game && !game.finished);
       if (context === "build") {
         var level = game && game.upgrades[type] ? game.upgrades[type].level + 1 : 1;
-        return { status: isWeaponType(type) ? "This run: Lv" + level + ". Preview shows the base weapon." : "Preview only. Return to Build to attach this module.", actionKind: null };
+        return { status: isWeaponType(type) ? "Base weapon demonstration. Current upgrade values are shown in Build." : "Preview only. Return to Build to attach this module.", actionKind: null };
       }
       if (state.owned) {
         var canSelect = isStarterWeapon(type) && !activeRun;
         return { status: "Unlocked · Buy copies in Build with Matter.", actionKind: canSelect ? "starter" : null,
           actionLabel: selectedStarter === type ? "Starting weapon selected" : "Use as starting weapon", actionDisabled: selectedStarter === type };
       }
-      var explanation = state.available ? (save.fragments >= state.cost ? "Unlock for every run. Buy copies in Build with Matter." : "Goal complete · Need " + Math.ceil(state.cost - save.fragments) + " more Fragments") : state.objective.text;
+      var explanation = state.available ? (save.fragments >= state.cost ? "Unlock for every run. Buy copies in Build with Matter." : "Need " + Math.ceil(state.cost - save.fragments) + " more Fragments") : state.objective.text;
       var balance = " · " + Math.floor(save.fragments) + " Fragments available";
       return { status: explanation + (activeRun ? " · Buy in Hangar after this run." : balance), actionKind: "buy",
         actionLabel: "Unlock · " + state.cost + " Fragments", actionDisabled: activeRun || !state.available || save.fragments < state.cost };
@@ -958,7 +991,11 @@
       if (!Object.prototype.hasOwnProperty.call(MODULES, type) || !window.DriftModulePreviewPanel || !window.DriftModulePreview) return false;
       if (buildInteraction && buildInteraction.drag) return false;
       if (!modulePreviewPanel) modulePreviewPanel = window.DriftModulePreviewPanel.create({ definitions: MODULES,
-        drawIcon: function (context, type, x, y) { drawModuleGlyph({ type: type, aim: 0 }, x, y, context); },
+        drawIcon: function (context, type, x, y) {
+          var previewTile = { type: type, aim: 0 };
+          if (moduleArt) moduleArt.drawBase(context, tileArtType(previewTile), x, y, 32);
+          drawModuleGlyph(previewTile, x, y, context, 32);
+        },
         getState: modulePreviewState, onAction: modulePreviewAction, onClose: restoreModulePreview });
       if (!modulePreviewSession) {
         modulePreviewSession = { owner: game, previousState: game ? game.state : null, type: type, context: context || "hangar" };
@@ -1000,8 +1037,9 @@
     }
 
     function modulePrice(type) {
+      if (game && game.testRange) return 0;
       var def = MODULES[type];
-      return Math.ceil(def.baseCost * Math.pow(def.scale, installedModuleCopies(type)));
+      return Math.ceil(def.baseCost * Math.pow(def.scale, installedModuleCopies(type))) + runUpgrades.investment(type, game && game.upgrades[type]);
     }
 
     function moduleCategory(type) {
@@ -1047,6 +1085,8 @@
     }
 
     function moduleIconHtml(type) {
+      var artwork = moduleArt && moduleArt.iconHtml(type);
+      if (artwork) return artwork;
       var paths = {
         armor: '<rect x="-11" y="-11" width="22" height="22"/><path d="M-8-8 8 8M8-8-8 8"/>',
         cannon: '<rect x="-8" y="-2" width="16" height="12"/><path d="M-3-2v-12h6v12"/>',
@@ -1199,9 +1239,10 @@
     };
 
     function renderCores() {
-      ui.startRunMode.textContent = "Survival · 10 min + continue";
+      ui.startRunMode.textContent = "";
       ui.startButton.disabled = false;
       ui.startWeaponRole.textContent = campaign.getCore(save.campaign.selectedCore).name;
+      ui.corePicker.dataset.restoreFocus = String(Boolean(ui.corePicker.contains && ui.corePicker.contains(document.activeElement)));
       ui.corePicker.innerHTML = "";
       campaign.cores.forEach(function (core) {
         var owned = campaign.isCoreOwned(save.campaign, core.id);
@@ -1210,8 +1251,9 @@
         var button = document.createElement("button");
         button.className = "core-card" + (selectedCore ? " selected" : "");
         button.dataset.core = core.id;
+        button.dataset.reason = game && !game.finished ? "Finish the active run to change cores." : !owned && !available ? campaign.coreRequirementText(core.id) : !owned && save.fragments < core.cost ? "Need " + Math.ceil(core.cost - save.fragments) + " more Fragments." : "";
         button.style.borderLeft = "3px solid " + CORE_COLORS[core.id];
-        button.disabled = !owned && (!available || save.fragments < core.cost);
+        button.disabled = Boolean(game && !game.finished) || !owned && (!available || save.fragments < core.cost);
         button.setAttribute("aria-pressed", String(selectedCore));
         button.innerHTML = "<strong>" + core.name + "</strong><small>" + core.description + '</small><span class="core-state">' +
           (owned ? (selectedCore ? "Selected" : "Equip") : (available ? "Unlock · " + core.cost + " Fragments" : campaign.coreRequirementText(core.id) + " · " + core.cost + " F")) + "</span>";
@@ -1230,6 +1272,33 @@
         });
         ui.corePicker.appendChild(button);
       });
+      if (window.DriftPCSystems) window.DriftPCSystems.cores(ui.corePicker);
+    }
+
+    var selectedBranchWeapon = "cannon";
+    var selectedShopBranch = null;
+    function renderBranchShop() {
+      var types = Object.keys(runUpgrades.trees).filter(function (type) { return progression.isUnlocked(save.progression, type) && runUpgrades.trees[type].branches.length; });
+      var panel = document.getElementById("branchList");
+      if (!types.length) { panel.innerHTML = ""; return; }
+      if (types.indexOf(selectedBranchWeapon) < 0) selectedBranchWeapon = types[0];
+      var type = selectedBranchWeapon;
+      window.DriftUpgradeTreeView.renderShop(panel, {
+        upgrades: runUpgrades, definitions: MODULES, types: types, type: type, branch: selectedShopBranch,
+        fragments: Math.floor(save.fragments), licenses: save.progression.branchLicenses, activeRun: Boolean(game && !game.finished),
+        onType: function (value) { selectedBranchWeapon = value; selectedShopBranch = null; renderBranchShop(); document.getElementById("branchWeaponSelect").focus(); },
+        onSelect: function (id) { selectedShopBranch = id; },
+        onBuy: function (id) {
+          var branch = runUpgrades.trees[type].branches.find(function (entry) { return entry.id === id; });
+          if (!branch || game && !game.finished || save.fragments < branch.fragmentCost) return;
+          var key = type + ":" + id;
+          if (save.progression.branchLicenses.indexOf(key) >= 0) return;
+          if (branch.parent && save.progression.branchLicenses.indexOf(type + ":" + branch.parent) < 0) return;
+          save.fragments -= branch.fragmentCost;
+          save.progression.branchLicenses.push(key);
+          storeSave(); renderMetaShop();
+        }
+      });
     }
 
     function renderMetaShop() {
@@ -1238,22 +1307,25 @@
       ui.bestRun.textContent = "BEST " + formatTime(save.bestTime);
       ui.victoryCount.textContent = save.progression.bossesDefeated + " BOSSES DEFEATED";
       renderObjectives();
+      ui.metaList.dataset.restoreFocus = String(Boolean(ui.metaList.contains && ui.metaList.contains(document.activeElement)));
       ui.metaList.innerHTML = "";
       META_DEFS.forEach(function (def) {
-        var level = save.meta[def.id];
+        var level = selectedCoreRanks()[def.id];
         var cost = metaCost(level);
         var button = document.createElement("button");
+        button.dataset.meta = def.id;
+        button.dataset.reason = game && !game.finished ? "Finish the active run to calibrate this core." : level >= META_PURCHASE_CAP ? "Maximum rank reached." : save.fragments < cost ? "Need " + Math.ceil(cost - save.fragments) + " more Fragments." : "";
         button.className = "meta-card" + (def.legacy && !level ? " hidden" : "");
-        button.disabled = def.legacy || level >= META_PURCHASE_CAP || save.fragments < cost;
+        button.disabled = Boolean(game && !game.finished) || def.legacy || level >= META_PURCHASE_CAP || save.fragments < cost;
         var effect = def.legacy ? def.description : progressionView.buildMetaComparison(level, META_PURCHASE_CAP, def.bonusPercent, def.unit).text;
         button.innerHTML = "<strong>" + def.name + " &nbsp; " + level + "/" + Math.max(level, META_PURCHASE_CAP) + '</strong><small class="meta-effect">' + effect +
-          '</small><small class="meta-scope">Every run</small><span class="meta-price">' + (def.legacy ? "RETAINED" : (level >= META_PURCHASE_CAP ? "MAX" : "Buy · " + cost + " F")) + "</span>";
+          '</small><small class="meta-scope">Selected core only</small><span class="meta-price">' + (def.legacy ? "RETAINED" : (level >= META_PURCHASE_CAP ? "MAX" : "Buy · " + cost + " F")) + "</span>";
         button.addEventListener("click", function () {
-          if ((game && !game.finished) || def.legacy || save.meta[def.id] >= META_PURCHASE_CAP) return;
-          var currentCost = metaCost(save.meta[def.id]);
+          if ((game && !game.finished) || def.legacy || selectedCoreRanks()[def.id] >= META_PURCHASE_CAP) return;
+          var currentCost = metaCost(selectedCoreRanks()[def.id]);
           if (save.fragments < currentCost) return;
           save.fragments -= currentCost;
-          save.meta[def.id] += 1;
+          selectedCoreRanks()[def.id] += 1;
           storeSave();
           audio.tone(330, .16, .045, "sine", 360);
           renderMetaShop();
@@ -1261,12 +1333,14 @@
         });
         ui.metaList.appendChild(button);
       });
+      if (window.DriftPCSystems) window.DriftPCSystems.ranks(ui.metaList);
       renderCores();
+      renderBranchShop();
     }
 
     function makeTile(type, x, y, isCore, durabilityMultiplier, neutralStats) {
-      var def = isCore ? { hp: 350 + (neutralStats ? 0 : save.meta.core * 10), mass: 1.5 } : MODULES[type];
-      var hpMultiplier = (isCore ? 1 : 1 + (neutralStats ? 0 : save.meta.modules * .05)) * (durabilityMultiplier || 1);
+      var def = isCore ? { hp: 350, mass: 1.5 } : MODULES[type];
+      var hpMultiplier = (1 + coreBonus("modules", neutralStats)) * (durabilityMultiplier || 1);
       var maxHp = def.hp * hpMultiplier;
       return {
         type: isCore ? "core" : type,
@@ -1292,8 +1366,10 @@
       this.training = Boolean(options && options.training);
       this.state = "playing";
       this.coreDef = campaign.getCore(this.training ? "standard" : save.campaign.selectedCore);
+      this.coreRanks = Object.assign({}, selectedCoreRanks());
+      this.legacyCoreBonuses = Object.assign({}, save.campaign.legacyBonuses[save.campaign.selectedCore]);
       this.survivalCompleted = false;
-      this.continued = false;
+      this.continued = true;
       this.ship = {
         x: 0, y: 0, angle: 0,
         vx: 0, vy: 0, angularVelocity: 0,
@@ -1307,7 +1383,7 @@
       Object.keys(MODULES).forEach(function (type) { this.purchasedCounts[type] = 0; }, this);
       (this.training ? new Map([["0,-1", "cannon"]]) : starterTiles).forEach(function (type, key) {
         var coord = parseKey(key);
-        this.ship.tiles.set(key, makeTile(type, coord.x, coord.y, false, this.training ? 1 : 1.5 * this.coreDef.moduleHpMultiplier, this.training));
+        this.ship.tiles.set(key, makeTile(type, coord.x, coord.y, false, this.training ? 1 : this.coreDef.moduleHpMultiplier, this.training));
         this.purchasedCounts[type] += 1;
       }, this);
       // Family upgrades survive losses; destroying copies must not discount those upgrades.
@@ -1315,10 +1391,11 @@
       this.matter = 0;
       this.upgrades = {};
       this.weaponDefinitions = {};
-      WEAPON_TYPES.forEach(function (type) { this.weaponDefinitions[type] = runUpgrades.resolve(MODULES[type]); }, this);
+      Object.keys(MODULES).forEach(function (type) { this.weaponDefinitions[type] = runUpgrades.resolve(MODULES[type]); }, this);
       this.runUnlocks = [];
       this.progressSaveAt = 5;
       this.kills = 0;
+      this.killsByMinute = [];
       this.modulesLost = 0;
       this.elapsed = 0;
       this.ambientSpawnClock = 3.6 + Math.random() * 1.2;
@@ -1332,6 +1409,7 @@
       this.particles = [];
       this.effects = [];
       this.gravityFields = [];
+      this.weaponAreas = [];
       this.camera = { x: 0, y: 0, shakeX: 0, shakeY: 0, zoom: 1, targetZoom: 1 };
       this.boss = null;
       this.bossSpawned = false;
@@ -1365,6 +1443,23 @@
       if (!this.training) this.spawnAssaultWave(true);
     }
 
+    Game.prototype.coreBonus = function(stat) {
+      if (this.training) return 0;
+      return (this.coreRanks[stat] || 0)*.01 + (this.legacyCoreBonuses[stat] || 0);
+    };
+    Game.prototype.applyFamilyTileStats = function(tile, newlyBuilt) {
+      var def = this.weaponDefinitions[tile.type];
+      if (!def) return;
+      var hpRatio = tile.maxHp > 0 ? tile.hp / tile.maxHp : 0;
+      var shieldRatio = tile.maxShield > 0 ? tile.shield / tile.maxShield : 0;
+      tile.maxHp = def.hp * (1 + this.coreBonus("modules")) * this.coreDef.moduleHpMultiplier;
+      tile.hp = tile.maxHp * (newlyBuilt ? 1 : hpRatio);
+      if (tile.type === "shield") { tile.maxShield = def.shield; tile.shield = tile.maxShield * (newlyBuilt ? 1 : shieldRatio); }
+    };
+    Game.prototype.refreshFamilyTiles = function(type, newlyBuilt) {
+      this.ship.tiles.forEach(function(tile) { if (tile.type === type) this.applyFamilyTileStats(tile, newlyBuilt); }, this);
+    };
+
     Game.prototype.gridToWorld = function (gx, gy) {
       var lx = gx * TILE_SIZE;
       var ly = gy * TILE_SIZE;
@@ -1383,11 +1478,7 @@
     };
 
     Game.prototype.driveMultiplier = function () {
-      var drives = 0;
-      this.ship.tiles.forEach(function (tile) {
-        if (tile.type === "drive") drives += 1;
-      });
-      return (1 + drives * MODULES.drive.driveBonus) * (1 + (this.training ? 0 : save.meta.drive * .03)) * this.coreDef.speedMultiplier;
+      return (1 + this.coreBonus("drive")) * this.coreDef.speedMultiplier;
     };
 
     Game.prototype.isAdjacentToShip = function (x, y) {
@@ -1445,11 +1536,6 @@
         y = this.ship.y + Math.sin(angle) * radius;
       }
       var enemy = this.enemyPool.pop() || {};
-      var clearedBosses = Math.min(this.bossesDefeated || 0, 10);
-      var heavyBody = type === "brute" || type === "bulwark" || type === "colossus";
-      var heavyGrowth = heavyBody ? 1 + Math.min(Math.max(this.elapsed || 0, 0), 1200) / 600 * .12 : 1;
-      var healthScale = (1 + clearedBosses * .15) * heavyGrowth;
-      var pressureScale = Math.min(clearedBosses, 5);
       enemy.id = this.enemyId++;
       enemy.type = type;
       enemy.trainingTarget = null;
@@ -1457,13 +1543,17 @@
       enemy.y = y;
       enemy.vx = 0;
       enemy.vy = 0;
-      enemy.hp = def.hp * healthScale;
+      enemy.hp = def.hp;
       enemy.maxHp = enemy.hp;
       enemy.shield = def.shield || 0;
       enemy.maxShield = def.shield || 0;
-      enemy.speed = def.speed * (1 + pressureScale * .03);
+      enemy.speed = def.speed;
       enemy.radius = def.radius;
-      enemy.damage = def.damage * (1 + pressureScale * .12);
+      enemy.halfLength = def.halfLength || def.radius;
+      enemy.halfWidth = def.halfWidth || def.radius;
+      enemy.collisionRadius = Math.hypot(enemy.halfLength, enemy.halfWidth);
+      enemy.muzzleOffset = def.muzzleOffset || enemy.halfLength;
+      enemy.damage = def.damage;
       enemy.reward = def.reward;
       enemy.color = def.color;
       enemy.sides = def.sides;
@@ -1477,13 +1567,19 @@
       enemy.phaseOffset = Math.random() * TAU;
       enemy.turnRate = def.turnRate || 0;
       enemy.directChase = Boolean(def.directChase);
-      enemy.rotation = Math.random() * TAU;
+      var initialFacing = this.ship
+        ? Math.atan2(this.ship.y - y, this.ship.x - x)
+        : 0;
+      enemy.rotation = initialFacing;
+      enemy.visualRotation = initialFacing;
+      enemy.visualTurnRate = ENEMY_VISUAL_TURN_RATES[type] || 3;
       enemy.hitFlash = 0;
       enemy.slowTimer = 0;
       enemy.slowFactor = 1;
       enemy.burnTimer = 0;
       enemy.burnDamage = 0;
       enemy.burnTickTime = 0;
+      enemy.freezeHitTimes = []; enemy.freezeUntil = 0; enemy.freezeImmuneUntil = 0; enemy.spreadBurn = false;
       enemy.pendingDamageNumber = 0;
       enemy.damageNumberClock = 0;
       enemy.dead = false;
@@ -1676,7 +1772,7 @@
     };
 
     Game.prototype.spawnBoss = function () {
-      if (this.training) return;
+      if (this.training && !this.testRange) return;
       if (this.finished || (this.boss && !this.boss.dead)) return;
       this.bossSpawned = true;
       var angle = this.pendingBossAngle === null
@@ -1687,16 +1783,13 @@
       var sectorIndex = 0;
       var variantIndex = ((this.bossesDefeated || 0) + sectorIndex) % 3;
       var variant = ["ring", "pursuer", "storm"][variantIndex];
-      var hp = Math.min(100000000, Math.round(BOSS_BASE_HP * (1 + encounterLevel * .18 + encounterLevel * encounterLevel * .02) * (1 + sectorIndex * .12)));
+      var endlessEncounter = Math.max(0, encounterLevel - (SURVIVAL_BOSS_HP.length - 1));
+      var hp = encounterLevel < SURVIVAL_BOSS_HP.length ? SURVIVAL_BOSS_HP[encounterLevel]
+        : Math.min(100000000, Math.round(SURVIVAL_BOSS_HP[SURVIVAL_BOSS_HP.length - 1] *
+          (1 + endlessEncounter * .65 + endlessEncounter * endlessEncounter * .12)));
       var attackDamage = 18 * Math.min(4, 1 + encounterLevel * .08);
       this.compactEnemies();
-      if (this.enemies.length >= MAX_ACTIVE_ENEMIES) {
-        var farthest = this.enemies.reduce(function (a, b) {
-          return distanceSquared(a.x, a.y, this.ship.x, this.ship.y) > distanceSquared(b.x, b.y, this.ship.x, this.ship.y) ? a : b;
-        }.bind(this));
-        farthest.dead = true;
-        this.compactEnemies();
-      }
+      // The boss has one reserved slot; existing living enemies stay in the arena.
       var boss = {
         id: this.enemyId++,
         type: "boss",
@@ -1716,7 +1809,8 @@
         fanShotCount: variant === "pursuer" ? 5 : 3,
         fanSpread: variant === "pursuer" ? .18 : .2,
         color: ["#ff637c", "#ff9b55", "#a987ff"][variantIndex],
-        sides: 12,
+        sides: variant === "pursuer" ? 3 : (variant === "storm" ? 8 : 12),
+        combatPhase: 1,
         fireClock: 3.2,
         attackCharge: 0,
         attackChargeMax: 0,
@@ -1760,30 +1854,45 @@
       var maxSpeed = 230 * massFactor * drive;
       var acceleration = 430 * massFactor * drive;
       var turnRate = 2.45 * clamp(massFactor + .08, .58, 1) * drive;
-      var mobileSteering = mobileInput.active && mobileInput.magnitude > .08;
+      var mobileSteering = mobileInput.active;
+      var mouseSteering = mouseInput.active;
+      var mouseX = 0, mouseY = 0, mouseDistance = 0;
+      if (mouseSteering) {
+        var zoom = this.camera.zoom || 1;
+        // Screen-space distances keep the steering feel consistent as the fleet zooms out.
+        mouseX = mouseInput.x - (viewWidth / 2 + (ship.x - this.camera.x) * zoom - (this.testRange ? Math.min(140, viewWidth * .12) * zoom : 0));
+        mouseY = mouseInput.y - (viewHeight / 2 + (ship.y - this.camera.y) * zoom);
+        mouseDistance = Math.hypot(mouseX, mouseY);
+      }
       var thrust = 0;
-      var thrustX = 0;
-      var thrustY = 0;
       var targetAngular = 0;
-      if (mobileSteering) {
+      if (mouseSteering) {
+        var mouseDeadZone = 12;
+        var mouseFullSpeedDistance = 120;
+        if (mouseDistance > mouseDeadZone) {
+          var mouseStrength = clamp((mouseDistance - mouseDeadZone) / (mouseFullSpeedDistance - mouseDeadZone), 0, 1);
+          thrust = mouseStrength * mouseStrength * (3 - 2 * mouseStrength);
+          var mouseAngle = Math.atan2(mouseX, -mouseY);
+          var mouseAngleDelta = Math.atan2(Math.sin(mouseAngle - ship.angle), Math.cos(mouseAngle - ship.angle));
+          targetAngular = clamp(mouseAngleDelta * 7.5, -turnRate, turnRate);
+          thrust *= Math.max(0, Math.cos(mouseAngleDelta));
+        }
+      } else if (mobileSteering) {
         var desiredAngle = Math.atan2(mobileInput.x, -mobileInput.y);
         var angleDelta = Math.atan2(Math.sin(desiredAngle - ship.angle), Math.cos(desiredAngle - ship.angle));
-        targetAngular = clamp(angleDelta * 7.5, -turnRate * 1.55, turnRate * 1.55);
-        thrust = mobileInput.magnitude;
-        thrustX = mobileInput.x;
-        thrustY = mobileInput.y;
+        targetAngular = mobileInput.magnitude > .08 ? clamp(angleDelta * 7.5, -turnRate, turnRate) : 0;
+        thrust = mobileInput.magnitude > .08 ? mobileInput.magnitude * Math.max(0, Math.cos(angleDelta)) : 0;
       } else {
         var turnInput = (keys.KeyD ? 1 : 0) - (keys.KeyA ? 1 : 0);
         targetAngular = turnInput * turnRate;
-        thrust = (keys.KeyW ? 1 : 0) - (keys.KeyS ? .58 : 0);
+        thrust = keys.KeyW && keys.KeyS ? 0 : (keys.KeyW ? 1 : 0) - (keys.KeyS ? .58 : 0);
       }
-      ship.angularVelocity = lerp(ship.angularVelocity, targetAngular, 1 - Math.exp(-(mobileSteering ? 14 : 10) * dt));
+      ship.angularVelocity = clamp(lerp(ship.angularVelocity, targetAngular, 1 - Math.exp(-10 * dt)), -turnRate, turnRate);
       ship.angle += ship.angularVelocity * dt;
       if (thrust !== 0) {
-        var fx = mobileSteering ? thrustX : Math.sin(ship.angle);
-        var fy = mobileSteering ? thrustY : -Math.cos(ship.angle);
-        ship.vx += fx * acceleration * thrust * dt;
-        ship.vy += fy * acceleration * thrust * dt;
+        // Every input drives the same forward/reverse engine; none can strafe past the turn limit.
+        ship.vx += Math.sin(ship.angle) * acceleration * thrust * dt;
+        ship.vy -= Math.cos(ship.angle) * acceleration * thrust * dt;
         var driveParticleChance = currentQualityTier() > 1 ? .16 : (currentQualityTier() > 0 ? .24 : .35);
         if (Math.random() < driveParticleChance) this.emitDriveParticles(thrust);
       }
@@ -1892,6 +2001,8 @@
       effect.rotation = 0;
       effect.spin = 0;
       effect.glyph = "";
+      effect.moduleType = null;
+      effect.moduleAim = 0;
       effect.points = null;
       this.effects.push(effect);
       return effect;
@@ -1912,36 +2023,45 @@
     };
 
     Game.prototype.updateShields = function (dt) {
+      var shieldDef = this.weaponDefinitions ? this.weaponDefinitions.shield : MODULES.shield, repairDef = this.weaponDefinitions ? this.weaponDefinitions.repair : MODULES.repair;
       this.ship.tiles.forEach(function (tile) {
         tile.flash = Math.max(0, tile.flash - dt);
+        tile.upgradeFlash = Math.max(0, (tile.upgradeFlash || 0) - dt);
+        tile.reserveCooldown = Math.max(0,(tile.reserveCooldown || 0)-dt);
+        tile.reserveLife = Math.max(0,(tile.reserveLife || 0)-dt);
+        if (!tile.reserveLife) tile.reserveCharge = 0;
         tile.repairDelay = Math.max(0, tile.repairDelay - dt);
         tile.repairCooldown = Math.max(0, (tile.repairCooldown || 0) - dt);
         if (tile.type !== "shield") return;
         var rechargeTime = Math.max(0, dt - tile.shieldDelay);
         tile.shieldDelay = Math.max(0, tile.shieldDelay - dt);
-        if (rechargeTime > 0) tile.shield = Math.min(tile.maxShield, tile.shield + MODULES.shield.rechargeRate * rechargeTime);
+        if (rechargeTime > 0) tile.shield = Math.min(tile.maxShield, tile.shield + shieldDef.rechargeRate * rechargeTime);
       });
     };
 
     Game.prototype.updateSupportModules = function (dt) {
+      var shieldDef = this.weaponDefinitions ? this.weaponDefinitions.shield : MODULES.shield, repairDef = this.weaponDefinitions ? this.weaponDefinitions.repair : MODULES.repair;
       this.ship.tiles.forEach(function (module) {
         if (module.type !== "repair") return;
         module.supportClock -= dt;
         if (module.supportClock > 0) return;
         var repaired = false;
+        var emergencyTarget = null;
         this.ship.tiles.forEach(function (target) {
           var dx = module.x - target.x;
           var dy = module.y - target.y;
-          var radius = MODULES.repair.repairRadius;
+          var radius = repairDef.repairRadius;
           if (dx * dx + dy * dy > radius * radius || target.hp >= target.maxHp || target.repairDelay > 0 || target.repairCooldown > 0) return;
-          target.hp = Math.min(target.maxHp, target.hp + MODULES.repair.repairAmount);
-          target.repairCooldown = MODULES.repair.repairInterval;
+          if (!emergencyTarget || target.hp / target.maxHp < emergencyTarget.hp / emergencyTarget.maxHp) emergencyTarget = target;
+          target.hp = Math.min(target.maxHp, target.hp + repairDef.repairAmount);
+          target.repairCooldown = repairDef.repairInterval;
           repaired = true;
         });
-        module.supportClock = repaired ? MODULES.repair.repairInterval : .2;
+        if (emergencyTarget && repairDef.emergencyRepair) emergencyTarget.hp = Math.min(emergencyTarget.maxHp, emergencyTarget.hp + repairDef.emergencyRepair);
+        module.supportClock = repaired ? repairDef.repairInterval : .2;
         if (repaired && this.effects.length < 120) {
           var origin = this.gridToWorld(module.x, module.y);
-          var repairEffect = this.spawnEffect("ring", origin.x, origin.y, .35, MODULES.repair.color);
+          var repairEffect = this.spawnEffect("ring", origin.x, origin.y, .35, repairDef.color);
           repairEffect.radius = 4;
           repairEffect.maxRadius = 42;
         }
@@ -1962,7 +2082,13 @@
     };
 
     Game.prototype.weaponCooldownRate = function (tile) {
-      return (1 + this.countAdjacentType(tile, "reactor") * MODULES.reactor.cooldownBonus) / this.coreDef.cooldownMultiplier;
+      var reactors = 0;
+      for (var y = -1; y <= 1; y += 1) for (var x = -1; x <= 1; x += 1) {
+        if (!x && !y) continue;
+        var neighbor = this.ship.tiles.get(keyOf(tile.x + x, tile.y + y));
+        if (neighbor && neighbor.type === "reactor") reactors += 1;
+      }
+      return (1 + reactors * this.weaponDefinitions.reactor.cooldownBonus) / this.coreDef.cooldownMultiplier;
     };
 
     Game.prototype.matterIncomeMultiplier = function () {
@@ -1970,7 +2096,7 @@
       this.ship.tiles.forEach(function (tile) {
         if (tile.type === "collector") collectors += 1;
       });
-      return (1 + (this.training ? 0 : save.meta.matter * .05) + collectors * MODULES.collector.matterBonus) * this.coreDef.matterMultiplier;
+      return (1 + this.coreBonus("matter") + this.weaponDefinitions.collector.matterBonus * (1 - Math.pow(.8, collectors)) / .2) * this.coreDef.matterMultiplier;
     };
 
     Game.prototype.bulkheadReduction = function (target) {
@@ -1996,7 +2122,7 @@
         this.spawnBoss();
       }
       // Boss entry gives room to dodge; leaving it alive must not suppress the swarm indefinitely.
-      var bossPressure = this.boss ? .3 + .7 * clamp((this.boss.age - 30) / 60, 0, 1) : .3;
+      var bossPressure = .6;
       var pressureRate = this.bossSpawned ? bossPressure : this.elapsed < (this.recoveryUntil || 0) ? .3 :
         (this.bossWarningShown ? .5 : 1);
       var phase = this.currentEnemyPhase();
@@ -2048,6 +2174,51 @@
       return bestKey;
     };
 
+    function enemyDirectionalExtent(enemy, axisX, axisY) {
+      var halfLength = enemy.halfLength || enemy.radius || 0;
+      var halfWidth = enemy.halfWidth || enemy.radius || 0;
+      if (halfLength === halfWidth) return halfLength;
+      var facing = enemyCollisionFacing(enemy);
+      var forwardX = Math.cos(facing);
+      var forwardY = Math.sin(facing);
+      var sideX = -forwardY;
+      var sideY = forwardX;
+      return Math.abs(axisX * forwardX + axisY * forwardY) * halfLength +
+        Math.abs(axisX * sideX + axisY * sideY) * halfWidth;
+    }
+
+    function enemyCollisionRadius(enemy) {
+      if (enemy.collisionRadius) return enemy.collisionRadius;
+      if (enemy.halfLength === undefined && enemy.halfWidth === undefined) return enemy.radius || 0;
+      return Math.hypot(enemy.halfLength || enemy.radius || 0, enemy.halfWidth || enemy.radius || 0);
+    }
+
+    function enemyIntersectsCircle(enemy, x, y, radius) {
+      var halfLength = enemy.halfLength || enemy.radius || 0;
+      var halfWidth = enemy.halfWidth || enemy.radius || 0;
+      if (halfLength === halfWidth) return distanceSquared(x, y, enemy.x, enemy.y) <= (halfLength + radius) * (halfLength + radius);
+      var facing = enemyCollisionFacing(enemy);
+      var forwardX = Math.cos(facing);
+      var forwardY = Math.sin(facing);
+      var sideX = -forwardY;
+      var sideY = forwardX;
+      var relativeX = x - enemy.x;
+      var relativeY = y - enemy.y;
+      var localForward = relativeX * forwardX + relativeY * forwardY;
+      var localSide = relativeX * sideX + relativeY * sideY;
+      var nearestForward = clamp(localForward, -halfLength, halfLength);
+      var nearestSide = clamp(localSide, -halfWidth, halfWidth);
+      var deltaForward = localForward - nearestForward;
+      var deltaSide = localSide - nearestSide;
+      return deltaForward * deltaForward + deltaSide * deltaSide <= radius * radius;
+    }
+
+    function enemyMuzzlePosition(enemy, aimX, aimY) {
+      var def = ENEMY_DEFS[enemy.type] || {};
+      var offset = enemy.muzzleOffset || def.muzzleOffset || enemy.halfLength || def.halfLength || enemy.radius || def.radius || 0;
+      return { x: enemy.x + aimX * offset, y: enemy.y + aimY * offset };
+    }
+
     Game.prototype.updateEnemies = function (dt) {
       var steering45 = 1 - Math.exp(-4.5 * dt);
       var steering3 = 1 - Math.exp(-3 * dt);
@@ -2070,7 +2241,7 @@
         enemy.damageNumberClock = Math.max(0, enemy.damageNumberClock - dt);
         enemy.slowTimer = Math.max(0, enemy.slowTimer - dt);
         if (enemy.slowTimer <= 0) enemy.slowFactor = 1;
-        var effectiveSpeed = enemy.speed * enemy.slowFactor;
+        var effectiveSpeed = this.elapsed < (enemy.freezeUntil || 0) ? 0 : enemy.speed * enemy.slowFactor;
         if (enemy.type === "orbiter") {
           var orbitStrength = dist > 115 ? .82 : .28;
           var radialStrength = dist > 210 ? .58 : .92;
@@ -2129,14 +2300,21 @@
           enemy.vx = lerp(enemy.vx, nx * effectiveSpeed, steering4);
           enemy.vy = lerp(enemy.vy, ny * effectiveSpeed, steering4);
         }
+        if (this.elapsed < (enemy.freezeUntil || 0)) { enemy.vx = 0; enemy.vy = 0; }
         enemy.x += enemy.vx * dt;
         enemy.y += enemy.vy * dt;
-        if (enemy.sides === 3) {
-          enemy.rotation = Math.atan2(enemy.vy, enemy.vx);
-        } else {
-          enemy.rotation += dt * (enemy.type === "colossus" ? .32 : .75);
+        var velocitySquared = enemy.vx * enemy.vx + enemy.vy * enemy.vy;
+        var targetFacing = enemy.rotation;
+        if (isRangedEnemy(enemy)) {
+          targetFacing = enemy.attackCharge > 0 && (enemy.lockedAimX || enemy.lockedAimY)
+            ? Math.atan2(enemy.lockedAimY, enemy.lockedAimX)
+            : Math.atan2(ny, nx);
+        } else if (velocitySquared > 9) {
+          targetFacing = Math.atan2(enemy.vy, enemy.vx);
         }
-        var hitKey = this.findImpactedTile(enemy.x, enemy.y, enemy.radius);
+        enemy.rotation = targetFacing;
+        enemy.visualRotation = turnAngleTowards(enemy.visualRotation, targetFacing, enemy.visualTurnRate, dt);
+        var hitKey = this.findImpactedTile(enemy.x, enemy.y, enemyCollisionRadius(enemy));
         if (hitKey) {
           if (enemy.type === "bomber") this.explodeBomberOnShip(enemy, hitKey);
           else this.applyDamageToTile(hitKey, enemy.damage);
@@ -2158,19 +2336,24 @@
       enemy.attackCharge = 0;
       enemy.fireClock = enemy.type === "sniper" ? 2.1 : (enemy.type === "gunner" ? 1.4 : 1.8);
       if (enemy.type === "sniper") {
-        this.fireEnemyProjectile(enemy.x, enemy.y, enemy.lockedAimX, enemy.lockedAimY, enemy.damage, 400, "sniperShot", enemy.color, 5);
+        var sniperMuzzle = enemyMuzzlePosition(enemy, enemy.lockedAimX, enemy.lockedAimY);
+        this.fireEnemyProjectile(sniperMuzzle.x, sniperMuzzle.y, enemy.lockedAimX, enemy.lockedAimY, enemy.damage, 400, "sniperShot", enemy.color, 5);
         audio.tone(190, .09, .026, "square", -55);
         return;
       }
       if (enemy.type === "bolter") {
-        this.fireEnemyProjectile(enemy.x, enemy.y, enemy.lockedAimX, enemy.lockedAimY, enemy.damage, 290, "bolterShot", enemy.color, 3);
+        var bolterMuzzle = enemyMuzzlePosition(enemy, enemy.lockedAimX, enemy.lockedAimY);
+        this.fireEnemyProjectile(bolterMuzzle.x, bolterMuzzle.y, enemy.lockedAimX, enemy.lockedAimY, enemy.damage, 290, "bolterShot", enemy.color, 3);
         audio.tone(280, .06, .018, "square", -45);
         return;
       }
       var baseAngle = Math.atan2(enemy.lockedAimY, enemy.lockedAimX);
       for (var shot = -1; shot <= 1; shot += 1) {
         var shotAngle = baseAngle + shot * .14;
-        this.fireEnemyProjectile(enemy.x, enemy.y, Math.cos(shotAngle), Math.sin(shotAngle), enemy.damage, 325, "gunnerShot", enemy.color, 3.5);
+        var gunnerAimX = Math.cos(shotAngle);
+        var gunnerAimY = Math.sin(shotAngle);
+        var gunnerMuzzle = enemyMuzzlePosition(enemy, gunnerAimX, gunnerAimY);
+        this.fireEnemyProjectile(gunnerMuzzle.x, gunnerMuzzle.y, gunnerAimX, gunnerAimY, enemy.damage, 325, "gunnerShot", enemy.color, 3.5);
       }
     };
 
@@ -2200,7 +2383,8 @@
       var dist = Math.max(1, Math.sqrt(dx * dx + dy * dy));
       var nx = dx / dist;
       var ny = dy / dist;
-      var desired = dist > 205 ? 1 : (dist < 135 ? -.3 : 0);
+      var preferredRange = boss.variant === "storm" ? 310 : (boss.variant === "pursuer" ? 175 : 205);
+      var desired = dist > preferredRange ? 1 : (dist < preferredRange - 70 ? -.3 : 0);
       boss.slowTimer = Math.max(0, boss.slowTimer - dt);
       if (boss.slowTimer <= 0) boss.slowFactor = 1;
       var charging = boss.chargeTimer > 0;
@@ -2209,10 +2393,10 @@
         boss.chargeTimer = Math.max(0, boss.chargeTimer - dt);
         boss.vx = boss.chargeAimX * boss.chargeSpeed * boss.slowFactor;
         boss.vy = boss.chargeAimY * boss.chargeSpeed * boss.slowFactor;
-      } else if (boss.attackCharge > 0 && boss.attackPattern === "charge") {
-        // Hold position during a windup so the preview remains a usable dodge cue.
-        boss.vx *= Math.exp(-9 * dt);
-        boss.vy *= Math.exp(-9 * dt);
+      } else if (boss.attackCharge > 0 && (boss.attackPattern === "charge" || boss.variant === "storm")) {
+        // Lock the origin as well as the direction of the advertised attack.
+        boss.vx = 0;
+        boss.vy = 0;
       } else {
         // Catch up outside fighting range, then slow down so dodging stays predictable.
         var catchUpSpeed = 300 * clamp((dist - 240) / 300, 0, 1);
@@ -2256,9 +2440,14 @@
         boss.fireClock -= dt;
         if (boss.fireClock <= 0 && dist < 520) {
           boss.fireClock = 0;
+          boss.combatPhase = boss.hp <= boss.maxHp * .5 ? 2 : 1;
           if (boss.variant === "storm") boss.attackPattern = "radial";
-          else if (boss.variant === "pursuer") boss.attackPattern = boss.attackIndex % 2 === 0 ? "aimed" : "charge";
+          else if (boss.variant === "pursuer") boss.attackPattern = boss.combatPhase === 2
+            ? (boss.attackIndex % 3 === 2 ? "aimed" : "charge")
+            : (boss.attackIndex % 2 === 0 ? "charge" : "aimed");
           else boss.attackPattern = boss.attackIndex % 2 === 0 ? "aimed" : "radial";
+          // A short dash from outside its reach only gives a fleeing ship free distance.
+          if (boss.attackPattern === "charge" && dist > 300) boss.attackPattern = "aimed";
           var bossLead = Math.min(.65, dist / 320 * .55);
           var targetX = dx + this.ship.vx * bossLead;
           var targetY = dy + this.ship.vy * bossLead;
@@ -2267,8 +2456,12 @@
           boss.lockedAimY = targetY / targetLength;
           boss.chargeAimX = boss.lockedAimX;
           boss.chargeAimY = boss.lockedAimY;
-          boss.volleyAngle = boss.rotation;
-          boss.attackChargeMax = boss.attackPattern === "charge" ? 1.15 : (boss.variant === "storm" ? 1 : .9);
+          // Storm's opening gap faces the player; phase two moves it one lane per volley.
+          boss.volleyAngle = boss.variant === "storm"
+            ? (boss.combatPhase === 2 && boss.attackIndex > 0 ? boss.volleyAngle + Math.PI / 3 : Math.atan2(dy, dx))
+            : boss.rotation;
+          boss.attackChargeMax = boss.attackPattern === "charge" ? 1.15
+            : (boss.variant === "storm" ? (boss.combatPhase === 2 ? 1.25 : 1) : .9);
           boss.attackCharge = boss.attackChargeMax;
           audio.tone(112, .18, .028, "sawtooth", 95);
         }
@@ -2296,6 +2489,9 @@
       projectile.triggerRadius = triggerRadius || 0;
       projectile.blastRadius = blastRadius || 0;
       projectile.armTime = armTime || 0;
+      projectile.penetration = 0; projectile.secondHitScale = 1; projectile.knockback = 125;
+      projectile.freezeHits = 0; projectile.clusterCount = 0; projectile.chainMine = false;
+      projectile.mineFragments = false; projectile.sourceTile = null; projectile.detonated = false;
       if (projectile.hitIds) projectile.hitIds.clear();
       if ((kind === "rail" || kind === "sniperShot") && !projectile.hitIds) projectile.hitIds = new Set();
       this.projectiles.push(projectile);
@@ -2372,9 +2568,9 @@
               if (other.dead || other.id <= enemy.id) continue;
               var dx = other.x - enemy.x;
               var dy = other.y - enemy.y;
-              var minimumDistance = enemy.radius + other.radius + collisionPadding;
               var distanceSquaredBetween = dx * dx + dy * dy;
-              if (distanceSquaredBetween >= minimumDistance * minimumDistance) continue;
+              var broadphaseDistance = enemyCollisionRadius(enemy) + enemyCollisionRadius(other) + collisionPadding;
+              if (distanceSquaredBetween >= broadphaseDistance * broadphaseDistance) continue;
 
               var distanceBetween = Math.sqrt(distanceSquaredBetween);
               var nx;
@@ -2389,9 +2585,13 @@
                 ny = dy / distanceBetween;
               }
 
+              var minimumDistance = enemyDirectionalExtent(enemy, nx, ny) +
+                enemyDirectionalExtent(other, nx, ny) + collisionPadding;
+              if (distanceBetween >= minimumDistance) continue;
+
               var overlap = minimumDistance - distanceBetween;
-              var enemyMass = enemy.radius * enemy.radius;
-              var otherMass = other.radius * other.radius;
+              var enemyMass = enemyCollisionRadius(enemy) * enemyCollisionRadius(enemy);
+              var otherMass = enemyCollisionRadius(other) * enemyCollisionRadius(other);
               var totalMass = enemyMass + otherMass;
               // Boss movement belongs to its attack controller; the crowd yields around it.
               var enemyShare = enemy.type === "boss" ? 0 : (other.type === "boss" ? 1 : otherMass / totalMass);
@@ -2435,6 +2635,7 @@
     };
 
     Game.prototype.updateProjectiles = function (dt) {
+      var shieldDef = this.weaponDefinitions ? this.weaponDefinitions.shield : MODULES.shield, repairDef = this.weaponDefinitions ? this.weaponDefinitions.repair : MODULES.repair;
       var missileSteering = 1 - Math.exp(-5 * dt);
       var mineDamping = Math.exp(-4.5 * dt);
       for (var i = 0; i < this.projectiles.length; i += 1) {
@@ -2466,9 +2667,9 @@
             if (projectile.armTime > 0) continue;
             for (var mineTargetIndex = 0; mineTargetIndex < nearby.length; mineTargetIndex += 1) {
               var mineTarget = nearby[mineTargetIndex];
-              var triggerRadius = projectile.triggerRadius + mineTarget.radius;
+              var triggerRadius = projectile.triggerRadius + enemyCollisionRadius(mineTarget);
               if (!mineTarget.dead && distanceSquared(projectile.x, projectile.y, mineTarget.x, mineTarget.y) <= triggerRadius * triggerRadius) {
-                this.explodeBlast(projectile, projectile.blastRadius, projectile.color, 18);
+                this.detonateMine(projectile);
                 projectile.life = 0;
                 break;
               }
@@ -2477,8 +2678,7 @@
           }
           for (var n = 0; n < nearby.length; n += 1) {
             var enemy = nearby[n];
-            var radius = enemy.radius + projectile.radius;
-            if (!enemy.dead && distanceSquared(projectile.x, projectile.y, enemy.x, enemy.y) <= radius * radius) {
+            if (!enemy.dead && enemyIntersectsCircle(enemy, projectile.x, projectile.y, projectile.radius)) {
               if (projectile.kind === "missile") {
                 this.explodeMissile(projectile);
                 projectile.life = 0;
@@ -2486,22 +2686,29 @@
               } else if (projectile.kind === "cryo") {
                 this.damageEnemy(enemy, projectile.damage);
                 if (!enemy.dead) {
-                  enemy.slowFactor = Math.min(enemy.slowFactor, projectile.slowFactor);
+                  enemy.slowFactor = Math.min(enemy.slowFactor, enemy.type === "boss" ? Math.max(.8, projectile.slowFactor) : projectile.slowFactor);
                   enemy.slowTimer = Math.max(enemy.slowTimer, projectile.slowDuration);
+                  if (projectile.freezeHits && enemy.type !== "boss" && this.elapsed >= (enemy.freezeImmuneUntil || 0)) {
+                    enemy.freezeHitTimes = (enemy.freezeHitTimes || []).filter(function(time) { return time > this.elapsed - 4; }, this);
+                    enemy.freezeHitTimes.push(this.elapsed);
+                    if (enemy.freezeHitTimes.length >= 4) { enemy.freezeUntil = this.elapsed + .6; enemy.freezeImmuneUntil = this.elapsed + 3.6; enemy.freezeHitTimes = []; }
+                  }
                 }
                 this.burst(projectile.x, projectile.y, projectile.color, 6, 65);
                 projectile.life = 0;
                 break;
-              } else if (projectile.kind === "rail") {
+              } else if (projectile.kind === "rail" || projectile.penetration) {
                 if (projectile.hitIds.has(enemy.id)) continue;
                 projectile.hitIds.add(enemy.id);
-                this.damageEnemy(enemy, projectile.damage);
-                if (!enemy.dead && enemy.type !== "boss") {
+                this.damageEnemy(enemy, projectile.damage * (projectile.hitIds.size > 1 ? projectile.secondHitScale : 1));
+                if (projectile.penetration && projectile.hitIds.size >= projectile.penetration) projectile.life = 0;
+                if (!enemy.dead && enemy.type !== "boss" && projectile.kind === "rail") {
                   var railSpeed = Math.max(1, Math.sqrt(projectile.vx * projectile.vx + projectile.vy * projectile.vy));
-                  enemy.vx += projectile.vx / railSpeed * 125;
-                  enemy.vy += projectile.vy / railSpeed * 125;
+                  enemy.vx += projectile.vx / railSpeed * projectile.knockback;
+                  enemy.vy += projectile.vy / railSpeed * projectile.knockback;
                 }
                 this.burst(projectile.x, projectile.y, projectile.color, 5, 95);
+                if (projectile.life <= 0) break;
               } else {
                 this.damageEnemy(enemy, projectile.damage);
                 this.burst(projectile.x, projectile.y, projectile.color, 3, 55);
@@ -2525,7 +2732,7 @@
                 if (tile.type !== "shield" || tile.shield <= 0) return;
                 var shieldDx = tile.x - hitTile.x;
                 var shieldDy = tile.y - hitTile.y;
-                if (shieldDx * shieldDx + shieldDy * shieldDy <= MODULES.shield.shieldRadius * MODULES.shield.shieldRadius) {
+                if (shieldDx * shieldDx + shieldDy * shieldDy <= shieldDef.shieldRadius * shieldDef.shieldRadius) {
                   shieldsBeforeImpact += tile.shield;
                 }
               });
@@ -2540,7 +2747,7 @@
               for (var shieldIndex = 0; shieldIndex < this.shieldBuffer.length; shieldIndex += 1) {
                 shieldsAfterImpact += this.shieldBuffer[shieldIndex].shield;
               }
-              var shieldAbsorption = Math.max(0, shieldsBeforeImpact - shieldsAfterImpact);
+              var shieldAbsorption = this.lastShieldAbsorbed || 0;
               projectile.damage = Math.max(0, projectile.damage - shieldAbsorption) * (1 - hullReduction) * .65;
               if (projectile.damage <= 0) projectile.life = 0;
             } else {
@@ -2550,6 +2757,22 @@
         }
       }
       this.compactProjectiles();
+    };
+
+    Game.prototype.detonateMine = function(first) {
+      var queue = [first];
+      for (var index=0; index<queue.length; index+=1) {
+        var mine=queue[index]; if (mine.detonated) continue;
+        mine.detonated=true; mine.life=0;
+        this.explodeBlast(mine,mine.blastRadius,mine.color,18);
+        if (mine.chainMine) this.projectiles.forEach(function(other) {
+          if (other.kind==='mine' && other.life>0 && !other.detonated && other.sourceTile===mine.sourceTile && distanceSquared(mine.x,mine.y,other.x,other.y)<=120*120) { other.life=0; queue.push(other); }
+        });
+        if (mine.mineFragments) for(var fragment=0;fragment<8;fragment+=1) {
+          var angle=fragment*TAU/8;
+          this.spawnProjectile(true,'scatter',mine.x,mine.y,Math.cos(angle)*420,Math.sin(angle)*420,mine.damage*.2,2.5,240/420,mine.color);
+        }
+      }
     };
 
     Game.prototype.explodeBlast = function (projectile, radius, color, particleCount) {
@@ -2571,6 +2794,7 @@
     };
 
     Game.prototype.explodeMissile = function (projectile) {
+      if (projectile.clusterCount) for (var child = 0; child < 3; child += 1) this.explodeBlast({x:projectile.x+Math.cos(child*TAU/3)*45,y:projectile.y+Math.sin(child*TAU/3)*45,damage:projectile.damage*.25},50,projectile.color,6);
       this.explodeBlast(projectile, projectile.blastRadius || 74, "#ffd96a", 12);
     };
 
@@ -2625,23 +2849,52 @@
         var offset = shot - (shots - 1) / 2;
         // Parallel cannon barrels keep even-sized volleys on a small distant target.
         var cannonVolley = def.id === "cannon";
-        var angle = direction + (cannonVolley ? 0 : offset * .14);
+        var angle = direction + (cannonVolley ? offset * (def.volleySpread || 0) : offset * .14);
         // Keep an aimed cryo bolt when an upgrade adds an even number of fan shots.
         if (kind === "cryo") angle = direction + (shot === 0 ? 0 : Math.ceil(shot / 2) * (shot % 2 ? -1 : 1) * .14);
         var vx = Math.cos(angle);
         var vy = Math.sin(angle);
         var muzzleOffset = cannonVolley ? offset * 6 : 0;
-        this.spawnProjectile(true, kind, origin.x + vx * 18 - ny * muzzleOffset, origin.y + vy * 18 + nx * muzzleOffset,
+        if (def.distributeTargets) {
+          var targets = this.enemies.filter(function(enemy) { return !enemy.dead && distanceSquared(origin.x,origin.y,enemy.x,enemy.y) <= def.range * def.range; });
+          if (targets.length) targetId = targets[shot % targets.length].id;
+        }
+        var projectile = this.spawnProjectile(true, kind, origin.x + vx * 18 - ny * muzzleOffset, origin.y + vy * 18 + nx * muzzleOffset,
           vx * speed, vy * speed, def.damage * damageMultiplier, radius, life, def.color,
           targetId, def.slowFactor, def.slowDuration, 0, def.blastRadius);
+        if (projectile) {
+          projectile.penetration = def.penetration || 0; projectile.secondHitScale = def.secondHitScale || 1;
+          projectile.freezeHits = def.freezeHits || 0; projectile.clusterCount = def.clusterCount || 0;
+          if (projectile.penetration && !projectile.hitIds) projectile.hitIds = new Set();
+        }
       }
     };
 
     Game.prototype.updateWeapons = function (dt) {
-      var damageMultiplier = 1 + (this.training ? 0 : save.meta.damage * .04);
+      var damageMultiplier = 1 + this.coreBonus("damage");
       this.ship.tiles.forEach(function (tile) {
         if (!isWeaponType(tile.type)) return;
         tile.cooldown -= dt * this.weaponCooldownRate(tile);
+        if (tile.activeBeam) {
+          var beam = tile.activeBeam, beamStep = Math.min(dt, beam.remaining);
+          beam.remaining -= beamStep;
+          for (var ray = 0; ray < (beam.def.beamCount || 1); ray += 1) {
+            var rayAngle = Math.atan2(beam.ny, beam.nx) + ((beam.def.beamCount || 1) > 1 ? (ray ? .12 : -.12) : 0);
+            this.firePiercingBeam(beam.origin, Math.cos(rayAngle), Math.sin(rayAngle), beam.def.range, beam.def.damage * beam.multiplier * beamStep / beam.duration, beam.def.color, beam.def.beamWidth || 11, Math.max(.04, beamStep));
+          }
+          if (beam.remaining <= 0) tile.activeBeam = null;
+          return;
+        }
+        if (tile.pendingBurst) {
+          var burst = tile.pendingBurst; burst.clock -= dt;
+          if (burst.clock <= 0) {
+            var burstDef = burst.def.secondWave ? Object.assign({}, burst.def, { damage:burst.def.damage * .7, knockback:burst.def.knockback * .5 }) : burst.def;
+            this.fireAttack(tile, this.gridToWorld(tile.x,tile.y), burst.nx,burst.ny,burstDef,burst.target,burst.multiplier);
+            burst.remaining -= 1; burst.clock += burst.interval;
+            if (!burst.remaining) tile.pendingBurst = null;
+          }
+          return;
+        }
         var readyToFire = !(tile.cooldown > 0);
         if (tile.type === "pulse" && !readyToFire) return;
         var def = this.weaponDefinitions ? this.weaponDefinitions[tile.type] : MODULES[tile.type];
@@ -2661,18 +2914,27 @@
           tile.aim = Math.atan2(Math.sin(tile.aim), Math.cos(tile.aim));
         }
         if (!readyToFire || !target) return;
+        if (tile.type === "gravity" && this.gravityFields.some(function(field) { return field.sourceTile === tile && field.life > 0; })) return;
         var dx = target.x - origin.x;
         var dy = target.y - origin.y;
         var distance = Math.max(1, Math.sqrt(dx * dx + dy * dy));
         var nx = dx / distance;
         var ny = dy / distance;
         tile.cooldown = def.cooldown;
+        this.fireAttack(tile, origin, nx, ny, def, target, damageMultiplier);
+        if (def.burstCount > 1) tile.pendingBurst = { remaining: def.burstCount - 1, clock: def.burstInterval, interval: def.burstInterval, nx:nx, ny:ny, def:def, target:target, multiplier:damageMultiplier };
+
+      }, this);
+    };
+
+    Game.prototype.fireAttack = function(tile, origin, nx, ny, def, target, damageMultiplier) {
         if (tile.type === "cannon") {
           this.fireWeaponVolley(origin, nx, ny, def, def.projectileKind || "cannon", 560, 3, 1.4, damageMultiplier);
           this.burst(origin.x + nx * 18, origin.y + ny * 18, def.color, 2, 35);
           audio.tone(250, .035, .018, "square", -35);
         } else if (tile.type === "laser") {
-          this.firePiercingBeam(origin, nx, ny, def.range, def.damage * damageMultiplier, def.color, def.beamWidth || 11, .13);
+          if (def.beamDuration) tile.activeBeam = { origin: origin, nx: nx, ny: ny, remaining: def.beamDuration, duration: def.beamDuration, def: def, multiplier: damageMultiplier };
+          else this.firePiercingBeam(origin, nx, ny, def.range, def.damage * damageMultiplier, def.color, def.beamWidth || 11, .13);
           audio.tone(520, .1, .024, "sawtooth", 210);
         } else if (tile.type === "missile") {
           this.fireWeaponVolley(origin, nx, ny, def, "missile", 180, 5, 3.4, damageMultiplier, target.id);
@@ -2690,11 +2952,13 @@
           this.fireArc(origin, target, def, damageMultiplier);
           audio.tone(430, .12, .025, "sawtooth", 390);
         } else if (tile.type === "rail") {
-          this.spawnProjectile(true, "rail", origin.x + nx * 22, origin.y + ny * 22, nx * 900, ny * 900, def.damage * damageMultiplier, 4, def.range / 900, def.color);
+          var rail = this.spawnProjectile(true, "rail", origin.x + nx * 22, origin.y + ny * 22, nx * 900, ny * 900, def.damage * damageMultiplier, 4, def.range / 900, def.color);
+          if (rail) rail.knockback = def.knockback || 125;
           this.burst(origin.x + nx * 20, origin.y + ny * 20, def.color, 6, 95);
           audio.tone(110, .16, .04, "square", 470);
         } else if (tile.type === "flak") {
           this.fireFlakAirburst(origin, target, def, damageMultiplier);
+          if (def.cloudDuration) this.placeWeaponArea(tile, "cloud", target.x,target.y,def.blastRadius,def.cloudDuration,0,def.color);
           audio.tone(205, .07, .022, "square", -60);
         } else if (tile.type === "pulse") {
           this.firePulse(origin, def, damageMultiplier);
@@ -2703,16 +2967,20 @@
           this.fireWeaponVolley(origin, nx, ny, def, "cryo", 500, 4, def.range / 500, damageMultiplier);
           audio.tone(360, .09, .02, "triangle", -120);
         } else if (tile.type === "mine") {
-          this.spawnProjectile(true, "mine", origin.x + nx * 18, origin.y + ny * 18, nx * 220, ny * 220, def.damage * damageMultiplier, 6, 6, def.color, 0, 1, 0, 64, def.blastRadius, .35);
+          for (var mineIndex = 0; mineIndex < (def.shots || 1); mineIndex += 1) {
+            var mineAngle = Math.atan2(ny, nx) + (mineIndex - ((def.shots || 1) - 1) / 2) * .3;
+            var mine = this.spawnProjectile(true, "mine", origin.x + nx * 18, origin.y + ny * 18, Math.cos(mineAngle) * 220, Math.sin(mineAngle) * 220, def.damage * damageMultiplier, 6, 6, def.color, 0, 1, 0, 64, def.blastRadius, .35);
+            if (mine) { mine.sourceTile = tile; mine.chainMine = !!def.chainMine; mine.mineFragments = !!def.mineFragments; }
+          }
           audio.tone(190, .06, .018, "triangle", 45);
         } else if (tile.type === "ember") {
           this.fireEmberCone(origin, nx, ny, def, damageMultiplier);
+          if (def.fireTrail) this.placeWeaponArea(tile,"fire",origin.x+nx*def.range*.6,origin.y+ny*def.range*.6,65,2,def.damage*damageMultiplier*.5,def.color);
           audio.tone(95, .13, .02, "sawtooth", 45);
         } else if (tile.type === "gravity") {
           this.placeGravityField(tile, origin, target, def, damageMultiplier);
           audio.tone(220, .18, .022, "sine", -100);
         }
-      }, this);
     };
 
     Game.prototype.fireEmberCone = function (origin, nx, ny, def, damageMultiplier) {
@@ -2730,6 +2998,7 @@
         if (angleDelta > def.coneAngle) continue;
         this.damageEnemy(enemy, def.damage * damageMultiplier);
         if (enemy.dead) continue;
+        if (!(enemy.burnTimer > 0) || def.burnDamage * damageMultiplier >= enemy.burnDamage) enemy.spreadBurn = !!def.spreadBurn;
         enemy.burnDamage = Math.max(enemy.burnTimer > 0 ? enemy.burnDamage : 0, def.burnDamage * damageMultiplier);
         enemy.burnTimer = Math.max(enemy.burnTimer || 0, def.burnDuration);
       }
@@ -2754,6 +3023,7 @@
       field.radius = def.fieldRadius;
       field.pullStrength = def.pullStrength;
       field.damage = def.damage * damageMultiplier;
+      field.collapseDamage = (def.collapseDamage || 0) * damageMultiplier;
       field.tickTime = 0;
       field.color = def.color;
       var link = this.spawnEffect("beam", origin.x, origin.y, .12, def.color);
@@ -2762,7 +3032,35 @@
       link.width = 2;
     };
 
+    Game.prototype.placeWeaponArea = function(tile,kind,x,y,radius,life,damage,color) {
+      var area=this.weaponAreas.find(function(area){return area.sourceTile===tile;});
+      if(!area){area={};this.weaponAreas.push(area);}
+      Object.assign(area,{sourceTile:tile,kind:kind,x:x,y:y,radius:radius,life:life,damage:damage,color:color,interceptions:6,visualClock:0});
+    };
+    Game.prototype.updateWeaponAreas = function(dt) {
+      var areas=this.weaponAreas || [];
+      for(var i=0;i<areas.length;i+=1){
+        var area=areas[i];
+        if(this.ship.tiles.get(keyOf(area.sourceTile.x,area.sourceTile.y))!==area.sourceTile){area.life=0;continue;}
+        var step=Math.min(dt,area.life);area.life-=step;area.visualClock-=step;
+        if(area.kind==='cloud'){
+          for(var j=0;j<this.projectiles.length&&area.interceptions>0;j+=1){var p=this.projectiles[j];if(!p.friendly&&p.life>0&&distanceSquared(p.x,p.y,area.x,area.y)<=area.radius*area.radius){p.life=0;area.interceptions-=1;}}
+          if(!area.interceptions)area.life=0;
+        }else{
+          // Fire trails may overlap visually; strongest DPS wins for each enemy.
+          this.enemies.forEach(function(enemy){
+            if(enemy.dead||distanceSquared(enemy.x,enemy.y,area.x,area.y)>area.radius*area.radius)return;
+            var strongest=area;
+            for(var a=0;a<areas.length;a+=1){var other=areas[a];if(other.kind==='fire'&&other.life>0&&distanceSquared(enemy.x,enemy.y,other.x,other.y)<=other.radius*other.radius&&(other.damage>strongest.damage||other.damage===strongest.damage&&a<i))strongest=other;}
+            if(strongest===area)this.damageEnemy(enemy,area.damage*step);
+          },this);
+        }
+        if(area.visualClock<=0){var ring=this.spawnEffect('ring',area.x,area.y,.22,area.color);ring.maxRadius=area.radius;area.visualClock=.2;}
+      }
+      this.weaponAreas=areas.filter(function(area){return area.life>0;});
+    };
     Game.prototype.updateWeaponStatuses = function (dt) {
+      this.updateWeaponAreas(dt);
       var fields = this.gravityFields || [];
       for (var f = 0; f < fields.length; f += 1) {
         var field = fields[f];
@@ -2785,7 +3083,7 @@
             this.damageEnemy(enemy, enemy.burnDamage * enemy.burnTickTime);
             enemy.burnTickTime = 0;
           }
-          if (enemy.burnTimer <= 0) enemy.burnDamage = 0;
+          if (enemy.burnTimer <= 0) { enemy.burnDamage = 0; enemy.spreadBurn = false; }
         }
         if (enemy.dead) continue;
         var strongestPull = 0;
@@ -2812,7 +3110,12 @@
       }
       var write = 0;
       for (var fieldWrite = 0; fieldWrite < fields.length; fieldWrite += 1) {
-        if (fields[fieldWrite].life > 0) fields[write++] = fields[fieldWrite];
+        var endingField = fields[fieldWrite];
+        if (endingField.life > 0) fields[write++] = endingField;
+        else if (endingField.collapseDamage) {
+          this.enemies.slice().forEach(function(enemy) { if (!enemy.dead && distanceSquared(endingField.x,endingField.y,enemy.x,enemy.y)<=endingField.radius*endingField.radius) this.damageEnemy(enemy,endingField.collapseDamage); },this);
+          var collapseRing=this.spawnEffect("ring",endingField.x,endingField.y,.3,endingField.color); collapseRing.maxRadius=endingField.radius;
+        }
       }
       fields.length = write;
     };
@@ -2827,6 +3130,10 @@
         if (d2 > def.range * def.range) continue;
         var falloff = 1 - Math.sqrt(d2) / def.range * .35;
         this.damageEnemy(enemy, def.damage * damageMultiplier * falloff);
+        if (def.knockback && !enemy.dead) {
+          var length = Math.sqrt(d2), push = def.knockback * (enemy.type === "boss" ? .2 : 1);
+          if (length > 0) { enemy.x += (enemy.x-origin.x) / length * push; enemy.y += (enemy.y-origin.y) / length * push; }
+        }
         hitCount += 1;
       }
       var pulseEffect = this.spawnEffect("ring", origin.x, origin.y, .35, def.color);
@@ -2844,7 +3151,7 @@
         var projection = rx * nx + ry * ny;
         if (projection < 0 || projection > range) continue;
         var perpendicular = Math.abs(rx * ny - ry * nx);
-        if (perpendicular <= enemy.radius + width) this.damageEnemy(enemy, damage);
+        if (perpendicular <= enemyDirectionalExtent(enemy, -ny, nx) + width) this.damageEnemy(enemy, damage);
       }
       var beamEffect = this.spawnEffect("beam", origin.x, origin.y, life, color);
       beamEffect.x2 = origin.x + nx * range;
@@ -2852,31 +3159,23 @@
       beamEffect.width = width;
     };
 
-    Game.prototype.fireArc = function (origin, firstTarget, def, damageMultiplier) {
-      var points = [{ x: origin.x, y: origin.y }];
-      var hitIds = new Set();
-      var current = firstTarget;
-      var damage = def.damage * damageMultiplier;
-      for (var chain = 0; chain < def.chains && current; chain += 1) {
-        hitIds.add(current.id);
-        points.push({ x: current.x, y: current.y });
-        this.damageEnemy(current, damage * Math.pow(.82, chain));
-        var next = null;
-        var bestDistance = def.jumpRange * def.jumpRange;
-        var nearby = this.radiusCandidates(current.x, current.y, def.jumpRange);
-        for (var i = 0; i < nearby.length; i += 1) {
-          var candidate = nearby[i];
-          if (candidate.dead || hitIds.has(candidate.id)) continue;
-          var d2 = distanceSquared(current.x, current.y, candidate.x, candidate.y);
-          if (d2 < bestDistance) {
-            bestDistance = d2;
-            next = candidate;
-          }
+    Game.prototype.fireArc = function(origin, firstTarget, def, multiplier) {
+      var damage=def.damage*multiplier, hitIds=new Set([firstTarget.id]);
+      this.damageEnemy(firstTarget,damage);
+      var points=[{x:origin.x,y:origin.y},{x:firstTarget.x,y:firstTarget.y}];
+      var paths=def.forkChain?2:1, hops=def.forkChain?5:def.chains-1;
+      for(var path=0;path<paths;path+=1){
+        var current=firstTarget;
+        if(path)points.push({x:firstTarget.x,y:firstTarget.y});
+        for(var hop=1;hop<=hops;hop+=1){
+          var next=null,best=def.jumpRange*def.jumpRange;
+          var nearby=this.radiusCandidates(current.x,current.y,def.jumpRange);
+          for(var i=0;i<nearby.length;i+=1){var candidate=nearby[i];if(candidate.dead||hitIds.has(candidate.id))continue;var d=distanceSquared(current.x,current.y,candidate.x,candidate.y);if(d<best){best=d;next=candidate;}}
+          if(!next)break;hitIds.add(next.id);points.push({x:next.x,y:next.y});this.damageEnemy(next,damage*Math.pow(.82,hop));current=next;
         }
-        current = next;
       }
-      var arcEffect = this.spawnEffect("arc", origin.x, origin.y, .18, def.color);
-      arcEffect.points = points;
+      if(def.returnHit&&!firstTarget.dead){this.damageEnemy(firstTarget,damage);points.push({x:firstTarget.x,y:firstTarget.y});}
+      var effect=this.spawnEffect('arc',origin.x,origin.y,.18,def.color);effect.points=points;
     };
 
     Game.prototype.damageEnemy = function (enemy, amount) {
@@ -2916,6 +3215,14 @@
     Game.prototype.killEnemy = function (enemy) {
       if (enemy.dead) return;
       enemy.dead = true;
+      if (enemy.spreadBurn) {
+        this.enemies.forEach(function(other) {
+          if (other.dead || distanceSquared(enemy.x,enemy.y,other.x,other.y)>80*80) return;
+          var transferred = enemy.burnDamage*.5;
+          if (!(other.burnTimer>0) || transferred >= other.burnDamage) { other.burnDamage=transferred; other.spreadBurn=false; }
+          other.burnTimer=Math.max(other.burnTimer || 0,2.5);
+        });
+      }
       this.recordProgress({ kills: 1, elapsed: this.elapsed });
       if (enemy.type === "boss") {
         this.bossDefeated = true;
@@ -2925,9 +3232,7 @@
         this.bossWarningShown = false;
         this.pendingBossAngle = null;
         // Fixed arrival targets leave room for the swarm to develop between encounters.
-        this.nextBossAt = this.bossesDefeated < SURVIVAL_BOSS_TIMES.length
-          ? Math.max(SURVIVAL_BOSS_TIMES[this.bossesDefeated], this.elapsed + BOSS_RECOVERY_SECONDS + 30)
-          : (this.continued ? this.elapsed + BOSS_REPEAT_INTERVAL : Infinity);
+        this.nextBossAt = this.elapsed + BOSS_REPEAT_INTERVAL;
         this.recoveryUntil = this.elapsed + BOSS_RECOVERY_SECONDS;
         this.ambientSpawnClock = 1.5;
         this.assaultClock = ASSAULT_FIRST_DELAY;
@@ -2959,6 +3264,8 @@
         return;
       }
       this.kills += 1;
+      var minute = Math.floor(this.elapsed / 60);
+      this.killsByMinute[minute] = (this.killsByMinute[minute] || 0) + 1;
       var rewardMultiplier = this.matterIncomeMultiplier();
       var earnedMatter = enemy.reward * rewardMultiplier;
       this.matter += earnedMatter;
@@ -2978,31 +3285,43 @@
     };
 
     Game.prototype.applyDamageToTile = function (targetKey, amount) {
+      var shieldDef = this.weaponDefinitions ? this.weaponDefinitions.shield : MODULES.shield, repairDef = this.weaponDefinitions ? this.weaponDefinitions.repair : MODULES.repair;
       var target = this.ship.tiles.get(targetKey);
       if (!target || this.finished || !Number.isFinite(amount) || amount <= 0) return;
       var remaining = amount;
       var shieldAbsorbed = 0;
+      this.lastShieldAbsorbed = 0;
       var shields = this.shieldBuffer;
       shields.length = 0;
       this.ship.tiles.forEach(function (tile) {
         if (tile.type !== "shield") return;
         var dx = tile.x - target.x;
         var dy = tile.y - target.y;
-        if (dx * dx + dy * dy > MODULES.shield.shieldRadius * MODULES.shield.shieldRadius) return;
+        if (dx * dx + dy * dy > shieldDef.shieldRadius * shieldDef.shieldRadius) return;
         // Hits inside this field interrupt its recovery even when its charge is empty.
-        tile.shieldDelay = MODULES.shield.rechargeDelay;
+        tile.shieldDelay = shieldDef.rechargeDelay;
         shields.push(tile);
       });
       shields.sort(function (a, b) { return b.shield - a.shield; });
       for (var i = 0; i < shields.length && remaining > 0; i += 1) {
         var shield = shields[i];
+        if (shield.shield <= 0 && shieldDef.reserveCapacity && !(shield.reserveCooldown > 0)) {
+          shield.reserveCharge = shieldDef.reserveCapacity; shield.reserveLife = 2; shield.reserveCooldown = 30;
+        }
         var absorbed = Math.min(shield.shield, remaining);
         shield.shield -= absorbed;
-        shield.shieldDelay = MODULES.shield.rechargeDelay;
+        shield.shieldDelay = shieldDef.rechargeDelay;
         if (shield.shield <= 0) shield.flash = Math.max(shield.flash, .35);
         remaining -= absorbed;
         shieldAbsorbed += absorbed;
+        if (shield.shield <= 0 && shieldDef.reserveCapacity && !(shield.reserveCooldown > 0)) {
+          shield.reserveCharge = shieldDef.reserveCapacity; shield.reserveLife = 2; shield.reserveCooldown = 30;
+        }
+        var reserved = Math.min(shield.reserveCharge || 0, remaining);
+        shield.reserveCharge = Math.max(0,(shield.reserveCharge || 0)-reserved);
+        remaining -= reserved; shieldAbsorbed += reserved;
       }
+      this.lastShieldAbsorbed = shieldAbsorbed;
       if (remaining <= 0) {
         if (playtestTelemetry) playtestTelemetry.recordDamage(target.type, 0, shieldAbsorbed);
         var shieldedPos = this.gridToWorld(target.x, target.y);
@@ -3018,7 +3337,7 @@
       var removedHp = Math.min(target.hp, remaining);
       target.hp = Math.max(0, target.hp - remaining);
       if (playtestTelemetry) playtestTelemetry.recordDamage(target.type, removedHp, shieldAbsorbed);
-      target.repairDelay = MODULES.repair.repairDelay;
+      target.repairDelay = repairDef.repairDelay;
       target.flash = Math.max(target.flash, .24 + clamp(remaining / 40, 0, .18));
       var impactPos = this.gridToWorld(target.x, target.y);
       if (save.settings.damageNumbers && this.effects.length < (currentQualityTier() > 1 ? 65 : (currentQualityTier() > 0 ? 90 : 120))) {
@@ -3088,6 +3407,8 @@
       debrisEffect.rotation = this.ship.angle;
       debrisEffect.spin = (Math.random() - .5) * 4;
       debrisEffect.glyph = MODULES[tile.type].glyph;
+      debrisEffect.moduleType = tile.type;
+      debrisEffect.moduleAim = tile.aim;
     };
 
     Game.prototype.burst = function (x, y, color, count, speed) {
@@ -3198,26 +3519,11 @@
         trainingSession.controller.advance();
         if (this.state === "playing") trainingSession.arena.update(this, dt, trainingSession.controller.snapshot());
       }
+      if (this.testRange) rangeArena.update(this, dt);
       this.checkSurvival();
     };
 
-    Game.prototype.checkSurvival = function () {
-      if (this.training) return;
-      if (this.finished || this.survivalCompleted || this.elapsed < SURVIVAL_DURATION || this.bossesDefeated < SURVIVAL_BOSS_TIMES.length) return;
-      var core = this.ship.tiles.get("0,0");
-      if (!core || core.hp <= 0) return;
-      this.survivalCompleted = true;
-      this.state = "milestone";
-      this.accumulator = 0;
-      this.recoveryUntil = this.elapsed + BOSS_RECOVERY_SECONDS;
-      if (this !== game) return;
-      resetMobileInput();
-      keys = Object.create(null);
-      ui.milestoneReward.textContent = settleFragmentReward(this).fragments + " Fragments to bank";
-      ui.milestoneOverlay.classList.remove("hidden");
-      if (playtestTelemetry) playtestTelemetry.event("survival_complete", this.elapsed, { bosses: this.bossesDefeated });
-      updateHud();
-    };
+    Game.prototype.checkSurvival = function () { /* Endless has no completion timer. */ };
 
     function continueSurvival() {
       if (!game || game.finished || game.state !== "milestone") return;
@@ -3234,6 +3540,7 @@
     }
 
     Game.prototype.finishRun = function (victory, retired) {
+      if (this.testRange) { this.state = "paused"; openPause("RANGE HULL LOST"); showToast("Reset loadout to rebuild the range ship."); return; }
       if (this.training) { failTrainingLesson(); return; }
       if (this.finished) return;
       this.finished = true;
@@ -3258,12 +3565,12 @@
           modules: this.ship.tiles.size,
           fragments: fragments,
           fragmentReward: { earnedUnits: reward.earnedUnits, carryBeforeUnits: carryBefore,
-            carryAfterUnits: reward.carryUnits, scale: reward.scale }
+            carryAfterUnits: reward.carryUnits, scale: reward.scale, sources: reward.sources, killsByMinute: this.killsByMinute }
         }, telemetrySample());
       }
       storeSave();
       ui.resultTitle.textContent = retired ? (this.survivalCompleted ? "SURVIVAL COMPLETE" : "RUN BANKED") : "CORE LOST";
-      ui.resultSubtitle.textContent = this.survivalCompleted ? "10-minute milestone earned · completion bonus included." : "Fragments earned from survival, kills and bosses. Spend them in Hangar.";
+      ui.resultSubtitle.textContent = "Fragments earned from combat time, ordinary kills and bosses. Spend them in Hangar.";
       ui.resultKills.textContent = this.kills;
       ui.resultTime.textContent = formatTime(this.elapsed);
       ui.resultFragments.textContent = "+" + fragments;
@@ -3344,7 +3651,7 @@
 
     function upgradePricingCopies(type) {
       if (!game) return 0;
-      return Math.max(installedModuleCopies(type), game.upgradeFleetSizes[type] || 0);
+      return installedModuleCopies(type);
     }
 
     function buyRunUpgrade(type, choice, expectedRank) {
@@ -3352,18 +3659,20 @@
       if (!game || game.state !== "building") return false;
       var copies = installedModuleCopies(type);
       if (!copies) return false;
-      var result = runUpgrades.purchase(game.upgrades, type, choice, game.matter, upgradePricingCopies(type), expectedRank);
+      var result = runUpgrades.purchase(game.upgrades, type, choice, game.testRange ? Number.MAX_SAFE_INTEGER : game.matter, upgradePricingCopies(type), expectedRank, effectiveBranchLicenses());
       if (!result) return false;
-      game.matter = result.matter;
-      if (playtestTelemetry && playtestTelemetry.recordUpgrade) playtestTelemetry.recordUpgrade(type, choice, result.option.cost, game.elapsed, { level: game.upgrades[type].level + 1, branch: game.upgrades[type].branch });
+      if (!game.testRange) game.matter = result.matter;
+      if (playtestTelemetry && playtestTelemetry.recordUpgrade) playtestTelemetry.recordUpgrade(type, choice, result.option.cost, game.elapsed, { level: game.upgrades[type].level + 1, branch: game.upgrades[type].branch, path: game.upgrades[type].path, unitCost: result.option.unitCost, copies: copies });
       game.weaponDefinitions[type] = runUpgrades.resolve(MODULES[type], game.upgrades[type]);
+      game.refreshFamilyTiles(type, false);
       game.recordProgress({ upgrades: 1 });
       trainingEvent("weapon_upgraded", { type: type, copies: copies, level: game.upgrades[type].level });
       game.ship.tiles.forEach(function (tile) {
-        if (tile.type === type) { tile.cooldown = 0; tile.flash = .65; }
+        if (tile.type === type) { tile.cooldown = 0; tile.upgradeFlash = .65; }
       });
       showToast(game.training ? (copies === 1 ? "Cannon upgraded" : "All " + copies + " Cannons upgraded") : MODULES[type].name + " · " + runUpgrades.label(type, game.upgrades[type]) + (copies === 1 ? " · Weapon upgraded" : " · All " + copies + " copies upgraded"));
       storeSave();
+      ui.toast.classList.add("success");
       audio.tone(330, .16, .045, "sine", 360);
       createCatalog();
       renderBuildGrid();
@@ -3376,53 +3685,55 @@
       ui.upgradeList.innerHTML = "";
       var tile = selectedBuildTile();
       var type = tile ? tile.type : selectedBuildModule;
-      var copies = isWeaponType(type) ? installedModuleCopies(type) : 0;
+      var copies = MODULES[type] ? installedModuleCopies(type) : 0;
       ui.buildUpgradePanel.classList.toggle("hidden", !copies);
       if (!copies) return;
-        var def = game.weaponDefinitions[type];
         var card = document.createElement("article");
         card.className = "upgrade-card";
-        card.innerHTML = '<header><strong class="upgrade-scope-title">' + buildModuleName(type) + ' upgrades</strong><span class="upgrade-level">' + runUpgrades.label(type, game.upgrades[type]) + '</span><small class="upgrade-scope-note">All ' + copies + ' ' + (copies === 1 ? 'copy' : 'copies') + ' + future copies · This run</small></header>';
-        var choices = runUpgrades.options(type, game.upgrades[type], upgradePricingCopies(type));
-        if (!choices.length) card.innerHTML += '<p class="upgrade-delta">' + (game.upgrades[type] && game.upgrades[type].level === runUpgrades.MAX_RANK ? "Maximum level reached." : "Upgrade unavailable.") + '</p>';
-        var actions = document.createElement("div");
-        actions.className = "upgrade-actions";
-        choices.forEach(function (choice) {
-          var button = document.createElement("button");
-          button.className = "upgrade-option";
+        card.innerHTML = '<header><strong class="upgrade-scope-title">' + buildModuleName(type) + ' upgrades</strong><span class="upgrade-level">' + runUpgrades.label(type, game.upgrades[type]) + '</span><small class="upgrade-scope-note">' + copies + ' installed · Includes future copies · This run</small></header>';
+        var track = document.createElement("div");
+        track.className = "run-upgrade-track";
+        track.setAttribute("tabindex", "0");
+        track.setAttribute("aria-label", "Upgrade tree; scroll to explore branches and later upgrades");
+        var choices = runUpgrades.options(type, game.upgrades[type], upgradePricingCopies(type), effectiveBranchLicenses());
+        if (!choices.length) card.innerHTML += '<p class="upgrade-max"><strong>MAX</strong> Route complete. No further upgrades.</p>';
+        else if (choices.every(function (choice) { return choice.locked; })) card.innerHTML += '<p class="upgrade-lock-help">Unlock branches in Hangar with Fragments between runs.</p>';
+        function createUpgradeChoice(choice) {
+          var button = document.createElement(choice.locked ? "article" : "button");
+          button.className = "upgrade-option" + (choice.locked ? " upgrade-locked" : "");
           button.dataset.weapon = type;
           button.dataset.choice = choice.id;
-          button.disabled = game.matter < choice.cost;
-          var description = choice.id === "tune" ? "Shots/s " + Number((1 / def.cooldown).toFixed(2)) + " → " + Number((1.25 / def.cooldown).toFixed(2)) : choice.description;
-          if (choice.id === "calibrate") {
-            var nextDef = runUpgrades.resolve(MODULES[type], { level: choice.rank + 1, branch: game.upgrades[type].branch });
-            var changes = choice.milestone ? [choice.description] : [];
-            if (nextDef.damage !== def.damage) changes.push((type === "gravity" ? "DPS " : "Damage ") + Number(def.damage.toFixed(2)) + " → " + Number(nextDef.damage.toFixed(2)));
-            if (type === "ember" && nextDef.burnDamage !== def.burnDamage) changes.push("Burn " + Number(def.burnDamage.toFixed(2)) + " → " + Number(nextDef.burnDamage.toFixed(2)) + "/s");
-            if (type === "flak" || type === "gravity") {
-              var radiusKey = type === "gravity" ? "fieldRadius" : "blastRadius";
-              if (nextDef[radiusKey] !== def[radiusKey]) changes.push("Radius " + Math.round(def[radiusKey]) + " → " + Math.round(nextDef[radiusKey]));
-            }
-            if (type === "cryo" && nextDef.slowDuration !== def.slowDuration) changes.push("Slow " + Number(def.slowDuration.toFixed(2)) + " → " + Number(nextDef.slowDuration.toFixed(2)) + "s");
-            description = changes.join(" · ");
-          }
+          if (!choice.locked) button.disabled = !game.testRange && game.matter < choice.cost;
+          var description = runUpgrades.describeChange(MODULES[type], game.upgrades[type], choice);
           if (choice.milestone) button.classList.add("milestone-upgrade");
-          button.innerHTML = '<strong>' + choice.name + '</strong><span class="upgrade-delta">' + description + '</span><b>' + choice.cost + ' Matter</b>';
+          var branch = choice.locked ? runUpgrades.trees[type].branches.find(function (entry) { return type + ":" + entry.id === choice.license; }) : null;
+          var status = choice.locked ? '<span class="upgrade-status">LOCKED</span>' : '';
+          var price = choice.locked ? '<b>Unlock · ' + branch.fragmentCost + ' Fragments in Hangar</b><small>Run upgrade: ' + choice.cost + ' Matter for ' + copies + ' installed ' + (copies === 1 ? 'copy' : 'copies') + '.</small>' : '<b>' + choice.cost + ' Matter</b><small>' + (game.matter < choice.cost ? 'Need ' + Math.ceil(choice.cost - game.matter) + ' more Matter' : 'Upgrade ' + copies + ' installed ' + (copies === 1 ? 'copy' : 'copies')) + '</small>';
+          if (game.testRange) price = "<b>Free in test range</b><small>Applies to installed copies</small>";
+          button.innerHTML = status + '<strong>' + choice.name.replace(/ [+-][\d.]+%$/, '') + '</strong>' + price + '<span class="upgrade-delta">' + description + '</span>';
+          if (choice.locked) return button;
           button.addEventListener("click", function (event) {
             if (!buyRunUpgrade(type, choice.id, choice.rank)) return;
             if (event && event.detail === 0 && ui.upgradeList.querySelector) {
-              var nextOption = ui.upgradeList.querySelector(".upgrade-option:not(:disabled)") || ui.buildGrid.querySelector(".selected-installed") || ui.catalog.querySelector(".selected");
+              var nextOption = ui.upgradeList.querySelector("button.upgrade-option:not(:disabled)") || ui.buildGrid.querySelector(".selected-installed") || ui.catalog.querySelector(".selected");
               if (nextOption) nextOption.focus({ preventScroll: true });
             }
           });
-          actions.appendChild(button);
+          return button;
+        }
+        window.DriftUpgradeTreeView.renderRunTree(track, {
+          upgrades: runUpgrades, type: type, state: game.upgrades[type], copies: upgradePricingCopies(type),
+          licenses: effectiveBranchLicenses(), base: MODULES[type], createChoice: createUpgradeChoice,
+          matter: game.matter, free: Boolean(game.testRange)
         });
-        card.appendChild(actions);
+        card.appendChild(track);
         ui.upgradeList.appendChild(card);
+        track.scrollTop = Math.max(0, (track.scrollHeight - track.clientHeight) / 2);
       ui.buildMatter.textContent = Math.floor(game.matter);
     }
 
     var buildInteraction = { owner: null, selectedKey: null, drag: null, preview: null, pendingCellKey: null, suppressClickUntil: 0 };
+    var buildHoverSuspended = false;
 
     function clearBuildInteraction() {
       var drag = buildInteraction.drag;
@@ -3457,27 +3768,18 @@
       return reached.size === keys.size;
     }
 
-    function moduleSellRefund(tile) {
-      if (!tile || tile.type === "core" || !Number.isFinite(tile.paidMatter) || tile.paidMatter <= 0) return 0;
-      return Math.floor(tile.paidMatter * .6 * clamp(tile.hp / tile.maxHp, 0, 1));
-    }
+    function moduleSellRefund(tile) { return 0; }
 
     function moduleSaleBlockReason(sourceKey) {
       if (!game) return "";
       var tile = game.ship.tiles.get(sourceKey);
-      if (!tile || tile.type === "core") return "The core cannot be sold.";
-      if (!buildLayoutConnected(sourceKey)) return "Other modules need this connection. Sell the outer modules first.";
+      if (!tile || tile.type === "core") return "The core cannot be dismantled.";
+      if (!buildLayoutConnected(sourceKey)) return "Other modules need this connection. Remove the outer modules first.";
       if (!isWeaponType(tile.type)) return "";
       var weaponCount = 0;
       game.ship.tiles.forEach(function (installed) { if (isWeaponType(installed.type)) weaponCount += 1; });
       if (weaponCount > 1) return "";
-      var replacementPrice = Infinity;
-      WEAPON_TYPES.forEach(function (type) {
-        if (!moduleAvailable(type)) return;
-        var countAfterSale = installedModuleCopies(type) - (type === tile.type ? 1 : 0);
-        replacementPrice = Math.min(replacementPrice, Math.ceil(MODULES[type].baseCost * Math.pow(MODULES[type].scale, countAfterSale)));
-      });
-      return game.matter + moduleSellRefund(tile) >= replacementPrice ? "" : "Keep one weapon or save enough Matter for a replacement.";
+      return "Keep at least one weapon installed.";
     }
 
     function finishBuildChange() {
@@ -3494,7 +3796,7 @@
       if (!tile || tile.type === "core") return false;
       var blockReason = moduleSaleBlockReason(sourceKey);
       if (blockReason) {
-        showToast("CANNOT SELL · " + blockReason);
+        showToast("CANNOT DISMANTLE · " + blockReason);
         return false;
       }
       var refund = moduleSellRefund(tile);
@@ -3506,7 +3808,7 @@
       buildInteraction.selectedKey = null;
       buildInteraction.preview = null;
       if (playtestTelemetry && typeof playtestTelemetry.recordSale === "function") playtestTelemetry.recordSale(tile.type, refund, game.elapsed, { x: tile.x, y: tile.y });
-      showToast(MODULES[tile.type].name + " sold · +" + refund + " Matter");
+      showToast(MODULES[tile.type].name + " dismantled · no Matter refund");
       finishBuildChange();
       return true;
     }
@@ -3533,6 +3835,7 @@
       game.matter -= price;
       game.purchasedCounts[type] += 1;
       var tile = makeTile(type, x, y, false, game.coreDef.moduleHpMultiplier, game.training);
+      game.applyFamilyTileStats(tile, true);
       tile.paidMatter = price;
       game.ship.tiles.set(keyOf(x, y), tile);
       if (isWeaponType(type)) game.upgradeFleetSizes[type] = Math.max(game.upgradeFleetSizes[type] || 0, installedModuleCopies(type));
@@ -3551,7 +3854,7 @@
     }
 
     function shieldBuildDescription(tile) {
-      var def = MODULES.shield;
+      var def = game ? game.weaponDefinitions.shield : MODULES.shield;
       var capacity = tile ? Math.ceil(tile.shield) + "/" + tile.maxShield : String(def.shield);
       var delay = def.rechargeDelay;
       var rate = def.rechargeRate;
@@ -3585,7 +3888,7 @@
       actions.appendChild(sell);
       details.appendChild(actions);
       var note = document.createElement("p");
-      note.textContent = blockReason || (tile.paidMatter > 0 ? "Refund: 60% × hull condition." : "Free starter · no refund.");
+      note.textContent = blockReason || "Dismantling gives no Matter refund.";
       details.appendChild(note);
     }
 
@@ -3604,16 +3907,21 @@
       }
       buildInteraction.preview = origin;
       var protectedCount = 0;
-      var radiusSquared = MODULES.shield.shieldRadius * MODULES.shield.shieldRadius;
+      var radiusSquared = game.weaponDefinitions.shield.shieldRadius * game.weaponDefinitions.shield.shieldRadius;
       Array.prototype.forEach.call(ui.buildGrid.children, function (cell) {
         var gx = Number(cell.dataset.x);
         var gy = Number(cell.dataset.y);
         var key = keyOf(gx, gy);
+        var ghost = !selected && !game.ship.tiles.has(key) && gx === x && gy === y && validPlacement(gx, gy, selectedBuildModule) && game.matter >= modulePrice(selectedBuildModule);
         var inRadius = origin && (gx - origin.x) * (gx - origin.x) + (gy - origin.y) * (gy - origin.y) <= radiusSquared;
         var occupied = game.ship.tiles.has(key);
         cell.classList.toggle("shield-range", Boolean(inRadius));
         cell.classList.toggle("shield-covered", Boolean(inRadius && occupied));
-        cell.classList.toggle("preview-origin", Boolean((origin && gx === origin.x && gy === origin.y) || buildInteraction.pendingCellKey === key));
+        cell.classList.toggle("preview-origin", Boolean(ghost || (origin && gx === origin.x && gy === origin.y) || buildInteraction.pendingCellKey === key));
+        if (!occupied && !(drag && drag.active)) {
+          if (ghost) { cell.innerHTML = '<span class="pc-placement-ghost">' + (moduleArt ? moduleArt.iconHtml(selectedBuildModule, true) : moduleIconHtml(selectedBuildModule)) + '</span>'; cell.dataset.pcGhost = "1"; }
+          else if (cell.dataset.pcGhost) { cell.innerHTML = "<span>" + (cell.classList.contains("valid") ? "+" : "·") + "</span>"; delete cell.dataset.pcGhost; }
+        }
         if (inRadius && occupied) protectedCount += 1;
       });
       var status = document.getElementById("buildPreviewStatus");
@@ -3621,9 +3929,9 @@
       status.textContent = origin ? "Protects " + protectedCount + " " + (protectedCount === 1 ? "module" : "modules") + " · " + shieldBuildDescription(origin.tile) :
         (selectedBuildModule === "shield" && !selected ? "Hover a cell or drag the shield to preview its coverage." : "");
       if (origin && selected && selected.type === "shield" && origin.tile === selected) {
-        status.textContent = "Protects " + protectedCount + " modules · " + MODULES.shield.shieldRadius + "-cell radius";
+        status.textContent = "Protects " + protectedCount + " modules · " + game.weaponDefinitions.shield.shieldRadius + "-cell radius";
       }
-      if (buildInteraction.pendingCellKey) status.textContent = "Tap again to attach" + (origin ? " · Protects " + protectedCount + " modules · Shield " + MODULES.shield.shield : " the module.");
+      if (buildInteraction.pendingCellKey) status.textContent = "Tap again to attach" + (origin ? " · Protects " + protectedCount + " modules · Shield " + game.weaponDefinitions.shield.shield : " the module.");
       status.classList.toggle("is-empty", !status.textContent);
     }
 
@@ -3702,10 +4010,10 @@
         drag.ghost.className = "build-drag-ghost";
         drag.ghost.innerHTML = moduleIconHtml(drag.type);
         drag.ghost.setAttribute("aria-hidden", "true");
-        document.body.appendChild(drag.ghost);
+        (document.getElementById("pcViewport") || document.body).appendChild(drag.ghost);
       }
-      drag.ghost.style.left = event.clientX + "px";
-      drag.ghost.style.top = event.clientY + "px";
+      drag.ghost.style.left = (event.clientX - document.getElementById("pcViewport").getBoundingClientRect().left) + "px";
+      drag.ghost.style.top = (event.clientY - document.getElementById("pcViewport").getBoundingClientRect().top) + "px";
       scrollBuildViewport(drag, event);
       drag.target = buildCellAtPointer(event);
       Array.prototype.forEach.call(ui.buildGrid.children, function (cell) { cell.classList.remove("drop-valid", "drop-invalid"); });
@@ -3784,13 +4092,13 @@
       var readyFamilies = Object.create(null);
       game.ship.tiles.forEach(function (tile) {
         if (!isWeaponType(tile.type) || Object.prototype.hasOwnProperty.call(readyFamilies, tile.type)) return;
-        readyFamilies[tile.type] = runUpgrades.options(tile.type, game.upgrades[tile.type], upgradePricingCopies(tile.type)).some(function (option) { return option.cost <= game.matter; });
+        readyFamilies[tile.type] = runUpgrades.options(tile.type, game.upgrades[tile.type], upgradePricingCopies(tile.type), effectiveBranchLicenses()).some(function (option) { return !option.locked && option.cost <= game.matter; });
       });
       var selected = MODULES[selectedBuildModule];
       var selectedPrice = modulePrice(selectedBuildModule);
       var canAffordSelected = game.matter >= selectedPrice;
       var missingMatter = Math.ceil(selectedPrice - game.matter);
-      ui.buildSelection.innerHTML = moduleGlyphHtml(selectedBuildModule) + '<div><span class="module-role">Buy one copy</span><strong>' + selected.name + '</strong><p>' + selected.summary + '</p></div><div class="selection-price' + (canAffordSelected ? '' : ' short') + '">' + selectedPrice + ' MATTER<small>' + (canAffordSelected ? 'READY TO ATTACH' : 'SHORT ' + missingMatter) + '</small></div>';
+      ui.buildSelection.innerHTML = moduleGlyphHtml(selectedBuildModule) + '<div><span class="module-role">Buy one copy</span><strong>' + selected.name + '</strong><p>' + selected.summary + '</p></div><div class="selection-price' + (canAffordSelected ? '' : ' short') + '">' + selectedPrice + ' MATTER<small>' + (canAffordSelected ? 'READY TO ATTACH' : 'Available: ' + Math.floor(game.matter) + ' Matter') + '</small></div>';
       ui.buildSelection.title = selected.description;
       var minX = 0;
       var maxX = 0;
@@ -3807,7 +4115,9 @@
       minY -= 1;
       maxY += 1;
       var columns = maxX - minX + 1;
-      ui.buildGrid.style.gridTemplateColumns = "repeat(" + columns + ", 48px)";
+      var buildCellSize = viewWidth >= 1600 ? 88 : 68;
+      ui.buildGrid.style.setProperty("--pc-cell", buildCellSize + "px");
+      ui.buildGrid.style.gridTemplateColumns = "repeat(" + columns + ", " + buildCellSize + "px)";
       ui.buildGrid.innerHTML = "";
       for (var y = minY; y <= maxY; y += 1) {
         for (var x = minX; x <= maxX; x += 1) {
@@ -3818,7 +4128,10 @@
           if (tile) {
             button.classList.add("occupied");
             if (tile.type === "core") button.classList.add("core");
-            var glyph = tile.type === "core" ? "▲" : moduleIconHtml(tile.type);
+            var artType = tileArtType(tile);
+            var cellArt = moduleArt && moduleArt.iconHtml(artType, true);
+            var glyph = cellArt || (tile.type === "core" ? "▲" : moduleIconHtml(tile.type));
+            if (cellArt) button.classList.add("has-module-art");
             button.setAttribute("aria-label", tile.type === "core" ? "Core" : MODULES[tile.type].name);
             var color = tile.type === "core" ? "#ffffff" : MODULES[tile.type].color;
             button.innerHTML = '<span style="color:' + color + '">' + glyph + '</span><span class="cell-hp"><i style="width:' + clamp(tile.hp / tile.maxHp * 100, 0, 100) + '%"></i></span>';
@@ -3848,7 +4161,7 @@
             button.setAttribute("aria-label", (installedSelection ? "Select a catalog module to attach" : (placeable ? "Attach " + selected.name : "Unavailable attachment")) + " at " + x + ", " + y);
             button.classList.add(placeable ? "valid" : (structurallyValid ? "unaffordable" : "blocked"));
             button.dataset.action = installedSelection ? "none" : "attach";
-            button.innerHTML = "<span>" + (placeable ? "+" : (structurallyValid ? "$" : "·")) + "</span>";
+            button.innerHTML = "<span>" + (placeable ? "+" : (structurallyValid ? "+" : "·")) + "</span>";
             button.setAttribute("aria-disabled", String(!placeable));
             (function (gx, gy) {
               button.addEventListener("click", function (event) {
@@ -3875,14 +4188,16 @@
           button.dataset.x = String(x);
           button.dataset.y = String(y);
           (function (gx, gy) {
-            button.addEventListener("pointerenter", function () { if (!buildInteraction.drag || !buildInteraction.drag.active) updateBuildPreview(gx, gy); });
-            button.addEventListener("focus", function () { updateBuildPreview(gx, gy); });
+            button.addEventListener("pointerenter", function () { if (!buildHoverSuspended && (!buildInteraction.drag || !buildInteraction.drag.active)) updateBuildPreview(gx, gy); });
+            button.addEventListener("pointerleave", function () { if (!buildInteraction.drag || !buildInteraction.drag.active) updateBuildPreview(); });
+            // Keyboard focus has its own outline; it must not leave a mouse placement ghost behind.
+            button.addEventListener("blur", function () { if (!buildInteraction.drag || !buildInteraction.drag.active) updateBuildPreview(); });
           })(x, y);
           ui.buildGrid.appendChild(button);
         }
       }
       ui.buildHint.textContent = installedSelection
-        ? (installedSelection.type === "core" ? "Select an installed module to inspect, upgrade or sell it." : "Inspect, upgrade or sell this module. Select the catalog to add another.")
+        ? (installedSelection.type === "core" ? "Select an installed module to inspect, upgrade or dismantle it." : "Inspect, upgrade or dismantle this module. Select the catalog to add another.")
         : canAffordSelected
         ? "Drag " + selected.name + " to the ship, or select a + cell."
         : "Selected for inspection. Earn " + missingMatter + " more Matter to attach " + selected.name + ".";
@@ -3906,6 +4221,7 @@
       if (modulePreviewSession) return;
       if (!game || game.state !== "playing" || game.finished) return;
       resetMobileInput();
+      dismissControlHint();
       game.state = "building";
       if (playtestTelemetry) playtestTelemetry.recordBuild(true, game.elapsed, { matter: game.matter, modules: game.ship.tiles.size });
       if (!moduleAvailable(selectedBuildModule)) selectedBuildModule = "cannon";
@@ -3976,6 +4292,7 @@
     }
 
     var settingsOpenedFromMenu = false;
+    var settingsPageOpen = false;
     var deferredInstallPrompt = null;
 
     function setDebugTools(enabled) {
@@ -4071,11 +4388,12 @@
     }
 
     function setHangarTab(tab) {
-      var showArmory = tab === "armory";
-      ui.hangarUpgradeTab.classList.toggle("selected", !showArmory);
-      ui.hangarWeaponTab.classList.toggle("selected", showArmory);
-      ui.hangarUpgradesPanel.classList.toggle("hidden", showArmory);
-      ui.hangarWeaponsPanel.classList.toggle("hidden", !showArmory);
+      var sections = { armory:["hangarWeaponsPanel","hangarWeaponTab"], cores:["pcCoresPanel","pcCoresTab"], upgrades:["hangarUpgradesPanel","hangarUpgradeTab"], research:["pcResearchPanel","pcResearchTab"] };
+      Object.keys(sections).forEach(function (key) {
+        var panel=document.getElementById(sections[key][0]), button=document.getElementById(sections[key][1]);
+        if(panel) panel.classList.toggle("hidden",key!==tab);
+        if(button) { button.classList.toggle("selected",key===tab);button.setAttribute("aria-selected",String(key===tab)); }
+      });
     }
 
     function openHangar(tab) {
@@ -4097,10 +4415,33 @@
       renderCores();
     }
 
+    function showSettingsPage(open) {
+      settingsPageOpen = open;
+      document.getElementById("settingsContent").classList.toggle("hidden", !open);
+      document.getElementById("pauseSettingsButton").classList.toggle("hidden", open);
+      ui.pauseOverlay.classList.toggle("settings-view", open);
+      ui.pauseTitle.textContent = open ? "Settings" : "Paused";
+      ui.pauseEyebrow.textContent = open ? "GAME OPTIONS" : "COMBAT SUSPENDED";
+      ui.resumeButton.textContent = open ? (settingsOpenedFromMenu ? "Close" : "Back to pause") : "Resume [P]";
+      ui.pauseHangarButton.classList.toggle("hidden", open);
+      ui.restartButton.classList.toggle("hidden", open || !game || !game.training);
+      if (open) syncSettingsUi();
+    }
+
+    function openPauseSettings() {
+      if (!game || game.state !== "paused" || game.finished) return;
+      showSettingsPage(true);
+      ui.pauseTitle.setAttribute("tabindex", "-1");
+      ui.pauseTitle.focus({ preventScroll: true });
+      document.getElementById("settingsContent").scrollTop = 0;
+    }
+
     function openMenuSettings() {
       settingsOpenedFromMenu = true;
+      showSettingsPage(true);
       ui.pauseEyebrow.textContent = "GAME OPTIONS";
       ui.pauseTitle.textContent = "Settings";
+      document.getElementById("settingsContent").scrollTop = 0;
       ui.resumeButton.textContent = "Close";
       ui.restartButton.classList.add("hidden");
       ui.pauseHangarButton.classList.add("hidden");
@@ -4113,13 +4454,16 @@
       if (!game || game.state !== "playing" || game.finished) return;
       resetMobileInput();
       settingsOpenedFromMenu = false;
+      showSettingsPage(false);
+      if (!reason || reason === "manual") dismissControlHint();
       game.state = "paused";
       if (playtestTelemetry) playtestTelemetry.recordPause(true, game.elapsed, reason || "manual");
       keys = Object.create(null);
       ui.pauseEyebrow.textContent = reason || "COMBAT SUSPENDED";
       ui.pauseTitle.textContent = "Paused";
       ui.resumeButton.textContent = "Resume [P]";
-      ui.pauseHangarButton.textContent = game.training ? "Exit training" : "End run & bank";
+      ui.pauseHangarButton.textContent = game.testRange ? "Return from range" : game.training ? "Exit training" : "End run";
+      if (game.testRange) ui.restartButton.textContent = "Reset loadout";
       ui.restartButton.classList.toggle("hidden", !game.training);
       ui.pauseHangarButton.classList.remove("hidden");
       ui.pauseOverlay.classList.remove("hidden");
@@ -4130,8 +4474,14 @@
 
     function closePause() {
       if (modulePreviewSession) return;
+      if (settingsPageOpen && !settingsOpenedFromMenu) {
+        showSettingsPage(false);
+        document.getElementById("pauseSettingsButton").focus();
+        return;
+      }
       if (settingsOpenedFromMenu) {
         settingsOpenedFromMenu = false;
+        showSettingsPage(false);
         ui.pauseOverlay.classList.add("hidden");
         ui.restartButton.classList.add("hidden");
         ui.pauseHangarButton.classList.remove("hidden");
@@ -4150,6 +4500,7 @@
     }
 
     function requestRestart() {
+      if (rangeSession) { rangeSetModule(rangeSession.type); ui.pauseOverlay.classList.add("hidden"); return; }
       if (game && game.training && trainingSession) trainingSession.controller.retry();
     }
 
@@ -4170,8 +4521,13 @@
       }
     }
 
+    function dismissControlHint() {
+      if (game && game.state === "playing" && !game.finished) document.getElementById("controlHint").classList.add("hidden");
+    }
+
     function startRun() {
       closeModulePreview();
+      if (rangeSession) { leaveRange(); return; }
       if (game && game.training) { leaveTraining(); return; }
       if (typeof clearBuildInteraction === "function") clearBuildInteraction();
       requestMobileFullscreen();
@@ -4179,6 +4535,8 @@
       resetMobileInput();
       if (game && !game.finished) game.finishRun(false, true);
       game = new Game();
+      clearCombatPresentation();
+      document.getElementById("controlHint").classList.remove("hidden");
       selectedBuildModule = selectedStarter;
       syncLoadoutToSave();
       resetTelemetryFpsWindow();
@@ -4186,10 +4544,11 @@
         playtestTelemetry.beginRun({
           starterWeapon: selectedStarter,
           mode: "survival",
-          targetSeconds: SURVIVAL_DURATION,
+          targetSeconds: null,
           coreId: game.coreDef.id,
           modulesLost: game.modulesLost,
-          metaLevels: save.meta,
+          metaLevels: selectedCoreRanks(),
+          coreRanks: save.campaign.coreRanks, branchLicenses: save.progression.branchLicenses,
           fragments: save.fragments,
           fragmentCarryUnits: save.fragmentCarryUnits,
           purchasedModules: save.progression.purchasedModules,
@@ -4214,10 +4573,12 @@
 
     function returnToMenu() {
       closeModulePreview();
+      if (rangeSession) { leaveRange(); return; }
       if (game && game.training) { leaveTraining(); return; }
       resetMobileInput();
       if (game && !game.finished) game.finishRun(false, true);
       game = null;
+      clearCombatPresentation();
       ui.milestoneOverlay.classList.add("hidden");
       ui.resultOverlay.classList.add("hidden");
       ui.buildOverlay.classList.add("hidden");
@@ -4234,8 +4595,19 @@
       updateTelemetryStatus();
     }
 
+    function clearCombatPresentation() {
+      // The menu owns its backdrop. Never leave a damage flash, warning, or the
+      // last combat frame visible while the run itself has been discarded.
+      ui.damageVignette.style.opacity = "0";
+      ui.dangerBanner.classList.remove("show");
+      ui.dangerBanner.textContent = "";
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, viewWidth, viewHeight);
+    }
+
     function exitToHangar() {
       closeModulePreview();
+      if (rangeSession) { leaveRange(); return; }
       if (game && game.training) { leaveTraining(); return; }
       if (game && !game.finished) {
         ui.pauseOverlay.classList.add("hidden");
@@ -4249,10 +4621,6 @@
 
     function updateHud() {
       if (!game) return;
-      ui.survivalHud.classList.toggle("hidden", game.finished);
-      ui.survivalProgress.textContent = game.survivalCompleted ? (game.continued ? "EXTENDED SURVIVAL" : "SURVIVAL COMPLETE") :
-        (game.elapsed >= SURVIVAL_DURATION ? "Defeat the final boss" : "SURVIVAL · " + formatTime(Math.max(0, SURVIVAL_DURATION - game.elapsed)) + " to 10 min");
-      ui.bankRunButton.classList.toggle("hidden", !game.continued || game.finished);
       var core = game.ship.tiles.get("0,0");
       ui.hudMatter.textContent = Math.floor(game.matter);
       ui.hudKills.textContent = game.kills;
@@ -4260,6 +4628,7 @@
       ui.hudModules.textContent = game.ship.tiles.size;
       ui.hudBossProgress.textContent = game.bossSpawned ? "BOSS " + (game.bossesDefeated + 1) :
         (Number.isFinite(game.nextBossAt) ? "BOSS " + (game.bossesDefeated + 1) + " IN " + formatTime(Math.max(0, game.nextBossAt - game.elapsed)) : "HOLD UNTIL 10:00");
+      if (game.testRange) ui.hudBossProgress.textContent = "TEST RANGE";
       if (core) {
         var healthRatio = core.hp / core.maxHp;
         ui.hudHpText.textContent = Math.ceil(core.hp) + " / " + Math.ceil(core.maxHp);
@@ -4268,7 +4637,8 @@
         ui.hud.classList.toggle("core-critical", healthRatio <= .25);
       }
       if (game.boss && !game.boss.dead) {
-        ui.bossName.textContent = game.boss.displayName || "Siege Ring";
+        ui.bossName.textContent = (game.boss.displayName || "Siege Ring") +
+          (game.boss.variant !== "ring" && game.boss.combatPhase === 2 ? " — PHASE 2" : "");
         ui.bossFill.style.width = clamp(game.boss.hp / game.boss.maxHp * 100, 0, 100) + "%";
       }
       ui.muteButton.textContent = audio.muted ? "MUTED" : "SOUND";
@@ -4283,7 +4653,8 @@
       output = output || screenPointA;
       output.x = x - cameraX + viewWidth / 2;
       output.y = y - cameraY + viewHeight / 2;
-      if (game && game.training) output.y += Math.min(90, viewHeight * .14);
+      if (game && game.testRange) output.x -= Math.min(140, viewWidth * .12);
+      else if (game && game.training) output.y += Math.min(90, viewHeight * .14);
       return output;
     }
 
@@ -4352,6 +4723,26 @@
 
     var enemySpriteCache = Object.create(null);
 
+    function isRangedEnemy(enemy) {
+      return enemy && (enemy.type === "bolter" || enemy.type === "gunner" || enemy.type === "sniper");
+    }
+
+    function turnAngleTowards(current, target, radiansPerSecond, dt) {
+      if (!Number.isFinite(current)) return target;
+      var difference = Math.atan2(Math.sin(target - current), Math.cos(target - current));
+      return current + clamp(difference, -radiansPerSecond * dt, radiansPerSecond * dt);
+    }
+
+    function enemyCollisionFacing(enemy) {
+      return enemy && Number.isFinite(enemy.rotation) ? enemy.rotation : 0;
+    }
+
+    function enemyVisualFacing(enemy) {
+      return enemy && Number.isFinite(enemy.visualRotation)
+        ? enemy.visualRotation
+        : enemyCollisionFacing(enemy);
+    }
+
     function drawEnemySpriteDetails(context, type, x, y, radius, rotation) {
       context.globalAlpha = .9;
       context.lineWidth = 1.5;
@@ -4389,8 +4780,9 @@
       enemySpriteCache = Object.create(null);
       Object.keys(ENEMY_DEFS).forEach(function (type) {
         var def = ENEMY_DEFS[type];
-        var frameCount = def.sides === 3 ? 16 : (def.sides > 0 && def.sides < 18 ? 8 : 1);
-        var displaySize = Math.ceil((def.radius + 10) * 2);
+        var usesEnemyArt = enemyArt && enemyArt.available(type);
+        var frameCount = usesEnemyArt ? 32 : (def.sides === 3 ? 24 : (def.sides > 0 && def.sides < 18 ? 12 : 1));
+        var displaySize = Math.max(Math.ceil((def.radius + 10) * 2), usesEnemyArt ? enemyArt.displaySize(type, def.radius) : 0);
         var frames = [];
         for (var frameIndex = 0; frameIndex < frameCount; frameIndex += 1) {
           var sprite = document.createElement("canvas");
@@ -4401,19 +4793,23 @@
           var center = displaySize * .5;
           var rotation = frameIndex / frameCount * TAU;
           var spriteEnemy = { radius: def.radius, sides: def.sides, rotation: rotation };
-          spriteContext.strokeStyle = def.color;
-          spriteContext.fillStyle = def.color;
-          spriteContext.globalAlpha = .12;
-          enemyPath(spriteContext, spriteEnemy, center, center, 1);
-          spriteContext.fill();
-          spriteContext.globalAlpha = .24;
-          spriteContext.lineWidth = 5;
-          spriteContext.stroke();
-          spriteContext.globalAlpha = 1;
-          spriteContext.lineWidth = 2;
-          enemyPath(spriteContext, spriteEnemy, center, center, 1);
-          spriteContext.stroke();
-          drawEnemySpriteDetails(spriteContext, type, center, center, def.radius, rotation);
+          if (usesEnemyArt) {
+            enemyArt.draw(spriteContext, type, center, center, def.radius, rotation);
+          } else {
+            spriteContext.strokeStyle = def.color;
+            spriteContext.fillStyle = def.color;
+            spriteContext.globalAlpha = .12;
+            enemyPath(spriteContext, spriteEnemy, center, center, 1);
+            spriteContext.fill();
+            spriteContext.globalAlpha = .24;
+            spriteContext.lineWidth = 5;
+            spriteContext.stroke();
+            spriteContext.globalAlpha = 1;
+            spriteContext.lineWidth = 2;
+            enemyPath(spriteContext, spriteEnemy, center, center, 1);
+            spriteContext.stroke();
+            drawEnemySpriteDetails(spriteContext, type, center, center, def.radius, rotation);
+          }
           frames.push(sprite);
         }
         enemySpriteCache[type] = { frames: frames, size: displaySize, half: displaySize * .5 };
@@ -4425,7 +4821,10 @@
       if (!cached) return null;
       var frameCount = cached.frames.length;
       if (frameCount === 1) return cached.frames[0];
-      var normalizedRotation = ((enemy.rotation % TAU) + TAU) % TAU;
+      // A 32-angle cache keeps painted hulls smooth while avoiding a per-enemy
+      // canvas transform every frame in dense combat.
+      var facing = enemyVisualFacing(enemy);
+      var normalizedRotation = ((facing % TAU) + TAU) % TAU;
       var frameIndex = Math.round(normalizedRotation / TAU * frameCount) % frameCount;
       return cached.frames[frameIndex];
     }
@@ -4472,6 +4871,18 @@
         ctx.moveTo(pos.x + Math.cos(spokeAngle) * (enemy.radius + 4), pos.y + Math.sin(spokeAngle) * (enemy.radius + 4));
         ctx.lineTo(pos.x + Math.cos(spokeAngle) * (enemy.radius + 38), pos.y + Math.sin(spokeAngle) * (enemy.radius + 38));
         ctx.stroke();
+      }
+      if (enemy.variant === "storm") {
+        ctx.strokeStyle = "#70ffc2";
+        ctx.setLineDash([10, 8]);
+        for (var edge = -1; edge <= 1; edge += 2) {
+          var gapEdge = enemy.volleyAngle + edge * 1.5 / enemy.shotCount * TAU;
+          ctx.beginPath();
+          ctx.moveTo(pos.x + Math.cos(gapEdge) * (enemy.radius + 12), pos.y + Math.sin(gapEdge) * (enemy.radius + 12));
+          ctx.lineTo(pos.x + Math.cos(gapEdge) * 450, pos.y + Math.sin(gapEdge) * 450);
+          ctx.stroke();
+        }
+        ctx.setLineDash([]);
       }
     }
 
@@ -4550,15 +4961,6 @@
             ctx.beginPath();
             ctx.arc(pos.x, pos.y, enemy.radius + 12 - chargeProgress * 8, 0, TAU);
             ctx.stroke();
-            if (enemy.type === "sniper") {
-              ctx.save();
-              ctx.font = "700 10px ui-monospace, monospace";
-              ctx.textAlign = "center";
-              ctx.textBaseline = "bottom";
-              ctx.fillStyle = SHOT_COLORS.hostileCore;
-              ctx.fillText("PIERCING", pos.x, pos.y - enemy.radius - 14);
-              ctx.restore();
-            }
           }
           ctx.globalAlpha = 1;
         }
@@ -4736,10 +5138,16 @@
       ctx.shadowBlur = 0;
     }
 
-    function drawModuleGlyph(tile, x, y, targetContext) {
+    function tileArtType(tile) {
+      return tile.type === "core" && game && game.coreDef.id !== "standard" ? "core-" + game.coreDef.id : tile.type;
+    }
+
+    function drawModuleGlyph(tile, x, y, targetContext, size) {
       var glyphContext = targetContext || ctx;
+      if (moduleArt && moduleArt.drawEquipment(glyphContext, tileArtType(tile), x, y, size || TILE_SIZE, tile.aim)) return;
       if (tile.type === "core") {
         glyphContext.save();
+        glyphContext.strokeStyle = game ? CORE_COLORS[game.coreDef.id] : CORE_COLORS.standard;
         glyphContext.translate(x, y);
         glyphContext.beginPath();
         glyphContext.moveTo(0, -13);
@@ -4911,29 +5319,41 @@
         ctx.shadowBlur = 0;
         ctx.shadowColor = "#70ffc2";
         ctx.beginPath();
-        ctx.arc(tile.x * TILE_SIZE, tile.y * TILE_SIZE, MODULES.shield.shieldRadius * TILE_SIZE, 0, TAU);
+        ctx.arc(tile.x * TILE_SIZE, tile.y * TILE_SIZE, game.weaponDefinitions.shield.shieldRadius * TILE_SIZE, 0, TAU);
         if (!offline) ctx.fill();
         ctx.stroke();
         ctx.setLineDash([]);
         ctx.shadowBlur = 0;
       });
+      // Lay down every hull tile before any turret, so neighbors cannot hide barrels.
+      game.ship.tiles.forEach(function (tile) {
+        if (moduleArt) moduleArt.drawBase(ctx, tileArtType(tile), tile.x * TILE_SIZE, tile.y * TILE_SIZE, TILE_SIZE);
+      });
+      game.ship.tiles.forEach(function (tile) {
+        drawModuleGlyph(tile, tile.x * TILE_SIZE, tile.y * TILE_SIZE);
+      });
+      // Status overlays stay above all equipment, including adjacent barrel overhang.
       game.ship.tiles.forEach(function (tile) {
         var x = tile.x * TILE_SIZE;
         var y = tile.y * TILE_SIZE;
         var color = tile.type === "core" ? CORE_COLORS[game.coreDef.id] : MODULES[tile.type].color;
         var damageGlow = clamp(tile.flash / .42, 0, 1);
         var damageAlpha = damageGlow * (save.settings.reducedFlash ? .24 : .46);
-        ctx.shadowBlur = simplifiedEffects ? 0 : (tile.flash > 0 ? 12 : (tile.type === "core" ? 8 : 0));
-        ctx.shadowColor = tile.flash > 0 ? "#ff3f5f" : color;
-        ctx.fillStyle = tile.flash > 0 ? "rgba(255,40,72," + damageAlpha + ")" : "rgba(21,64,89,.34)";
-        ctx.strokeStyle = tile.flash > 0 ? "#ff8799" : color;
+        var upgrading = tile.upgradeFlash > 0;
+        ctx.shadowBlur = simplifiedEffects ? 0 : (tile.flash > 0 || upgrading ? 12 : (tile.type === "core" ? 8 : 0));
+        ctx.shadowColor = tile.flash > 0 ? "#ff3f5f" : (upgrading ? "#65e8ff" : color);
+        ctx.fillStyle = tile.flash > 0 ? "rgba(255,40,72," + damageAlpha + ")" : (upgrading ? "rgba(101,232,255," + (.15 + .3 * tile.upgradeFlash / .65) + ")" : "rgba(21,64,89,.34)");
+        ctx.strokeStyle = tile.flash > 0 ? "#ff8799" : (upgrading ? "#b9f5ff" : color);
         ctx.lineWidth = tile.type === "core" ? 2.5 : 1.5;
         ctx.beginPath();
         ctx.roundRect(x - TILE_SIZE * .46, y - TILE_SIZE * .46, TILE_SIZE * .92, TILE_SIZE * .92, 5);
-        ctx.fill();
-        ctx.stroke();
+        if (!moduleArt || !moduleArt.available("platform") || tile.flash > 0 || upgrading) {
+          ctx.fill();
+          ctx.stroke();
+        } else if (tile.type === "core" && game.coreDef.id !== "standard") {
+          ctx.stroke();
+        }
         ctx.shadowBlur = 0;
-        drawModuleGlyph(tile, x, tile.type === "shield" ? y - 4 : y);
         if (tile.type === "shield") {
           // Keep charge inside its own tile so adjacent hull and field fills cannot cover it.
           ctx.fillStyle = "#11252e";
@@ -5196,11 +5616,16 @@
           ctx.save();
           ctx.translate(effectPos.x, effectPos.y);
           ctx.rotate(effect.rotation);
-          ctx.strokeRect(-15, -15, 30, 30);
-          ctx.font = "800 12px ui-monospace, monospace";
-          ctx.textAlign = "center";
-          ctx.textBaseline = "middle";
-          ctx.fillText(effect.glyph, 0, 0);
+          if (moduleArt && moduleArt.available(effect.moduleType)) {
+            moduleArt.drawBase(ctx, effect.moduleType, 0, 0, TILE_SIZE);
+            moduleArt.drawEquipment(ctx, effect.moduleType, 0, 0, TILE_SIZE, effect.moduleAim);
+          } else {
+            ctx.strokeRect(-15, -15, 30, 30);
+            ctx.font = "800 12px ui-monospace, monospace";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.fillText(effect.glyph, 0, 0);
+          }
           ctx.restore();
         }
       }
@@ -5271,6 +5696,7 @@
         drawProjectiles(false);
         drawShip();
         if (game.training && trainingSession) trainingSession.arena.draw(ctx, game, worldToScreen);
+        if (game.testRange) rangeArena.draw(ctx, game, worldToScreen);
         drawEffects();
         drawProjectiles(true);
         ctx.restore();
@@ -5348,11 +5774,11 @@
     function buyMetaForTests(id) {
       if (game && game.training) return false;
       var def = META_DEFS.find(function (item) { return item.id === id; });
-      if (!DEBUG || !def || def.legacy || save.meta[id] >= META_PURCHASE_CAP) return false;
-      var cost = metaCost(save.meta[id]);
+      if (!DEBUG || !def || def.legacy || selectedCoreRanks()[id] >= META_PURCHASE_CAP) return false;
+      var cost = metaCost(selectedCoreRanks()[id]);
       if (save.fragments < cost) return false;
       save.fragments -= cost;
-      save.meta[id] += 1;
+      selectedCoreRanks()[id] += 1;
       storeSave();
       renderMetaShop();
       return true;
@@ -5363,6 +5789,10 @@
       function expect(condition, message) {
         if (!condition) failures.push(message);
       }
+      var smoothFacingProbe = turnAngleTowards(0, Math.PI, 2, .25);
+      var wrappedFacingProbe = turnAngleTowards(TAU - .1, .1, 1, .05);
+      expect(Math.abs(smoothFacingProbe - .5) < .0001 && wrappedFacingProbe > TAU - .1,
+        "Enemy visual turning must use a bounded shortest-angle rotation.");
       expect(keyOf(-2, 3) === "-2,3", "Grid keys must remain stable.");
       var sanitizedProbe = sanitizeSave({
         version: 1,
@@ -5384,11 +5814,11 @@
       save.settings.fpsLimit = previousFpsLimit;
       lastRenderAt = previousLastRenderAt;
       expect(sanitizedProbe.lastLoadout.selectedWeapon === "cannon" && sanitizedProbe.lastLoadout.tile.x === 0 && sanitizedProbe.lastLoadout.tile.y === -1, "Invalid loadouts must fall back safely.");
-      expect(metaCost(0) === 5 && metaCost(2) === 45, "Meta cost curve is incorrect.");
+      expect(metaCost(0) === 1 && metaCost(24) === 5, "Meta cost curve is incorrect.");
       expect(Math.ceil(MODULES.cannon.baseCost * Math.pow(MODULES.cannon.scale, 2)) === 30, "Module cost curve is incorrect.");
       expect(WEAPON_TYPES.length === 12, "Weapon catalog must contain twelve distinct weapons.");
-      expect(START_WEAPONS.length === 11 && !isStarterWeapon("mine"), "Starter armory must include every weapon except the tactical mine.");
-      expect(Object.keys(MODULES).length === 19, "Build catalog must contain nineteen modules.");
+      expect(START_WEAPONS.length === 12 && isStarterWeapon("mine"), "Starter armory must include every licensed weapon including mines.");
+      expect(Object.keys(MODULES).length === 18, "Build catalog must contain eighteen modules.");
       expect(Object.keys(ENEMY_DEFS).length === 14, "Enemy catalog must contain fourteen geometric archetypes.");
       for (var phaseIndex = 0; phaseIndex < ENEMY_PHASES.length; phaseIndex += 1) {
         var phase = ENEMY_PHASES[phaseIndex];
@@ -5404,7 +5834,7 @@
           expect(!!ENEMY_DEFS[phase.rangedPool[rangedPoolIndex][0]], "Every ranged phase entry must reference an enemy definition.");
         }
         expect((phase.assaultRanged === 0 && rangedPoolWeight === 0) || rangedPoolWeight === 100, "Every active ranged pool must total one hundred percent.");
-        expect(phase.assaultRanged >= 0 && phase.assaultRanged <= 3, "Assault ranged slots must stay bounded.");
+        expect(phase.assaultRanged >= 0 && phase.assaultRanged <= 4, "Assault ranged slots must stay bounded.");
         var heavyPoolWeight = 0;
         for (var heavyIndex = 0; heavyIndex < phase.heavyPool.length; heavyIndex += 1) {
           heavyPoolWeight += phase.heavyPool[heavyIndex][1];
@@ -5476,7 +5906,7 @@
       expect(ENEMY_DEFS.drone.directChase && ENEMY_DEFS.scout.directChase && ENEMY_DEFS.brute.directChase, "Core swarm bodies must steer directly at the ship.");
       expect(ENEMY_DEFS.bolter.damage === 5 && ENEMY_PHASES[2].rangedPool[0][0] === "bolter" && ENEMY_PHASES[4].rangedPool[0][0] === "bolter", "Early ranged phases must use the single-shot Bolt Drone.");
       expect(ENEMY_DEFS.gunner.damage === 9 && ENEMY_PHASES[5].rangedPool.some(function (entry) { return entry[0] === "gunner"; }) && ENEMY_PHASES[7].rangedPool.some(function (entry) { return entry[0] === "sniper"; }), "Advanced ranged enemies must enter in later phases.");
-      expect(BOSS_SPAWN_TIME === 120 && BOSS_WARNING_LEAD === 5, "Boss arrival telegraph timing is incorrect.");
+      expect(BOSS_SPAWN_TIME === 180 && BOSS_WARNING_LEAD === 5, "Boss arrival telegraph timing is incorrect.");
       expect(MODULES.flak.damage === 7 && MODULES.flak.cooldown === 1.1 && MODULES.flak.blastRadius === 125 && MODULES.flak.damage < MODULES.missile.damage * .25, "Flak must have a wide defensive blast and very low enemy damage.");
       var internalWeaponProbe = Object.create(Game.prototype);
       var internalTile = { x: 0, y: 0 };
@@ -5506,6 +5936,9 @@
       var rangedShotProbe = { projectiles: [], fireEnemyProjectile: function () { this.projectiles.push(Array.prototype.slice.call(arguments)); } };
       Game.prototype.releaseRangedAttack.call(rangedShotProbe, { type: "bolter", x: 0, y: 0, lockedAimX: 1, lockedAimY: 0, damage: ENEMY_DEFS.bolter.damage, color: ENEMY_DEFS.bolter.color });
       expect(rangedShotProbe.projectiles.length === 1 && rangedShotProbe.projectiles[0][6] === "bolterShot", "Bolt Drone must fire exactly one projectile per attack.");
+      expect(rangedShotProbe.projectiles[0][0] === ENEMY_DEFS.bolter.muzzleOffset, "Bolt Drone shots must start at the forward muzzle.");
+      var hullProbe = { x: 0, y: 0, vx: 1, vy: 0, rotation: 0, radius: 12, halfLength: 20, halfWidth: 6, collisionRadius: 21 };
+      expect(enemyIntersectsCircle(hullProbe, 20, 0, 1) && !enemyIntersectsCircle(hullProbe, 0, 9, 1), "Projectile collision must follow a shaped enemy hull.");
       var impactProbe = { damageVignette: 0, damageWarningTimer: 0, damageWarningText: "", addShake: function () {} };
       Game.prototype.triggerShipImpact.call(impactProbe, { type: "armor" }, 12);
       expect(impactProbe.damageWarningTimer === 0 && impactProbe.damageVignette === 0, "Normal module damage must remain local instead of showing a screen warning.");
@@ -5561,7 +5994,7 @@
       expect(spatialProbe.enemyGridBuckets[0] === firstSpatialBucket, "Spatial buckets must be reused between simulation passes.");
       var cameraProbe = Object.create(Game.prototype);
       var cameraTiles = new Map();
-      for (var cameraTileX = -15; cameraTileX <= 15; cameraTileX += 1) cameraTiles.set(keyOf(cameraTileX, 0), { x: cameraTileX, y: 0 });
+      for (var cameraTileX = -Math.ceil(viewWidth / TILE_SIZE); cameraTileX <= Math.ceil(viewWidth / TILE_SIZE); cameraTileX += 1) cameraTiles.set(keyOf(cameraTileX, 0), { x: cameraTileX, y: 0 });
       cameraProbe.ship = { x: 0, y: 0, vx: 0, vy: 0, angle: 0, tiles: cameraTiles };
       cameraProbe.camera = { x: 0, y: 0, zoom: 1, targetZoom: 1 };
       cameraProbe.updateCameraFraming(1);
@@ -5588,7 +6021,7 @@
       queueProjectileCircle("#test", 20.4, 21.6, 2);
       expect(projectileCircleBatchKeys.length === 1 && projectileCircleBatches["#test"].length === 3, "Projectile batching must re-register reused colors on later frames.");
       resetProjectileCircleBatches();
-      expect(runFragmentReward(250, 360, 1) === 11, "Fragment reward formula is incorrect.");
+      expect(runFragmentReward(250, 360, 1) === 14, "Fragment reward formula is incorrect.");
       if (failures.length) throw new Error("Self tests failed: " + failures.join(" "));
       clearTimeout(toastTimer);
       ui.toast.classList.remove("show");
@@ -5604,9 +6037,6 @@
     ui.closeHangar.addEventListener("click", closeHangar);
     ui.hangarUpgradeTab.addEventListener("click", function () { setHangarTab("upgrades"); });
     ui.hangarWeaponTab.addEventListener("click", function () { setHangarTab("armory"); });
-    ui.bankRunButton.addEventListener("click", function () {
-      if (game && !game.finished && game.continued) game.finishRun(true, true);
-    });
     ui.finishSurvivalButton.addEventListener("click", function () {
       if (game && game.state === "milestone") game.finishRun(true, true);
     });
@@ -5621,6 +6051,7 @@
       openModulePreview(selected ? selected.type : selectedBuildModule, "build");
     });
     ui.resumeButton.addEventListener("click", closePause);
+    document.getElementById("pauseSettingsButton").addEventListener("click", openPauseSettings);
     ui.restartButton.addEventListener("click", requestRestart);
     ui.pauseHangarButton.addEventListener("click", exitToHangar);
     ui.hangarButton.addEventListener("click", exitToHangar);
@@ -5697,14 +6128,23 @@
     });
 
     window.addEventListener("keydown", function (event) {
+      var target = event.target;
+      if (event.code !== "Escape" && target && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))) return;
+      if (event.ctrlKey || event.metaKey || event.altKey || event.isComposing || event.repeat) return;
+      if (event.code === "Escape" && buildInteraction && buildInteraction.drag) { clearBuildInteraction(); renderBuildGrid(); event.preventDefault(); return; }
       if (modulePreviewSession) {
         if (["KeyW", "KeyA", "KeyS", "KeyD", "KeyB", "KeyP", "Escape"].indexOf(event.code) >= 0) event.preventDefault();
         if (event.code === "Escape") closeModulePreview();
         return;
       }
       if (["KeyW", "KeyA", "KeyS", "KeyD", "KeyB", "KeyP", "Escape"].indexOf(event.code) >= 0) event.preventDefault();
-      keys[event.code] = true;
-      if (event.repeat) return;
+      var movementKey = ["KeyW", "KeyA", "KeyS", "KeyD"].indexOf(event.code) >= 0;
+      if (movementKey) {
+        if (!game || game.state !== "playing" || game.finished) return;
+        if (mouseInput.active || mobileInput.active) resetMobileInput();
+        keys[event.code] = true;
+      }
+      if (["KeyW", "KeyA", "KeyS", "KeyD", "KeyB", "KeyP", "Escape"].indexOf(event.code) >= 0) dismissControlHint();
       if (event.code === "KeyB") {
         if (game && game.state === "playing") openBuild();
         else if (game && game.state === "building") closeBuild();
@@ -5726,9 +6166,15 @@
     }
 
     function resetMobileInput(pointerId) {
+      if (pointerId === undefined) {
+        resetMouseInput();
+        keys = Object.create(null);
+      }
       if (pointerId !== undefined && mobileInput.pointerId !== pointerId) return;
       mobileInput.active = false;
+      var capturedPointer = mobileInput.pointerId;
       mobileInput.pointerId = null;
+      if (capturedPointer !== null && canvas.hasPointerCapture && canvas.hasPointerCapture(capturedPointer)) canvas.releasePointerCapture(capturedPointer);
       mobileInput.originX = 0;
       mobileInput.originY = 0;
       mobileInput.x = 0;
@@ -5754,6 +6200,7 @@
         setJoystickVisual(0, 0);
         return;
       }
+      dismissControlHint();
       mobileInput.x = dx / distance;
       mobileInput.y = dy / distance;
       mobileInput.magnitude = strength;
@@ -5761,14 +6208,47 @@
       event.preventDefault();
     }
 
+    function resetMouseInput() {
+      mouseInput.active = false;
+      var pointerId = mouseInput.pointerId;
+      mouseInput.pointerId = null;
+      if (pointerId !== null && canvas.hasPointerCapture && canvas.hasPointerCapture(pointerId)) canvas.releasePointerCapture(pointerId);
+    }
+    canvas.addEventListener("pointerdown", function (event) {
+      if (event.pointerType !== "mouse" || event.button !== 0 || !game || game.state !== "playing" || game.finished) return;
+      resetMobileInput();
+      dismissControlHint();
+      mouseInput.active = true;
+      mouseInput.pointerId = event.pointerId;
+      var canvasBounds = canvas.getBoundingClientRect();
+      mouseInput.x = event.clientX - canvasBounds.left; mouseInput.y = event.clientY - canvasBounds.top;
+      canvas.setPointerCapture(event.pointerId);
+      event.preventDefault();
+    });
+    canvas.addEventListener("pointermove", function (event) {
+      if (event.pointerType !== "mouse" || !mouseInput.active || event.pointerId !== mouseInput.pointerId) return;
+      if (!(event.buttons & 1)) { resetMouseInput(); return; }
+      var canvasBounds = canvas.getBoundingClientRect();
+      mouseInput.x = event.clientX - canvasBounds.left; mouseInput.y = event.clientY - canvasBounds.top;
+    });
+    function endMousePointer(event) {
+      if (event.pointerId === mouseInput.pointerId && (event.type !== "pointerup" || event.button === 0)) resetMouseInput();
+    }
+    window.addEventListener("pointerup", endMousePointer);
+    canvas.addEventListener("pointercancel", endMousePointer);
+    canvas.addEventListener("lostpointercapture", endMousePointer);
+
     function supportsFloatingJoystick(event) {
-      if (event.pointerType === "touch" || event.pointerType === "pen") return true;
+      if (event.pointerType === "mouse") return false;
+      if (event.pointerType === "pen") return event.button === 0;
+      if (event.pointerType === "touch") return true;
       return Boolean(window.matchMedia && window.matchMedia("(hover: none) and (pointer: coarse)").matches);
     }
 
     canvas.addEventListener("pointerdown", function (event) {
       if (!supportsFloatingJoystick(event)) return;
       if (!game || game.state !== "playing" || game.finished || mobileInput.active) return;
+      resetMobileInput();
       mobileInput.active = true;
       mobileInput.pointerId = event.pointerId;
       mobileInput.originX = event.clientX;
@@ -5787,10 +6267,14 @@
     canvas.addEventListener("lostpointercapture", function (event) { resetMobileInput(event.pointerId); });
     canvas.addEventListener("contextmenu", function (event) { event.preventDefault(); });
 
-    window.addEventListener("blur", function () {
+    function clearUnfocusedInput() {
       keys = Object.create(null);
       resetMobileInput();
       if (save.settings.autoPause && game && game.state === "playing" && !game.finished) openPause("FOCUS LOST — AUTO-PAUSED");
+    }
+    window.addEventListener("blur", clearUnfocusedInput);
+    document.addEventListener("visibilitychange", function () {
+      if (document.hidden) clearUnfocusedInput();
     });
 
     window.addEventListener("pagehide", function () {
@@ -5811,12 +6295,173 @@
 
     window.addEventListener("resize", resize);
 
+    // PC test sessions reuse Game but never own progression or telemetry.
+    var rangeSession = null;
+    var rangeArena = window.DriftTestRange.create();
+    var allRangeLicenses = Object.keys(runUpgrades.trees).reduce(function (list, type) {
+      return list.concat(runUpgrades.trees[type].branches.map(function (branch) { return type + ":" + branch.id; }));
+    }, []);
+    function effectiveBranchLicenses() { return game && game.testRange ? allRangeLicenses : save.progression.branchLicenses; }
+    function rangeConfigurations(type) {
+      var result = [{ name: "Base module", state: null }], queue = [null];
+      while (queue.length) {
+        var state = queue.shift();
+        runUpgrades.options(type, state, 1, allRangeLicenses).forEach(function (choice) {
+          if (choice.locked) return;
+          var next = runUpgrades.nextState(type, state, choice);
+          var path = (next.path || []).join(" / ");
+          result.push({ name: (path ? path + " · " : "") + choice.name + " · rank " + next.level, state: next });
+          queue.push(next);
+        });
+      }
+      return result;
+    }
+    function rangeDefaultScenario(type) {
+      if (type === "repair") return "repair";
+      if (type === "collector") return "salvage";
+      if (["shield", "flak", "armor", "bulkhead"].indexOf(type) >= 0) return "incoming";
+      if (["mine", "cryo", "gravity"].indexOf(type) >= 0) return "moving";
+      return "stationary";
+    }
+    function rangeSetModule(type) {
+      if (!rangeSession || !MODULES[type]) return;
+      game = new Game({ training: true }); game.testRange = true;
+      game.ship.tiles.clear();
+      game.ship.tiles.set("0,0", makeTile("core", 0, 0, true, 1, true));
+      game.ship.tiles.set("0,-1", makeTile(type, 0, -1, false, 1, true));
+      game.purchasedCounts[type] = 1;
+      if (!isWeaponType(type)) {
+        game.ship.tiles.set("1,0", makeTile("cannon", 1, 0, false, 1, true));
+        game.purchasedCounts.cannon = 1;
+        game.ship.tiles.set("-1,0", makeTile("armor", -1, 0, false, 1, true));
+      }
+      rangeSession.type = type;
+      selectedBuildModule = type;
+      clearBuildInteraction();
+      rangeArena.reset(game, rangeDefaultScenario(type));
+      updateHud();
+    }
+    function canEnterRange() {
+      return !rangeSession && !trainingSession && (!game || game.finished)
+        && (!ui.menu.classList.contains("hidden") || !ui.hangarOverlay.classList.contains("hidden"));
+    }
+    function startRange(type) {
+      if (!canEnterRange()) return false;
+      var preview = modulePreviewSession ? { type: modulePreviewSession.type, context: modulePreviewSession.context } : null;
+      closeModulePreview();
+      var overlayIds = ["menuOverlay", "hangarOverlay", "resultOverlay", "milestoneOverlay", "buildOverlay", "pauseOverlay", "hud", "bossHud", "debugBar"];
+      rangeSession = { previousGame: game, previousState: game && game.state, selectedModule: selectedBuildModule,
+        selectedKey: buildInteraction.selectedKey, telemetry: playtestTelemetry, debug: DEBUG, preview: preview,
+        focus: document.activeElement, settings: settingsOpenedFromMenu,
+        workspace: document.querySelector(".build-panel").classList.contains("pc-tree-open"),
+        researchSelection: window.DriftPCResearch ? window.DriftPCResearch.captureSelection() : null,
+        overlays: overlayIds.map(function (id) { var node = document.getElementById(id); return { node: node, hidden: node.classList.contains("hidden") }; }) };
+      if (game && !game.finished) game.state = "paused";
+      resetMobileInput(); clearBuildInteraction();
+      playtestTelemetry = null; DEBUG = false; settingsOpenedFromMenu = false;
+      ui.toast.classList.remove("show");
+      rangeSession.overlays.forEach(function (entry) { entry.node.classList.add("hidden"); });
+      ui.hud.classList.remove("hidden");
+      rangeSetModule(MODULES[type] ? type : selectedStarter);
+      audio.ensure();
+    }
+    function leaveRange() {
+      if (!rangeSession) return;
+      closeModulePreview(); resetMobileInput(); clearBuildInteraction();
+      ui.toast.classList.remove("show");
+      var session = rangeSession;
+      game = session.previousGame; playtestTelemetry = session.telemetry; DEBUG = session.debug;
+      selectedBuildModule = session.selectedModule; settingsOpenedFromMenu = session.settings;
+      rangeSession = null;
+      if (window.DriftPCResearch) window.DriftPCResearch.restoreSelection(session.researchSelection);
+      if (game) { game.state = session.previousState; game.accumulator = 0; game.lastFrame = performance.now(); }
+      session.overlays.forEach(function (entry) { entry.node.classList.toggle("hidden", entry.hidden); });
+      document.querySelector(".build-panel").classList.toggle("pc-tree-open", session.workspace);
+      ["pcLayoutTab", "pcUpgradesTab"].forEach(function (id, index) {
+        var tab = document.getElementById(id), selected = index === 1 ? session.workspace : !session.workspace;
+        if (tab) { tab.classList.toggle("selected", selected); tab.setAttribute("aria-pressed", String(selected)); }
+      });
+      if (game && game.state === "building") { createCatalog(); buildInteraction.owner = game; buildInteraction.selectedKey = session.selectedKey; renderBuildGrid(); }
+      updateHud();
+      if (session.preview) openModulePreview(session.preview.type, session.preview.context);
+      else if (session.focus && session.focus.isConnected) session.focus.focus({ preventScroll: true });
+    }
+    function rangeUpgrade(state) {
+      if (!rangeSession) return;
+      var type = rangeSession.type;
+      var valid = rangeConfigurations(type).some(function (entry) { return JSON.stringify(entry.state) === JSON.stringify(state); });
+      if (!valid) return;
+      if (state) game.upgrades[type] = JSON.parse(JSON.stringify(state)); else delete game.upgrades[type];
+      game.weaponDefinitions[type] = runUpgrades.resolve(MODULES[type], state);
+      game.refreshFamilyTiles(type, false);
+      rangeArena.reset(game, rangeArena.snapshot().scenario);
+      if (game.state === "building") finishBuildChange();
+    }
+    window.DriftPCGame = {
+      modules: MODULES, configurations: rangeConfigurations, rangeScenarios: rangeArena.scenarios,
+      startRange: startRange, canEnterRange: canEnterRange, leaveRange: leaveRange, rangeModule: rangeSetModule, rangeUpgrade: rangeUpgrade,
+      rangeScenario: function (id) { if (rangeSession) rangeArena.reset(game, id); },
+      rangeState: function () { return rangeSession ? Object.assign({ type: rangeSession.type, screen: game.state, upgrade: game.upgrades[rangeSession.type] || null }, rangeArena.snapshot()) : null; },
+      rangeSnapshot: function () { return rangeSession ? { enemies: game.enemies.map(function(e) { return { hp: e.hp, x:e.x, y:e.y }; }), tiles:Array.from(game.ship.tiles.values()).map(function(t) { return { type:t.type,hp:t.hp,maxHp:t.maxHp,shield:t.shield }; }), definitions:JSON.parse(JSON.stringify(game.weaponDefinitions)) } : null; },
+      previewType: function () { return modulePreviewSession && modulePreviewSession.type; },
+      icon: function (type) { return type === "core" ? moduleArt.iconHtml("core") : moduleIconHtml(type); },
+      openBuild: openBuild, resize: resize, closeHangar: closeHangar, hangarTab: setHangarTab,
+      clearBuildHover: function () { if (!buildInteraction.drag || !buildInteraction.drag.active) updateBuildPreview(); },
+      suspendBuildHover: function () { buildHoverSuspended = true; updateBuildPreview(); },
+      resumeBuildHover: function () { buildHoverSuspended = false; },
+      selectBuildFamily: function (type) {
+        if (!game || game.state !== "building") return false;
+        var tile = Array.from(game.ship.tiles.values()).find(function (entry) { return entry.type === type && entry.type !== "core"; });
+        if (!tile) return false;
+        clearBuildInteraction(); buildInteraction.selectedKey = keyOf(tile.x, tile.y); selectedBuildModule = type;
+        createCatalog(); renderBuildGrid(); return true;
+      },
+      buildState: function () {
+        if (!game || game.state !== "building") return null;
+        var selected = selectedBuildTile(), families = Object.create(null);
+        game.ship.tiles.forEach(function (tile) {
+          if (tile.type === "core") return;
+          if (!families[tile.type]) families[tile.type] = { type:tile.type, count:0, rank:runUpgrades.label(tile.type,game.upgrades[tile.type]) };
+          families[tile.type].count++;
+        });
+        return { type:selected ? selected.type : selectedBuildModule, installed:Boolean(selected),
+          families:Object.values(families), dragging:Boolean(buildInteraction.drag && buildInteraction.drag.active), matter:Math.floor(game.matter), price:modulePrice(selectedBuildModule), free:Boolean(game.testRange) };
+      },
+      closeSettings: function () { showSettingsPage(false); },
+      togglePause: function () { if (game && game.state === "paused") closePause(); else openPause(); },
+      menu: function () { if (game && !game.finished) return; returnToMenu(); },
+      presentation: function () {
+        var tile = selectedBuildTile();
+        var inputActive = Boolean(game && game.state === "playing" && (
+          mouseInput.active || mobileInput.active || keys.KeyW || keys.KeyA || keys.KeyS || keys.KeyD
+        ));
+        return { module: tile ? tile.type : selectedBuildModule, starter: selectedStarter, core: campaign.getCore(save.campaign.selectedCore).name,
+          menuSettings: settingsOpenedFromMenu, inputActive: inputActive };
+      },
+      statRows: function (type) {
+        var def = game && game.testRange ? game.weaponDefinitions[type] : MODULES[type];
+        var fields = [["damage", "Damage"], ["cooldown", "Fire interval", "s"], ["range", "Range"], ["hp", "Module health"], ["shots", "Shots"], ["pellets", "Pellets"], ["chains", "Chain targets"], ["shield", "Shield capacity"], ["repairAmount", "Repair HP"], ["matterBonus", "First siphon bonus"], ["cooldownBonus", "Local fire-rate bonus"], ["mass", "Mass"], ["shieldRadius", "Shield radius", " cells"], ["rechargeDelay", "Recharge delay", "s"], ["rechargeRate", "Shield recharge", "/s"], ["repairInterval", "Repair interval", "s"], ["repairRadius", "Repair radius", " cells"], ["repairDelay", "Safe repair delay", "s"], ["damageReduction", "Adjacent damage reduction"], ["blastRadius", "Blast radius"], ["fieldRadius", "Field radius"], ["fieldDuration", "Field duration", "s"], ["pullStrength", "Pull strength"], ["slowFactor", "Enemy speed multiplier"], ["slowDuration", "Slow duration", "s"], ["burnDamage", "Burn damage", "/s"], ["burnDuration", "Burn duration", "s"], ["penetration", "Penetration"], ["burstCount", "Burst shots"], ["burstInterval", "Burst interval", "s"], ["beamWidth", "Beam width"], ["beamCount", "Beam count"], ["beamDuration", "Beam duration", "s"], ["cloudDuration", "Cloud duration", "s"], ["jumpRange", "Chain jump range"], ["clusterCount", "Cluster count"], ["collapseDamage", "Collapse damage"]];
+        return fields.filter(function (field) { return def[field[0]] !== undefined; }).map(function (field) {
+          var value = def[field[0]]; value = (field[0].includes("Bonus") || field[0] === "damageReduction") ? Math.round(value * 100) + "%" : Number(value.toFixed(2)) + (field[2] || "");
+          return "<dt>" + field[1] + "</dt><dd>" + value + "</dd>";
+        }).join("");
+      },
+      drawHero: function (target) {
+        var context = target.getContext("2d"); context.clearRect(0,0,800,800);
+        var tiles = [{ type:"core",x:0,y:0 },{ type:selectedStarter,x:0,y:-1 }];
+        context.save(); context.translate(400,435); context.rotate(-.25); context.scale(1.4,1.4);
+        tiles.forEach(function (tile) { moduleArt.drawBase(context, tile.type, tile.x*112, tile.y*112, 106); });
+        tiles.forEach(function (tile) { if (!moduleArt.drawEquipment(context,tile.type,tile.x*112,tile.y*112,106,-Math.PI/2)) drawModuleGlyph({type:tile.type,aim:-Math.PI/2},tile.x*112,tile.y*112,context,106); });
+        context.restore();
+      }
+    };
+
     window.__driftBastion = {
       getState: function () {
         if (!game) return { screen: "menu", fragments: save.fragments, progression: JSON.parse(JSON.stringify(save.progression)), campaign: JSON.parse(JSON.stringify(save.campaign)), telemetry: playtestTelemetry ? playtestTelemetry.getStatus() : null };
         return {
           screen: game.state,
-          mode: game.training ? "training" : "survival",
+          mode: game.testRange ? "range" : game.training ? "training" : "survival",
           training: game.training,
           lesson: game.training && trainingSession ? trainingSession.controller.snapshot() : null,
           survivalCompleted: game.survivalCompleted,
@@ -5876,10 +6521,17 @@
       spawnBoss: function () {
         if (DEBUG && game && !game.bossSpawned && debugActionAllowed("spawn_boss")) game.spawnBoss();
       },
+      spawnEnemy: function (type, x, y) {
+        if (!DEBUG || !game || !ENEMY_DEFS[type]) return false;
+        return Boolean(game.spawnEnemy(type, x, y));
+      },
       buyMeta: buyMetaForTests
     };
 
     resize();
+    if (enemyArt && enemyArt.ready) {
+      enemyArt.ready.then(function () { buildEnemySpriteCache(); });
+    }
     syncSettingsUi();
     renderStarterPicker();
     renderStarterSelection();
@@ -5889,6 +6541,6 @@
     if (typeof navigator !== "undefined" && "serviceWorker" in navigator) {
       navigator.serviceWorker.register("./service-worker.js").catch(function () {});
     }
-    if (DEBUG) runSelfTests();
+    if (DEBUG) { runSelfTests(); ui.toast.classList.remove("show"); }
     requestAnimationFrame(frame);
   })();

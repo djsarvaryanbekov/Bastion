@@ -11,13 +11,16 @@
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="./icon-192.png">
 
-  <title>Bastion</title>
+  <title>Drift Bastion — PC UI/UX</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="training.css">
   <link rel="stylesheet" href="module-preview.css">
+  <link rel="stylesheet" href="pc-ui.css">
+  <link rel="stylesheet" href="pc-workspaces.css">
 </head>
-<body>
+<body class="pc-game pc-ui-pending">
+<div id="pcViewport">
   <canvas id="gameCanvas"></canvas>
   <div class="scanlines"></div>
 
@@ -33,10 +36,17 @@
       <div class="hud-actions">
         <button id="buildButton" class="icon-button" title="Build mode">B BUILD</button>
         <button id="muteButton" class="icon-button" title="Toggle sound">SOUND</button>
-        <button id="pauseButton" class="icon-button" title="Pause and open settings">⚙ SETTINGS</button>
+        <button id="pauseButton" class="icon-button" title="Pause">Ⅱ PAUSE</button>
       </div>
     </div>
-    <div id="survivalHud" class="survival-hud"><span id="survivalProgress">SURVIVAL · 10:00</span><button id="bankRunButton" class="secondary hidden">Finish &amp; bank</button></div>
+      <div id="controlHint" class="controls-tip" aria-label="Flight controls">
+        <span class="keyboard-control">Hold LMB to follow cursor · Release to coast</span>
+        <span class="keyboard-control"><kbd>W / S</kbd> Thrust</span>
+        <span class="keyboard-control"><kbd>A / D</kbd> Turn</span>
+        <span class="keyboard-control"><kbd>B</kbd> Build</span>
+        <span class="keyboard-control"><kbd>P / Esc</kbd> Pause</span>
+        <span class="touch-control">Drag on empty space to steer</span>
+      </div>
     <div id="bossHud" class="hidden">
       <strong id="bossName">SIEGE RING</strong>
       <div class="boss-bar"><div id="bossFill" class="boss-fill"></div></div>
@@ -50,21 +60,25 @@
       </div>
       <div class="mobile-actions">
         <button id="mobileBuildButton" class="mobile-action mobile-build" aria-label="Open build mode"><b>+</b><span>BUILD</span></button>
-        <button id="mobilePauseButton" class="mobile-action mobile-settings" aria-label="Pause and open settings">⚙</button>
+        <button id="mobilePauseButton" class="mobile-action mobile-settings" aria-label="Pause">Ⅱ</button>
       </div>
     </div>
   </div>
 
   <div id="pauseOverlay" class="overlay hidden">
-    <main class="panel pause-panel">
+    <main id="pausePanel" class="panel pause-panel">
       <p id="pauseEyebrow" class="eyebrow">COMBAT SUSPENDED</p>
       <h2 id="pauseTitle">Paused</h2>
+      <div id="settingsContent" class="hidden">
+      <p class="settings-intro">Changes are saved automatically.</p>
       <div class="settings-grid" aria-label="Settings">
+        <h3 class="settings-section-title">Audio</h3>
         <div class="setting-row">
           <label for="volumeSlider">Master volume</label>
           <input id="volumeSlider" type="range" min="0" max="100" step="1">
           <small id="volumeValue">80%</small>
         </div>
+        <h3 class="settings-section-title">Comfort &amp; feedback</h3>
         <div class="setting-row">
           <label for="shakeSlider">Screen shake</label>
           <input id="shakeSlider" type="range" min="0" max="100" step="5">
@@ -85,6 +99,7 @@
           <span></span>
           <input id="autoPauseToggle" type="checkbox">
         </div>
+        <h3 class="settings-section-title">Display &amp; performance</h3>
         <div class="setting-row">
           <label for="uiScaleSelect">Text size</label>
           <select id="uiScaleSelect">
@@ -116,6 +131,8 @@
           <small>RENDER ONLY</small>
         </div>
       </div>
+      <p class="settings-controls">W/S: thrust · A/D: turn<br>Hold LMB: follow cursor · Release: coast<br>B: Build · P / Escape: Pause</p>
+      <details id="advancedSettings" class="advanced-settings"><summary>Training, progress &amp; playtest tools</summary>
       <div id="saveStatus" class="save-status">LOCAL SAVE READY</div>
       <section class="playtest-data" aria-label="Playtest data">
         <div>
@@ -135,10 +152,13 @@
         </div>
         <span id="progressActionStatus" class="progress-action-status" role="status"></span>
       </section>
-      <div class="button-row">
+      </details>
+      </div>
+      <div class="button-row pause-actions">
         <button id="resumeButton" class="primary">Resume [P]</button>
+        <button id="pauseSettingsButton" class="secondary">Settings</button>
         <button id="restartButton" class="secondary hidden">Retry task</button>
-        <button id="pauseHangarButton" class="secondary danger-button">End run &amp; bank</button>
+        <button id="pauseHangarButton" class="secondary danger-button">End run</button>
       </div>
     </main>
   </div>
@@ -157,7 +177,7 @@
         <b>Change ›</b>
       </button>
       <div class="start-actions">
-        <button id="startButton" class="primary play-button"><strong>Play</strong><span id="startRunMode">Survival · 10 min + continue</span></button>
+        <button id="startButton" class="primary play-button"><strong>Play</strong><span id="startRunMode" hidden></span></button>
         <div class="training-entry-row"><button id="hangarMenuButton" class="secondary hangar-button">Hangar</button><button id="startTrainingButton" class="secondary training-entry">Training sector</button></div>
         <button id="installButton" class="secondary install-button hidden">Install Fullscreen</button>
       </div>
@@ -178,8 +198,8 @@
       </nav>
       <section id="hangarUpgradesPanel" class="hangar-panel">
         <section class="permanent-upgrades" aria-labelledby="permanentTitle">
-          <div class="hangar-section-title"><h3 id="permanentTitle">Permanent upgrades</h3><span>Apply to every run</span></div>
-          <div id="metaList" class="meta-list"></div>
+          <div class="hangar-section-title"><h3 id="permanentTitle">Permanent upgrades</h3><span>25 ranks per stat · Selected core</span></div>
+          <div id="metaList" class="meta-list"></div><h3>Weapon and support branches</h3><p>Select a node to inspect it. Unlock branches with Fragments; buy their ranks with Matter during a run.</p><div id="branchList" class="branch-list"></div>
         </section>
         <div class="hangar-section-title core-section-title"><h3>Starting core</h3></div>
         <div id="corePicker" class="core-picker"></div>
@@ -203,7 +223,7 @@
         <p class="milestone-note">Keep your modules, upgrades and Matter. Your completion bonus stays earned even if the core falls later.</p>
       </div>
       <div class="button-row">
-        <button id="finishSurvivalButton" class="primary">Finish &amp; bank</button>
+        <button id="finishSurvivalButton" class="primary">End run</button>
         <button id="continueSurvivalButton" class="secondary">Continue survival</button>
       </div>
     </main>
@@ -237,15 +257,15 @@
         </section>
         <aside class="build-inspector" aria-label="Selected module">
           <div id="buildSelection" class="build-selection"></div>
-          <button id="buildModulePreview" class="module-preview-trigger" aria-haspopup="dialog">Preview</button>
+          <button id="buildModulePreview" class="module-preview-trigger" aria-haspopup="dialog">See weapon in action</button>
           <div id="buildModuleDetails" class="build-module-details" aria-live="polite"></div>
-          <section id="buildUpgradePanel" class="build-upgrade-panel hidden" aria-label="Selected weapon upgrades">
+        </aside>
+          <section id="buildUpgradePanel" class="build-upgrade-panel hidden" aria-label="Selected module family upgrades">
             <div id="upgradeList" class="upgrade-list"></div>
           </section>
-        </aside>
       </div>
       <footer class="build-footer">
-        <span id="buildHint" class="subtitle" style="margin:0">Drag to attach · Select a ship module to upgrade or sell</span>
+        <span id="buildHint" class="subtitle" style="margin:0">Drag to attach · Select a ship module to upgrade or dismantle</span>
         <button id="closeBuild" class="primary">Resume [B]</button>
       </footer>
     </main>
@@ -304,13 +324,6 @@
         <div class="health-label"><span>CORE HEALTH</span><span id="hudHpText">350 / 350</span></div>
         <div class="health-bar"><div id="healthFill" class="health-fill"></div></div>
       </div>
-      <div class="controls-tip" aria-label="Flight controls">
-        <span class="keyboard-control"><kbd>W / S</kbd> Thrust</span>
-        <span class="keyboard-control"><kbd>A / D</kbd> Turn</span>
-        <span class="keyboard-control"><kbd>B</kbd> Build</span>
-        <span class="keyboard-control"><kbd>P / Esc</kbd> Pause</span>
-        <span class="touch-control">Drag on empty space to steer</span>
-      </div>
     </div>
   </div>
 
@@ -336,6 +349,7 @@
     </section>
   </div>
 
+</div>
   <script src="telemetry.js"></script>
   <script src="progression.js"></script>
   <script src="progression-view.js"></script>
@@ -346,6 +360,16 @@
   <script src="training-arena.js"></script>
   <script src="module-preview.js"></script>
   <script src="module-preview-panel.js"></script>
+  <script src="upgrade-tree-view.js"></script>
+  <script src="module-art-data.js"></script>
+  <script src="module-art.js"></script>
+  <script src="enemy-art-data.js"></script>
+  <script src="enemy-art.js"></script>
+  <script src="test-range.js"></script>
+  <script src="pc-research.js"></script>
+  <script src="pc-systems.js"></script>
   <script src="game.js"></script>
+  <script src="pc-build.js"></script>
+  <script src="pc-ui.js"></script>
 </body>
 </html>

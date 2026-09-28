@@ -1,0 +1,57 @@
+{
+  "rail": {
+    "file": "rail-lance-v1.png",
+    "raw_size": [
+      1254,
+      1254
+    ],
+    "solid_bounds": [
+      370,
+      123,
+      884,
+      1163
+    ],
+    "estimated_pivot": [
+      627,
+      970
+    ],
+    "uniform_scale": 0.933852140077821,
+    "prepared_width": 480,
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "transparent_pixels": 1296591,
+    "fully_opaque_pixels": 2249,
+    "production_ready": false
+  },
+  "laser": {
+    "file": "piercing-laser-v2.png",
+    "raw_size": [
+      1254,
+      1254
+    ],
+    "solid_bounds": [
+      197,
+      183,
+      1055,
+      1115
+    ],
+    "estimated_pivot": [
+      627.0,
+      800.0
+    ],
+    "uniform_scale": 0.6060606060606061,
+    "prepared_width": 520,
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "transparent_pixels": 1048256,
+    "fully_opaque_pixels": 958,
+    "production_ready": false
+  },
+  "platform_width": 716,
+  "preview_only": true,
+  "note": "Uniform scale only; pivots estimated for design review."
+}

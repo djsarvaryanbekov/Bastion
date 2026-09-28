@@ -1,190 +1,46 @@
-BASTION — SURVIVAL PLAYTEST
+# Drift Bastion — PC UI/UX review copy
 
-1. Распакуй ZIP полностью.
-2. Открой Drift_Bastion_Playtest.html через Chrome, Edge или Firefox.
-   На Android: Файлы → Загрузки → файл → открыть через Chrome.
-3. Нажми Play и играй: летай, получай Matter за уничтожение врагов, строй корабль.
-   W/S — тяга вперёд/назад, A/D — поворот. На телефоне — экранный джойстик.
-   Стрельба автоматическая. B / Build — сборка; P / Escape — пауза.
-   Loadout в главном меню показывает стартовое оружие и ядро; нажми его,
-   чтобы открыть Hangar и изменить выбор. Play сразу начинает бой.
-   Training sector в меню или Settings открывает отдельный учебный уровень.
-   Это короткий учебный бой: летай и уничтожай врагов, купи вторую Cannon,
-   затем улучши обе пушки и испытай их. Враги дают Matter сразу при уничтожении.
-   Этапы сменяются автоматически — Continue и отдельных меню упражнений нет.
-   В Build перетащи покупку из каталога на +, затем Resume возвращает в бой.
-   Build доступен с начала; ранние покупки учитываются. Можно свободно летать
-   и зарабатывать Matter, пока решаешь, что купить. Установленные детали
-   закреплены: нажатие открывает HP, щит, продажу и семейное улучшение.
-   Короткая подсказка и подсветка указывают действие для текущего выбора.
-   При нехватке Matter показана нужная сумма; после апгрейда — усиление
-   всех установленных Cannon. Дополнительных Continue нет.
-   При потере ядра можно повторить бой; выйти в меню можно в любой момент.
-   Учебные Cannon, Armor, Shield и Matter принадлежат только этому сектору.
-   Он не выдаёт Fragments и не меняет покупки, постоянные ранги и рекорды.
-   Если войти из текущего Survival, тот останется на паузе с прежним кораблём,
-   HP, временем, улучшениями и Matter; после выхода его можно продолжить.
-   Из меню можно начать Survival сразу, без прохождения обучения.
-   После обучения вернись в меню; после итогов забега — в Hangar.
-   Return to Hangar с результата открывает вкладку Modules.
-   Новый Survival запускается только кнопкой Play в главном меню.
-4. Основной Survival длится около 10 минут и требует победы над тремя боссами.
-   Ориентиры появления: 2:00, 5:30 и 9:30; поздняя победа может сдвинуть
-   следующий бой. Рой продолжает подходить группами во время босса и после
-   него, но реже; передышка не очищает поле и не останавливает противников.
-   На рубеже 10 минут и трёх побед бой остановится: заверши забег либо
-   продолжи с тем же кораблём, улучшениями и Matter. В продолжении можно
-   закончить забег кнопкой в HUD; достигнутый бонус сохраняется и при смерти.
-   Любой забег можно закончить через Settings → End run & bank.
+Open **Drift_Bastion_Playtest.html** in Chrome or Edge. It is self-contained and works offline. Use **Fullscreen** on the menu or in Settings for a borderless presentation. This is the playable PC redesign prototype; native executable packaging and Steam integration remain a later step.
 
-   Контрактов и обязательного состава корабля больше нет.
-   Модули открываются целями по времени и убийствам/боссам, затем покупаются
-   за Fragments в Hangar. До покупки их нет в Build. Лицензия остаётся
-   для следующих забегов. Каталог прежний: 19 модулей, включая 12 оружий.
-   Ember Projector и Gravity Well уже входят в него; новых модулей нет.
+This copy has its own profile. The original game and its saves are untouched. A new profile starts with the game's normal unlocks; use **Test range** to try every module and upgrade without grinding or buying anything.
 
-   В Hangar → Modules сразу видны все 19 модулей и их цены/условия покупки.
-   Во вкладке Upgrades первыми стоят постоянные улучшения, ниже — четыре
-   ядра. Ранги и цены видны сразу, дополнительное раскрытие не требуется.
-   Постоянные улучшения показывают общий бонус сейчас → после покупки.
-   Every run означает действие в каждом забеге; Retained — сохранённый
-   старый ранг выше нынешнего лимита, его эффект не потерян.
-   В Build сразу доступны весь купленный каталог и сетка корабля.
-   В Hangar нажми любой модуль, даже ещё закрытый или слишком дорогой:
-   откроется живая демонстрация его механики и короткое описание.
-   Unlock с ценой отдельно покупает лицензию, Use as starting weapon выбирает
-   стартовое оружие. Просмотр сам ничего не покупает и не меняет выбор.
-   В Build выбери карточку или установленную деталь и нажми Preview.
-   После закрытия вернёшься к прежнему выбору и месту установки.
-   Во время боя новый доступ к покупке отмечается уведомлением с Preview;
-   оно не прерывает бой. В Hangar у непросмотренной новинки есть NEW,
-   пока открыта эта игра. Купленная лицензия остаётся в сохранении.
-   Демонстрации показывают базовую механику, а не точный DPS текущей сборки.
-   На результате забега есть до трёх покупок, на которые хватает Fragments.
-   Нажатие открывает Preview; только Unlock с ценой списывает валюту.
-   Если денег не хватает, показано, сколько ещё накопить для доступного
-   модуля. Выполненное условие само по себе не покупает лицензию.
-   Награда забега и оставшийся после покупок баланс показаны отдельно.
-   На телефоне просмотр открывается нажатием. Replay повторяет сцену,
-   Play/Pause управляет показом. При reduced motion анимация стартует вручную.
+## Controls and screens
 
-   Классы каталога: Weapons, Systems и Hull. Центр переносимого значка
-   находится под указателем — там же определяется клетка установки.
+- W/S: thrust. A/D: turn. Hold left mouse on the battlefield to follow the cursor; release to coast. Weapons fire automatically.
+- B: open/resume Build. P or Escape: pause. Escape closes the current inspector/settings/tree layer first.
+- Build: choose a catalog module, then click a valid grid cell or drag the catalog card onto it. Placement is immediate. Select an installed module to inspect or dismantle it; open **Upgrade tree** to buy run upgrades. Scroll the tree horizontally and vertically. Select later nodes to inspect their exact effects and prerequisites.
+- Hangar: **Modules** for licenses and starting weapons, **Cores** for the next run's core, **Permanent upgrades** for that core's ranks and module branch licenses. Matter belongs to a run; Fragments fund permanent purchases.
+- Test range: choose a module, upgrade configuration, and scenario in the right panel. Build is free. Reset scenario restores targets/hull; Reset loadout reconstructs the demonstration ship. Return restores the suspended screen/run, including the selected installed module. Range activity grants no permanent rewards, records, licenses, or training completion.
+- Settings: text sizes 100%, 125%, 150%; audio, quality, reduced flashes and existing comfort settings. Diagnostic controls are inside Advanced settings.
 
-   Перетащи модуль из каталога на свободное крепление или выбери карточку
-   и место. Установленную деталь выбери для осмотра, улучшения или продажи.
-   На телефоне первое нажатие на место показывает его, повторное подтверждает.
-   Горизонтальный свайп листает каталог, жест к сетке покупает новую деталь.
-   Установленные детали не перемещаются. Знак + добавляет новую покупку.
-   При выборе уже установленной детали пустые клетки ничего не делают.
-   Продажа не должна разрывать соединение остальных модулей с ядром.
+Layouts target 1280×720, 1920×1080 and 2560×1440. Other aspect ratios use a centered 16:9 viewport. Large text, long lists, large ships and upgrade trees use internal scrolling. Mouse and keyboard are the supported inputs for this copy; mobile controls and installation prompts are hidden.
 
-   Выбери установленный модуль, чтобы увидеть HP, щиты при наличии, Sell
-   и улучшение его оружейного семейства. При доступном улучшении на оружии
-   виден небольшой знак ↑. Переходить на отдельную вкладку не нужно.
-   Выбор карточки каталога показывает описание, цену и семейное улучшение,
-   если такое оружие уже стоит на корабле.
-   Возврат: 60% первоначально уплаченной цены × доля оставшегося HP корпуса,
-   с округлением вниз. Бесплатный стартовый модуль не возвращает Matter.
-   Для него кнопка называется Remove; для платной детали Sell показывает возврат.
-   Продажа не отменяет улучшения семейства. Связующую деталь нельзя убрать,
-   если остальные отсоединятся; последнее оружие — если денег с возвратом
-   не хватит на доступную замену. Причина блокировки показана рядом с Sell.
+## Files
 
-   Оружие развивается до Lv10: Lv2 — скорострельность, Lv3 — специализация,
-   Lv5/Lv8/Lv10 — число атак, дальность, ширина, радиус или другая заметная
-   характеристика существующего оружия. Улучшение действует на все его копии
-   в текущем забеге и сохраняется при потере и восстановлении модулей.
-   Новые копии этого типа также получают уже купленные улучшения.
-   Цена обычной копии снижается после потери части модулей этого типа.
+- `Drift_Bastion_Playtest.html`: play this file.
+- `source/`: editable modular sources and existing gameplay systems.
+- `qa/`: screenshots and machine-readable browser reports.
+- `VERIFICATION.md`: checks performed and their limits.
+- `before/`: original snapshots and archived one-time migration tools, retained locally and excluded from the review ZIP.
 
-   Различай два вида прогресса: Matter, установленная сборка, уровни и ветки
-   оружия принадлежат текущему забегу. Новый Survival начинает их заново.
-   Fragments, лицензии модулей, купленные ядра и постоянные ранги Hangar
-   сохраняются между запусками. Покупка детали добавляет одну копию;
-   семейное улучшение меняет все текущие и будущие копии этого типа в забеге.
+From `source/`, run `npm ci` when dependencies are not already available, then:
 
-   Щит защищает модули в радиусе 2,3 клетки и имеет 60 единиц общего для
-   них заряда. Один заряд поглощает один урон. После 6 секунд без попаданий
-   заряд возвращается со скоростью 4 в секунду. У щита есть и отдельные HP
-   корпуса. Наведи его на клетку или перетащи: Build покажет покрытие до
-   установки. Выбранный щит показывает заряд и ожидание восстановления.
-   Общей шкалы щита в HUD нет: заряд показан у каждого генератора.
-   Любое попадание в его область сбрасывает задержку, даже при нулевом
-   заряде. Полное восстановление с нуля требует 21 секунды без попаданий.
-   Генератор далеко на краю не защищает ядро автоматически.
+```text
+npm run build:playtest
+npm run check
+npm test
+npm run test:pc
+node tools/mouse-input-check.cjs ../Drift_Bastion_Playtest.html
+```
 
-   Ядра дают разные преимущества и недостатки:
-   Striker — скорострельность за прочность; Bulwark — прочность за скорость;
-   Salvager — доход Matter за более долгую перезарядку.
-   Доступ к покупке: 3/6/10 минут в одном забеге ИЛИ 1/3/5 боссов суммарно.
-   Уже купленное, валюта, постоянные ранги и заработанный доступ сохранены.
+The builder writes only the HTML in this experiment's parent directory. Do not use the archived one-time migration scripts to rebuild; `source/` is the current editable version. Older mobile/browser fixture scripts are retained as development history; `test:pc` is the desktop interaction suite for this redesign.
 
-   Matter — деньги на копии деталей и улучшения текущего корабля в Build.
-   Fragments — деньги на постоянный доступ и улучшения в Hangar.
-   Scatter и Shield стоят по 4 Fragments. Остальные лицензии — 36–96.
-   Закреплять желаемую покупку не нужно: видны цена и текущий кошелёк.
-   Доход Fragments зависит от времени, убийств и боссов. Фиксированной
-   награды за короткий перезапуск нет. Первый босс даёт 2 F, второй и
-   третий — по 4 F. Дальнейшие боссы — по 2 F.
-   Неполный Fragment сохраняется между попытками: Next Fragment показывает
-   накопленный процент. Например, две попытки по 30 секунд и 15 убийств
-   дают вместе 1 Fragment и 60% следующего. Это часть той же валюты.
-   Пример полного рубежа: 10 минут, 300 убийств, три босса — 36 Fragments.
-   Это пример расчёта, а не обещанный результат каждого игрока.
+## Design and implementation
 
-   Крупные группы и дальние противники усиливают рой по ходу забега.
-   Выстрел снайпера PIERCING пробивает один обычный модуль.
-   Бронеплита, Aegis Bulkhead и полное поглощение щитом останавливают его.
-   Вражеские выстрелы имеют тёмную обводку; цвета своих связаны с оружием.
+Original navy/teal components use the supplied concepts for visual direction. Section navigation and equipment presentation take organizational inspiration from [Ghostrunner 2](https://www.behance.net/gallery/217870181/Ghostrunner-2-UI-Design); tree/inspector organization takes inspiration from [BACKTRACE](https://www.behance.net/gallery/251363253/BACKTRACE-Cyberpunk-PC-Game-UIUX-Concept). No reference graphics were copied into the game.
 
-5. После смерти или завершения нажми EXPORT PLAYTEST LOG.
-   Settings → Debug tools включает кнопки +100 Matter, Spawn/Kill Boss,
-   Stress и Break Tile без перезагрузки. Включи и вернись в бой через Resume.
-   Также работает прежний адрес с ?debug=1. Применение отладки отмечено в логе.
-   Settings → Reset progress требует подтверждения: удаляет покупки, Fragments,
-   постоянные ранги и рекорды. Настройки и логи остаются. Автоматически ничего
-   не сбрасывается; Training sector не требует удаления прогресса.
-   Во время учебного уровня отладка и сброс профиля отключены до выхода.
-   Кнопка EXPORT LOG также есть в Settings/Pause.
-   Новые логи содержат абсолютные HP/максимумы и щиты, заработок/расходы
-   Matter, покупки улучшений и возвраты от продажи.
-   Урон записывается по реально снятым HP и щитам врагов; DPS — за последние
-   5 секунд симуляции, без времени Build/Pause. Отдельно записаны длительность
-   от появления босса до смерти
-   и от первого повреждающего попадания до смерти. Старые записи сохранены;
-   отсутствовавшие в них данные не восстанавливаются задним числом.
-6. Найди Drift_Bastion_Playtest_...json в Downloads и отправь человеку,
-   который дал тебе игру, либо поделись доступным локальным путём для разбора.
-   Добавь, понятны ли щит, покупка и продажа, сколько времени уходит на Build,
-   остались ли пустые промежутки в рое и хочется ли продолжать после 10 минут.
+`pc-ui.js` and `pc-ui.css` own the PC presentation. `test-range.js` owns temporary targets and scenarios. The session bridge in `game.js` suspends/restores the real Game instance, uses the existing upgrade resolver, and grants availability only inside the range. Combat, aiming, sprites, support effects and progression rules remain shared with the game.
 
-Важно:
-- Не нажимай CLEAR до отправки JSON.
-- Можно сыграть несколько забегов; они попадут в один файл.
-- Для оценки новичка сообщи, есть ли в сохранении прежние постоянные ранги.
-- Цель общей прогрессии — 4–5 часов; фактическая длительность и интерес
-  ещё не подтверждены человеческим плейтестом этой версии.
-- Технический лимит 420 врагов не гарантирует одинаковый FPS на устройствах.
-  Если заметны тормоза, укажи устройство и примерное время забега.
-- Игра, сохранения и лог работают локально в браузере. Автоматической
-  отправки данных нет. Смена браузера/адреса файла может дать другое хранилище.
-  Текущее состояние браузера не передаётся агенту: для разбора нужен экспорт.
-- Лог не содержит имени, сообщений, файлов или геолокации; в нём есть
-  случайный локальный идентификатор тестера, сведения о браузере и ходе игры.
+The already integrated art is reused. Mounts remain attached to the hull; directional weapon assemblies aim independently and barrels may extend past their platform. Reactor Link and non-Standard core variants retain their existing fallback art. Range resource pickups demonstrate the existing Matter-income multiplier; survival's normal kill-income economy is unchanged.
 
-Если мессенджер показывает HTML как текст, сначала сохрани ZIP в Downloads,
-распакуй через приложение «Файлы», затем открой HTML через браузер.
-
-Build 2026.09.09-group-swarm-15:
-   Возвращены небольшие пачки и крупные формации из build 13.
-   Каждая крупная группа выбирает случайную общую точку появления;
-   интервалы немного различаются, группы перекрываются по времени.
-   Дополнительное затишье после усиленного цикла убрано.
-   Одиночный поток build 14 и перенос отставших врагов отменены.
-   Босс по-прежнему не получает внешнее отбрасывание; шкала каждого
-   щита остаётся внутри модуля. Цены, покупки, валюта и x1,5 HP
-   стартового оружия сохранены. Открытый забег не перезагружается.
-
-
-Build 2026.09.09-bastion-16: стартовое оружие имеет ×1,5 прочности вместо ×2,5. Подсказка щита занимает постоянное место и больше не сдвигает сборку при наведении. Профиль, покупки и валюта сохранены.
+Storage namespace: `drift-bastion-pc-uiux-save-v2`, its `-backup`, isolated legacy `drift-bastion-pc-uiux-save-v1`, and `drift-bastion-pc-uiux-playtest-v1`. No service worker is registered. Saves are browser/origin specific; moving to another browser does not transfer a profile automatically.

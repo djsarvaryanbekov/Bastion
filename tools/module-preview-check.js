@@ -46,7 +46,7 @@ for (const type of Object.keys(definitions)) {
   for (const enemy of result.enemies) assert.ok(Number.isFinite(enemy.x) && Number.isFinite(enemy.y) && Number.isFinite(enemy.hp));
   for (const shot of result.projectiles) assert.ok(Number.isFinite(shot.x) && Number.isFinite(shot.y));
 }
-assert.equal(Object.keys(mechanics).length, 19);
+assert.equal(Object.keys(mechanics).length, 18);
 assert.ok(mechanics.cannon.hits > 0 && mechanics.missile.hits > 0 && mechanics.scatter.hits > 0);
 assert.ok(mechanics.mine.hits > 0, "Mines must arm, detect proximity and damage the approaching targets");
 assert.ok(mechanics.flak.intercepted > 0, "Flak must intercept actual incoming shots");
@@ -74,11 +74,8 @@ assert.equal(result.counters.hits, 4, "Pulse hits targets on every side of the s
 show("armor"); result = advance(3);
 assert.equal(result.modules[0].hp, result.modules[0].maxHp, "Armor blocks shots before they reach the core");
 assert.ok(result.main.hp < result.main.maxHp);
-show("drive"); const initialDrive = preview.snapshot(); result = advance(2);
-const boostedTravel = result.main.x - initialDrive.main.x;
-const normalTravel = result.modules[2].x - initialDrive.modules[2].x;
-assert.ok(Math.abs(boostedTravel / normalTravel - (1 + definitions.drive.driveBonus)) < 1e-8);
-show("repair"); result = advance(2.5);
+assert.equal(preview.show("drive"), false);
+show("repair"); result = advance(1.5);
 assert.equal(result.counters.repaired, 0, "Repairs must wait for the actual configured safe delay");
 
 assert.equal(canvas.width, 720); assert.equal(canvas.height, 480, "DPR is capped at two");
@@ -111,4 +108,4 @@ assert.equal(frames.size, 0); assert.equal(preview.snapshot().playing, false);
 preview.destroy(); assert.equal(frames.size, 0); assert.equal(visibilityListeners.size, 0); assert.equal(mediaListeners.size, 0);
 assert.equal(observed, 1); assert.equal(disconnected, 1); assert.equal(preview.show("cannon"), false);
 assert.ok(drawCalls > 0);
-console.log(JSON.stringify({ passed: true, modules: Object.keys(mechanics).length, checks: ["19 real module configurations", "Distinct projectile, area, status and support mechanics", "Bounded entities", "Frozen config and detached snapshots", "Adaptive canvas and DPR cap", "Single RAF and lifecycle cleanup", "Reduced motion requires explicit Play", "Hidden tab never catches up"] }, null, 2));
+console.log(JSON.stringify({ passed: true, modules: Object.keys(mechanics).length, checks: ["18 real module configurations", "Distinct projectile, area, status and support mechanics", "Bounded entities", "Frozen config and detached snapshots", "Adaptive canvas and DPR cap", "Single RAF and lifecycle cleanup", "Reduced motion requires explicit Play", "Hidden tab never catches up"] }, null, 2));

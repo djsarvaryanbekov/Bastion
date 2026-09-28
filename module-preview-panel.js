@@ -66,7 +66,7 @@
     function lockBackground() {
       previousOverflow = document.body.style.overflow;
       document.body.style.overflow = "hidden";
-      background = Array.prototype.filter.call(document.body.children, function (element) {
+      background = Array.prototype.filter.call((document.getElementById("pcViewport") || document.body).children, function (element) {
         return element !== ui.modulePreviewDialog && !element.contains(ui.modulePreviewDialog);
       }).map(function (element) {
         var entry = { element: element, inert: element.inert };

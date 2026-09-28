@@ -24,7 +24,7 @@ const bootstrap = {
 vm.runInNewContext(harness.slice(0, harness.indexOf(marker)) + "\nglobalThis.runtime = sandbox;", bootstrap);
 const api = bootstrap.runtime.__readabilityTest;
 const game = api.create();
-assert.equal(Object.keys(api.modules).length, 19, "The expanded module catalog must include both new weapons.");
+assert.equal(Object.keys(api.modules).length, 18, "The expanded module catalog must include both new weapons.");
 assert.notEqual(api.modules.ember.color, api.modules.gravity.color, "Flames and gravity fields retain distinct weapon colors.");
 game.operation = null;
 game.enemies.length = 0;

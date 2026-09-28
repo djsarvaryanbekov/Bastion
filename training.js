@@ -51,6 +51,8 @@
       return finite(cost) && finite(context.matter) ? Math.max(0, Math.ceil(cost - context.matter)) : 0;
     }
     function improved() {
+      var damage = context.cannonDamageBonusPercent;
+      if (finite(damage) && damage > 0) return "All " + copies + " Cannons deal " + Math.round(damage) + "% more damage.";
       var rate = context.cannonRateBonusPercent;
       return "All " + copies + " Cannons " + (finite(rate) && rate > 0 ? "fire " + Math.round(rate) + "% faster." : "share the upgrade.");
     }

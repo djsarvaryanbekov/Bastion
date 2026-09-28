@@ -1,0 +1,26 @@
+{
+  "version": "v2",
+  "raw_size": [
+    1254,
+    1254
+  ],
+  "alpha_range": [
+    0,
+    255
+  ],
+  "transparent": 796542,
+  "fully_opaque": 1270,
+  "solid_bounds": [
+    97,
+    191,
+    1157,
+    1054
+  ],
+  "estimated_pivot": [
+    627.0,
+    622.5
+  ],
+  "preview_uniform_scale": 0.5687700680331209,
+  "preview_radius": 340,
+  "note": "Raw image unmodified. Concealed pivot estimated for review only."
+}

@@ -3,7 +3,7 @@
 
   var STORAGE_KEY = "drift-bastion-playtest-v1";
   var SCHEMA_VERSION = 2;
-  var GAME_BUILD = "2026.09.09-bastion-16";
+  var GAME_BUILD = "2026.09.23-pc-uiux-v22";
   var SAMPLE_INTERVAL = 5;
   var MAX_RUNS = 30;
   var MAX_STORAGE_BYTES = 1500000;
@@ -380,7 +380,7 @@
     if (!activeRun) return;
     spendMatter("upgrade", price);
     activeRun.stats.upgradesPurchased += 1;
-    event("weapon_upgraded", elapsed, { type: type, choice: choice, price: amount(price), level: details && details.level, branch: details && details.branch });
+    event("weapon_upgraded", elapsed, { type: type, choice: choice, price: amount(price), level: details && details.level, branch: details && details.branch, path: clonePlain(details && details.path || []), unitCost: details && details.unitCost, copies: details && details.copies });
   }
 
   function recordMove(type, from, to, elapsed) {

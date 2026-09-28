@@ -29,12 +29,12 @@ vm.runInNewContext(initialization, bootstrap, { filename: "boss-check-runtime.js
 const { Game, makeTile, save } = bootstrap.runtime.__bossTest;
 Object.keys(save.meta).forEach((key) => { save.meta[key] = 0; });
 const game = new Game();
-assert.equal(game.nextBossAt, 120, "Production first boss must be at two minutes.");
+assert.equal(game.nextBossAt, 180, "Production first boss must be at three minutes.");
 const originalEnemies = game.enemies.slice();
 const hostile = { friendly: false, life: 4 };
 const friendly = { friendly: true, life: 4 };
 game.projectiles.push(hostile, friendly);
-game.elapsed = 115;
+game.elapsed = 175;
 const spawnsBeforeWarning = game.totalEnemiesSpawned;
 game.ambientSpawnClock = 0;
 game.assaultClock = 0;
@@ -47,7 +47,7 @@ game.updateSpawner(1);
 assert.equal(game.ambientSpawnClock, 9.5, "Warning must halve the incoming rate without stopping it.");
 assert.equal(game.assaultClock, 9.5);
 const crowdBeforeBoss = game.enemies.length;
-game.elapsed = 120;
+game.elapsed = 180;
 game.updateSpawner(1 / 30);
 assert.equal(game.enemies.length, crowdBeforeBoss + 1, "The boss must join the existing swarm.");
 assert.ok(originalEnemies.every((enemy) => !enemy.dead && game.enemyById.get(enemy.id) === enemy));
@@ -73,8 +73,8 @@ assert.ok(game.totalEnemiesSpawned > crowdBeforeBoss, "Boss fights must retain i
 game.ambientSpawnClock = 10;
 game.assaultClock = 10;
 game.updateSpawner(1);
-assert.equal(game.ambientSpawnClock, 9.7, "Boss fights must reduce the incoming rate to thirty percent without stopping it.");
-assert.equal(game.assaultClock, 9.7);
+assert.equal(game.ambientSpawnClock, 9.4, "Boss fights must reduce the incoming rate to sixty percent without stopping it.");
+assert.equal(game.assaultClock, 9.4);
 assert.ok(bossShots.some((shot) => shot[5] === 320) && bossShots.some((shot) => shot[5] === 185),
   "First boss must alternate aimed pressure with slower radial volleys.");
 assert.ok(bossShots.length < 90, "First boss projectile pressure must remain bounded.");
@@ -88,7 +88,7 @@ assert.equal(game.finished, false, "A boss defeat must continue the run.");
 assert.equal(game.state, "playing");
 assert.equal(game.bossesDefeated, 1);
 assert.equal(game.bossSpawned, false);
-assert.equal(game.nextBossAt, 330);
+assert.equal(game.nextBossAt, 360);
 assert.equal(game.recoveryUntil, 158);
 assert.equal(game.matter, 45);
 assert.equal(core.hp, core.maxHp * .32);
@@ -104,13 +104,13 @@ game.ambientSpawnClock = 0;
 const spawnsAfterRecovery = game.totalEnemiesSpawned;
 game.updateSpawner(2);
 assert.ok(game.totalEnemiesSpawned > spawnsAfterRecovery, "Normal incoming rates must resume after recovery.");
-game.elapsed = 329;
+game.elapsed = 359;
 game.updateSpawner(1 / 30);
 assert.equal(game.bossSpawned, false, "Recurring boss must wait for its scheduled arrival.");
-game.elapsed = 330;
+game.elapsed = 360;
 game.updateSpawner(1 / 30);
 assert.equal(game.boss.encounter, 2);
-assert.equal(game.boss.maxHp, 1020);
+assert.equal(game.boss.maxHp, 4500);
 assert.equal(game.enemies.filter((enemy) => enemy.type === "boss" && !enemy.dead).length, 1);
 let lastBossHp = 850;
 game.continued = true; // Exercise recurring encounters beyond the main three-boss route.
@@ -138,10 +138,10 @@ const crowdedIds = new Set(capacityProbe.enemies.map((enemy) => enemy.id));
 const farthestEnemy = capacityProbe.enemies.reduce((farthest, enemy) =>
   Math.hypot(enemy.x, enemy.y) > Math.hypot(farthest.x, farthest.y) ? enemy : farthest);
 capacityProbe.spawnBoss();
-assert.equal(capacityProbe.enemies.length, 420, "A joining boss must share the existing 420-body budget.");
-assert.equal(capacityProbe.enemies.filter((enemy) => crowdedIds.has(enemy.id)).length, 419,
-  "A full arena may retire exactly one ordinary body to reserve the boss slot.");
-assert.ok(!capacityProbe.enemyById.has(farthestEnemy.id), "Capacity reservation must remove a distant body instead of clearing the active front.");
+assert.equal(capacityProbe.enemies.length, 421, "A joining boss has one reserved slot above the ordinary enemy cap.");
+assert.equal(capacityProbe.enemies.filter((enemy) => crowdedIds.has(enemy.id)).length, 420,
+  "A full arena retains all ordinary enemies.");
+assert.ok(capacityProbe.enemyById.has(farthestEnemy.id), "Boss arrival must preserve even the farthest living body.");
 assert.equal(capacityProbe.kills, 0);
 assert.equal(capacityProbe.matter, 0);
 
@@ -190,9 +190,9 @@ console.log(JSON.stringify({
   encountersVerified: game.bossesDefeated,
   firstBossHp: 850,
   sixteenthBossHp: lastBossHp,
-  firstArrival: 120,
-  mainArrivals: [120, 330, 570],
-  extendedIntervalAfterKill: 180,
+  firstArrival: 180,
+  subsequentArrival: "210 seconds after defeat",
+  extendedIntervalAfterKill: 210,
   recoverySeconds: 8,
   benchmarks,
   benchmarkLimit: "Isolated-boss fixture with a stationary forward-facing ship, no meta upgrades, real damage and death enabled. Incoming pressure and retained crowds are asserted separately above; this is not human playtest balance."
