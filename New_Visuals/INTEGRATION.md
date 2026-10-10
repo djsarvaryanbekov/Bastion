@@ -60,3 +60,19 @@ crop bounds in `enemy-art-audit.json`. Its `enemy-art.js` cache uses a larger
 square frame for the long Sniper and wide Gunner, so the artwork cannot be
 clipped. The remaining enemy behavior types stay on their existing procedural
 fallbacks until their own source art is supplied.
+
+## Attack effects — 2026-10-10
+
+The user approved eight animated v2 attacks for import: Cannon, Scatter,
+Missile, Cryo, Ember, Gravity, Pulse and Flak. SVG flipbooks and PNG sheets stay
+in `modules/projectiles/v2`. The production `attack-vfx.js` draws their actual
+projectile positions, effect lifetimes and area boundaries, with per-game
+muzzle/trail state and procedural fallback while a sheet is unavailable.
+`npm run build:attack-vfx` generates the embedded `attack-vfx-data.js` bundle.
+Both scripts are included in the modular page, offline cache and canonical HTML.
+
+`npm run test:attack-vfx` checks the canonical HTML at 1920×1080 with isolated
+storage. Import evidence and the pre-import HTML/ZIP are under
+`outputs/experiments/2026-10-10-attack-vfx-import`. Seeded fixtures for all twelve
+weapons matched the accepted balance baseline. The review lab and static v1
+drawings are not shipped. Laser, Arc, Rail and Mine retain their existing effects.

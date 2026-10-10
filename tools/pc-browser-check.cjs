@@ -56,7 +56,7 @@ const output=path.resolve(__dirname,'../outputs/qa');
  const before=await page.evaluate(()=>window.__driftBastion.getState());assert.equal(await page.evaluate(()=>window.DriftPCGame.startRange('rail')),false);assert.deepEqual(await page.evaluate(()=>window.__driftBastion.getState()),before);assert.equal(await page.locator('#pcRangeInspector').count(),0);report.activeRunRangeBlocked=true;
  await page.click('#pcUpgradesTab');await shot('run-tree-1080');const buy=page.locator('.upgrade-option:not([disabled])').first();await buy.click();await tick(180);assert.ok((await page.evaluate(()=>window.__driftBastion.getState())).upgrades.missile.level>0);report.runUpgrade=true;
  await page.keyboard.press('Escape');assert.equal(await page.locator('.pc-tree-open').count(),0);assert.equal((await page.evaluate(()=>window.__driftBastion.getState())).screen,'building');report.escapeLayers=true;
- await page.click('#buildModulePreview');await tick(180);await shot('module-preview-1080');assert.equal(await page.locator('#pcRangePreview').isVisible(),false);await page.click('#modulePreviewClose');
+ assert.equal(await page.locator('#buildModulePreview, #modulePreviewDialog').count(),0);
  await page.click('#closeBuild');await tick(200);await shot('combat-1080');await page.evaluate(()=>window.__driftBastion.spawnBoss());await tick(180);await shot('boss-1080');
  await page.click('#pauseButton');await shot('pause-1080');await page.click('#pauseSettingsButton');await shot('settings-1080');
  report.screens=[];

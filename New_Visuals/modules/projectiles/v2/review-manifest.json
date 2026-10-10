@@ -1,0 +1,18 @@
+{
+  "version": 2,
+  "status": "animated-review-only",
+  "mainGameChanged": false,
+  "baselineBuild": "2026.10.08-matter-economy-26",
+  "candidate": "outputs/experiments/2026-10-09-attack-vfx-v2/Drift_Bastion_Playtest.html",
+  "modules": [
+    "cannon",
+    "scatter",
+    "missile",
+    "cryo",
+    "ember",
+    "gravity",
+    "pulse",
+    "flak"
+  ],
+  "baselineSha256": "263b87ebb3bb6c7f436b569f48d54d3431bd53397da27615ed5fc3efa77403a4"
+}

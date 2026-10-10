@@ -11,6 +11,9 @@
     var ASSAULT_FIRST_DELAY = 4;
     var MAX_ACTIVE_ENEMIES = 420;
     var MAX_ACTIVE_PROJECTILES = 900;
+    var MAX_ASSAULT_RANGED_ESCORTS = 6;
+    var HEAVY_RANGED_ESCORT_START = 480;
+    var ADDITIONAL_COPY_COST_SCALE = 1.20;
     var SIMPLE_PROJECTILE_RENDER_BUDGETS = [180, 120, 80];
     var SAVE_VERSION = 9;
     var SAVE_KEY = "drift-bastion-save-v2";
@@ -123,7 +126,7 @@
       shield: {
         id: "shield", name: "Shield Node", glyph: "S", color: "#70ffc2",
         baseCost: 37, scale: 1.22, hp: 55, mass: 1.2,
-        shield: 60, shieldRadius: 2.3, rechargeDelay: 6, rechargeRate: 4,
+        shield: 60, shieldRadius: 2.3, rechargeDelay: 6, rechargeRate: 3,
         summary: "Shields nearby modules.",
         description: "Regenerating local shield protecting nearby tiles."
       },
@@ -205,13 +208,13 @@
         assaultRanged: 2, ambientRangedChance: .14, rangedPool: [["bolter", 70], ["gunner", 30]], heavyPool: [["brute", 60], ["bulwark", 40]], pool: [["drone", 50], ["scout", 27], ["hunter", 10], ["orbiter", 5], ["splitter", 5], ["bomber", 3]] },
       { level: 7, at: 390, packetSize: 10, ambientInterval: 2.8, squadSize: 22, directions: 4, assaultInterval: 14, heavySquads: 2,
         assaultRanged: 2, ambientRangedChance: .16, rangedPool: [["bolter", 35], ["gunner", 65]], heavyPool: [["brute", 62], ["bulwark", 35], ["colossus", 3]], pool: [["drone", 48], ["scout", 26], ["hunter", 10], ["raptor", 4], ["orbiter", 5], ["splitter", 4], ["bomber", 3]] },
-      { level: 8, at: 480, packetSize: 12, ambientInterval: 2.5, squadSize: 23, directions: 5, assaultInterval: 13, heavySquads: 2,
-        assaultRanged: 2, ambientRangedChance: .18, rangedPool: [["gunner", 75], ["sniper", 25]], heavyPool: [["brute", 55], ["bulwark", 40], ["colossus", 5]], pool: [["drone", 46], ["scout", 24], ["hunter", 10], ["raptor", 7], ["orbiter", 5], ["splitter", 4], ["bomber", 4]] },
-      { level: 9, at: 540, packetSize: 14, ambientInterval: 2.2, squadSize: 25, directions: 5, assaultInterval: 12, heavySquads: 2,
-        assaultRanged: 3, ambientRangedChance: .20, rangedPool: [["gunner", 60], ["sniper", 40]], heavyPool: [["brute", 50], ["bulwark", 44], ["colossus", 6]], pool: [["drone", 48], ["scout", 24], ["hunter", 8], ["raptor", 6], ["orbiter", 5], ["splitter", 5], ["bomber", 4]] },
-      { level:10, at:720, packetSize:16, ambientInterval:2.3, squadSize:26, directions:5, assaultInterval:13, heavySquads:2, assaultRanged:3, ambientRangedChance:.20, rangedPool:[["bolter",40],["gunner",45],["sniper",15]], heavyPool:[["brute",40],["bulwark",40],["colossus",20]], pool:[["drone",35],["scout",15],["hunter",20],["raptor",10],["orbiter",10],["splitter",5],["bomber",5]] },
-      { level:11, at:960, packetSize:18, ambientInterval:2.1, squadSize:28, directions:5, assaultInterval:12, heavySquads:3, assaultRanged:3, ambientRangedChance:.22, rangedPool:[["bolter",30],["gunner",50],["sniper",20]], heavyPool:[["brute",25],["bulwark",45],["colossus",30]], pool:[["drone",30],["scout",10],["hunter",20],["raptor",15],["orbiter",10],["splitter",10],["bomber",5]] },
-      { level:12, at:1200, packetSize:20, ambientInterval:2, squadSize:30, directions:6, assaultInterval:12, heavySquads:3, assaultRanged:4, ambientRangedChance:.24, rangedPool:[["bolter",25],["gunner",50],["sniper",25]], heavyPool:[["brute",20],["bulwark",40],["colossus",40]], pool:[["drone",25],["scout",10],["hunter",20],["raptor",20],["orbiter",10],["splitter",10],["bomber",5]] }
+      { level: 8, at: 480, packetSize: 14, ambientInterval: 2.3, squadSize: 26, directions: 5, assaultInterval: 12.5, heavySquads: 2,
+        assaultRanged: 3, ambientRangedChance: .20, rangedPool: [["gunner", 75], ["sniper", 25]], heavyPool: [["brute", 55], ["bulwark", 40], ["colossus", 5]], pool: [["drone", 46], ["scout", 24], ["hunter", 10], ["raptor", 7], ["orbiter", 5], ["splitter", 4], ["bomber", 4]] },
+      { level: 9, at: 540, packetSize: 16, ambientInterval: 2.1, squadSize: 28, directions: 5, assaultInterval: 12, heavySquads: 2,
+        assaultRanged: 4, ambientRangedChance: .22, rangedPool: [["gunner", 60], ["sniper", 40]], heavyPool: [["brute", 50], ["bulwark", 44], ["colossus", 6]], pool: [["drone", 48], ["scout", 24], ["hunter", 8], ["raptor", 6], ["orbiter", 5], ["splitter", 5], ["bomber", 4]] },
+      { level:10, at:720, packetSize:20, ambientInterval:1.8, squadSize:32, directions:5, assaultInterval:11, heavySquads:2, assaultRanged:5, ambientRangedChance:.24, rangedPool:[["bolter",40],["gunner",45],["sniper",15]], heavyPool:[["brute",40],["bulwark",40],["colossus",20]], pool:[["drone",35],["scout",15],["hunter",20],["raptor",10],["orbiter",10],["splitter",5],["bomber",5]] },
+      { level:11, at:960, packetSize:22, ambientInterval:1.7, squadSize:34, directions:5, assaultInterval:10.5, heavySquads:3, assaultRanged:5, ambientRangedChance:.26, rangedPool:[["bolter",30],["gunner",50],["sniper",20]], heavyPool:[["brute",25],["bulwark",45],["colossus",30]], pool:[["drone",30],["scout",10],["hunter",20],["raptor",15],["orbiter",10],["splitter",10],["bomber",5]] },
+      { level:12, at:1200, packetSize:24, ambientInterval:1.6, squadSize:36, directions:6, assaultInterval:10, heavySquads:3, assaultRanged:6, ambientRangedChance:.28, rangedPool:[["bolter",25],["gunner",50],["sniper",25]], heavyPool:[["brute",20],["bulwark",40],["colossus",40]], pool:[["drone",25],["scout",10],["hunter",20],["raptor",20],["orbiter",10],["splitter",10],["bomber",5]] }
     ];
 
     var BOSS_SPAWN_TIME = 180;
@@ -220,8 +223,8 @@
     var SURVIVAL_DURATION = 600;
     var SURVIVAL_BOSS_TIMES = [120, 330, 570];
     var BOSS_RECOVERY_SECONDS = 8;
-    var BOSS_BASE_HP = 850;
-    var SURVIVAL_BOSS_HP = [BOSS_BASE_HP, 4500, 12000];
+    var BOSS_BASE_HP = 3200;
+    var SURVIVAL_BOSS_HP = [BOSS_BASE_HP, 16000, 42000];
 
     function isWeaponType(type) {
       return WEAPON_TYPES.indexOf(type) >= 0;
@@ -625,72 +628,9 @@
       }
     }
 
-    function AudioEngine() {
-      this.context = null;
-      this.masterGain = null;
-      this.muted = false;
-      this.volume = .8;
-      this.activeVoices = 0;
-      this.maxVoices = 18;
-      this.nextImpactAt = 0;
-    }
-
-    AudioEngine.prototype.ensure = function () {
-      if (this.muted) return;
-      if (!this.context) {
-        var AudioContextClass = window.AudioContext || window.webkitAudioContext;
-        if (AudioContextClass) {
-          this.context = new AudioContextClass();
-          this.masterGain = this.context.createGain();
-          this.masterGain.gain.value = this.volume;
-          this.masterGain.connect(this.context.destination);
-        }
-      }
-      if (this.context && this.context.state === "suspended") this.context.resume();
-    };
-
-    AudioEngine.prototype.setVolume = function (value) {
-      this.volume = clamp(Number(value) || 0, 0, 1);
-      if (this.masterGain && this.context) {
-        this.masterGain.gain.setTargetAtTime(this.volume, this.context.currentTime, .015);
-      }
-    };
-
-    AudioEngine.prototype.tone = function (frequency, duration, volume, type, slide) {
-      if (this.muted) return;
-      this.ensure();
-      if (!this.context || this.activeVoices >= this.maxVoices) return;
-      var now = this.context.currentTime;
-      var oscillator = this.context.createOscillator();
-      var gain = this.context.createGain();
-      oscillator.type = type || "sine";
-      oscillator.frequency.setValueAtTime(frequency, now);
-      oscillator.frequency.exponentialRampToValueAtTime(Math.max(30, frequency + (slide || 0)), now + duration);
-      gain.gain.setValueAtTime(Math.max(.0001, volume), now);
-      gain.gain.exponentialRampToValueAtTime(.0001, now + duration);
-      oscillator.connect(gain);
-      gain.connect(this.masterGain || this.context.destination);
-      this.activeVoices += 1;
-      var engine = this;
-      oscillator.addEventListener("ended", function () {
-        engine.activeVoices = Math.max(0, engine.activeVoices - 1);
-        oscillator.disconnect();
-        gain.disconnect();
-      }, { once: true });
-      oscillator.start(now);
-      oscillator.stop(now + duration);
-    };
-
-    AudioEngine.prototype.impact = function (strength, critical) {
-      if (performance.now() < this.nextImpactAt) return;
-      this.nextImpactAt = performance.now() + (critical ? 70 : 115);
-      var intensity = clamp(strength, .2, 1.5);
-      this.tone(critical ? 58 : 82, .12 + intensity * .045, .025 + intensity * .025, "sawtooth", -28);
-      if (critical) this.tone(150, .08, .018, "square", -90);
-    };
-
     var save = loadSave();
-    var audio = new AudioEngine();
+    var audio = window.DriftCombatAudio.create();
+    var combatFeedback = window.DriftCombatFeedback;
     audio.muted = save.settings.muted;
     audio.setVolume(save.settings.masterVolume);
     var selectedStarter = isStarterWeapon(save.lastLoadout.selectedWeapon) ? save.lastLoadout.selectedWeapon : "cannon";
@@ -711,9 +651,8 @@
     var game = null;
     var trainingSession = null;
     var mouseInput = { active: false, pointerId: null, x: 0, y: 0 };
-    var modulePreviewSession = null;
-    var modulePreviewPanel = null;
-    var modulePreviewNew = new Set();
+    var selectedHangarModule = "cannon";
+    var newModuleBadges = new Set();
     var dpr = 1;
     var viewWidth = innerWidth;
     var viewHeight = innerHeight;
@@ -791,7 +730,6 @@
 
     function startTraining() {
       if (!trainingApi || !trainingArenaApi || !trainingViewApi || (game && game.training)) return;
-      closeModulePreview();
       resetMobileInput();
       keys = Object.create(null);
       clearBuildInteraction();
@@ -823,7 +761,7 @@
 
     function leaveTraining() {
       if (!trainingSession) return;
-      closeModulePreview();
+      audio.stop();
       var session = trainingSession;
       clearBuildInteraction();
       session.controller.stop();
@@ -919,107 +857,14 @@
       buildEnemySpriteCache();
     }
 
-    function showToast(message, previewType) {
+    function showToast(message) {
       ui.toast.classList.remove("success");
       ui.toast.textContent = message;
-      if (previewType) {
-        var previewButton = document.createElement("button");
-        previewButton.className = "toast-preview";
-        previewButton.textContent = "Preview";
-        previewButton.setAttribute("aria-label", "Preview " + MODULES[previewType].name);
-        previewButton.addEventListener("click", function () { openModulePreview(previewType, "unlock"); });
-        ui.toast.appendChild(previewButton);
-      }
       ui.toast.classList.add("show");
       clearTimeout(toastTimer);
       toastTimer = setTimeout(function () {
         ui.toast.classList.remove("show");
-      }, previewType ? 6000 : 1500);
-    }
-
-    function modulePreviewState(type, context) {
-      var state = progression.status(save.progression, type);
-      var activeRun = Boolean(game && !game.finished);
-      if (context === "build") {
-        var level = game && game.upgrades[type] ? game.upgrades[type].level + 1 : 1;
-        return { status: isWeaponType(type) ? "Base weapon demonstration. Current upgrade values are shown in Build." : "Preview only. Return to Build to attach this module.", actionKind: null };
-      }
-      if (state.owned) {
-        var canSelect = isStarterWeapon(type) && !activeRun;
-        return { status: "Unlocked · Buy copies in Build with Matter.", actionKind: canSelect ? "starter" : null,
-          actionLabel: selectedStarter === type ? "Starting weapon selected" : "Use as starting weapon", actionDisabled: selectedStarter === type };
-      }
-      var explanation = state.available ? (save.fragments >= state.cost ? "Unlock for every run. Buy copies in Build with Matter." : "Need " + Math.ceil(state.cost - save.fragments) + " more Fragments") : state.objective.text;
-      var balance = " · " + Math.floor(save.fragments) + " Fragments available";
-      return { status: explanation + (activeRun ? " · Buy in Hangar after this run." : balance), actionKind: "buy",
-        actionLabel: "Unlock · " + state.cost + " Fragments", actionDisabled: activeRun || !state.available || save.fragments < state.cost };
-    }
-
-    function modulePreviewAction(type, kind) {
-      if (!modulePreviewSession || modulePreviewSession.type !== type) return false;
-      var state = modulePreviewState(type, modulePreviewSession.context);
-      if (state.actionKind !== kind || state.actionDisabled) return false;
-      var changed = false;
-      if (kind === "buy") changed = buyModuleUnlock(type);
-      else if (kind === "starter") { selectStarter(type); changed = selectedStarter === type; }
-      if (modulePreviewPanel) modulePreviewPanel.refresh();
-      return changed;
-    }
-
-    function restoreModulePreview() {
-      var session = modulePreviewSession;
-      modulePreviewSession = null;
-      if (!session) return;
-      if (game && game === session.owner && !game.finished && session.previousState === "playing" && game.state === "paused") {
-        game.state = "playing";
-        game.accumulator = 0;
-        game.lastFrame = performance.now();
-        if (playtestTelemetry) playtestTelemetry.recordPause(false, game.elapsed, "module_preview");
-      }
-      if (game) updateHud();
-      if (session.context === "hangar" && ui.weaponPicker.querySelector) {
-        var card = ui.weaponPicker.querySelector('[data-module="' + session.type + '"]');
-        if (card && card.focus) card.focus({ preventScroll: true });
-      } else if (session.context === "result") {
-        // A purchase can remove the offer which originally opened the preview.
-        var resultTarget = ui.resultUnlocks.children[0] || ui.hangarButton;
-        if (resultTarget && resultTarget.focus) resultTarget.focus({ preventScroll: true });
-      }
-    }
-
-    function openModulePreview(type, context) {
-      if (!Object.prototype.hasOwnProperty.call(MODULES, type) || !window.DriftModulePreviewPanel || !window.DriftModulePreview) return false;
-      if (buildInteraction && buildInteraction.drag) return false;
-      if (!modulePreviewPanel) modulePreviewPanel = window.DriftModulePreviewPanel.create({ definitions: MODULES,
-        drawIcon: function (context, type, x, y) {
-          var previewTile = { type: type, aim: 0 };
-          if (moduleArt) moduleArt.drawBase(context, tileArtType(previewTile), x, y, 32);
-          drawModuleGlyph(previewTile, x, y, context, 32);
-        },
-        getState: modulePreviewState, onAction: modulePreviewAction, onClose: restoreModulePreview });
-      if (!modulePreviewSession) {
-        modulePreviewSession = { owner: game, previousState: game ? game.state : null, type: type, context: context || "hangar" };
-        resetMobileInput();
-        keys = Object.create(null);
-        if (game && !game.finished && game.state === "playing") {
-          game.state = "paused";
-          game.accumulator = 0;
-          if (playtestTelemetry) playtestTelemetry.recordPause(true, game.elapsed, "module_preview");
-        }
-      } else { modulePreviewSession.type = type; modulePreviewSession.context = context || "hangar"; }
-      modulePreviewNew.delete(type);
-      if (ui.weaponPicker.querySelector) {
-        var badge = ui.weaponPicker.querySelector('[data-module="' + type + '"] .new-unlock');
-        if (badge) badge.remove();
-      }
-      modulePreviewPanel.open(type, modulePreviewSession.context);
-      if (game) updateHud();
-      return true;
-    }
-
-    function closeModulePreview() {
-      if (modulePreviewPanel && modulePreviewPanel.isOpen()) modulePreviewPanel.close();
-      else restoreModulePreview();
+      }, 1500);
     }
 
     function updateSaveStatus(isError) {
@@ -1039,7 +884,10 @@
     function modulePrice(type) {
       if (game && game.testRange) return 0;
       var def = MODULES[type];
-      return Math.ceil(def.baseCost * Math.pow(def.scale, installedModuleCopies(type))) + runUpgrades.investment(type, game && game.upgrades[type]);
+      var copies = installedModuleCopies(type);
+      // Keep the first two copies accessible; larger fleets require more investment.
+      var additionalCopyScale = Math.pow(ADDITIONAL_COPY_COST_SCALE, Math.max(0, copies - 1));
+      return Math.ceil(def.baseCost * Math.pow(def.scale, copies) * additionalCopyScale) + runUpgrades.investment(type, game && game.upgrades[type]);
     }
 
     function moduleCategory(type) {
@@ -1115,6 +963,54 @@
       return '<span class="module-glyph" style="color:' + MODULES[type].color + '">' + moduleIconHtml(type) + '</span>';
     }
 
+    function renderHangarModuleDetails() {
+      var panel = document.getElementById("hangarModuleDetails");
+      if (!panel) return;
+      var type = selectedHangarModule;
+      var def = MODULES[type];
+      var state = progression.status(save.progression, type);
+      panel.innerHTML = "";
+      var art = document.createElement("div");
+      art.className = "armory-detail-art";
+      art.innerHTML = moduleArt && moduleArt.iconHtml ? moduleArt.iconHtml(type) : moduleGlyphHtml(type);
+      var label = document.createElement("span");
+      label.className = "eyebrow";
+      label.textContent = state.owned ? "UNLOCKED MODULE" : state.available ? "MODULE LICENSE" : "LOCKED MODULE";
+      var title = document.createElement("h3");
+      title.textContent = def.name;
+      var description = document.createElement("p");
+      description.className = "armory-detail-description";
+      description.textContent = def.description || def.summary;
+      var status = document.createElement("p");
+      status.className = "armory-detail-status";
+      if (state.owned) status.textContent = selectedStarter === type ? "Equipped for your next run" : "Available in Build for Matter";
+      else if (!state.available) status.textContent = state.objective ? state.objective.text : "Complete the unlock objective";
+      else if (save.fragments < state.cost) status.textContent = "Need " + Math.ceil(state.cost - save.fragments) + " more Fragments";
+      [art, label, title, description].forEach(function (node) { panel.appendChild(node); });
+      if (status.textContent) panel.appendChild(status);
+      var actions = document.createElement("div");
+      actions.className = "armory-detail-actions";
+      if (state.owned && isStarterWeapon(type) && selectedStarter !== type) {
+        var equip = document.createElement("button");
+        equip.type = "button"; equip.className = "primary armory-detail-action"; equip.textContent = "Use as starting weapon";
+        equip.addEventListener("click", function () { selectStarter(type); renderHangarModuleDetails(); });
+        actions.appendChild(equip);
+      } else if (!state.owned) {
+        var buy = document.createElement("button");
+        buy.type = "button"; buy.className = "primary armory-detail-action";
+        buy.textContent = "Unlock · " + state.cost + " Fragments";
+        buy.disabled = !state.available || save.fragments < state.cost;
+        buy.addEventListener("click", function () { if (buyModuleUnlock(type)) renderHangarModuleDetails(); });
+        actions.appendChild(buy);
+      }
+      var range = document.createElement("button");
+      range.type = "button"; range.className = "secondary armory-detail-action";
+      range.textContent = "Test in range ↗";
+      range.addEventListener("click", function () { startRange(type); });
+      actions.appendChild(range);
+      panel.appendChild(actions);
+    }
+
     function renderStarterPicker() {
       ui.weaponPicker.innerHTML = "";
       var moduleOrder = ["cannon", "armor"].concat(progression.definitions.map(function (definition) { return definition.type; }));
@@ -1126,17 +1022,16 @@
         var def = MODULES[type];
         var state = progression.status(save.progression, type);
         var objective = state.objective;
-        var canSelect = state.owned && isStarterWeapon(type);
-        var canBuy = state.available && save.fragments >= state.cost;
         var button = document.createElement("button");
+        button.type = "button";
         button.dataset.module = type;
-        button.className = "pick-button" + (selectedStarter === type ? " selected" : "") + (state.owned ? " owned" : (state.available ? " available" : " locked"));
-        button.disabled = false;
+        button.className = "pick-button" + (selectedHangarModule === type ? " selected" : "") + (state.owned ? " owned" : (state.available ? " available" : " locked"));
+        button.setAttribute("aria-pressed", String(selectedHangarModule === type));
         button.title = def.description;
         button.innerHTML = moduleGlyphHtml(type) + '<strong>' + def.name + '</strong><span class="pick-role">' + def.summary + '</span>';
-        if (modulePreviewNew.has(type)) button.innerHTML += '<span class="new-unlock">NEW</span>';
+        if (newModuleBadges.has(type)) button.innerHTML += '<span class="new-unlock">NEW</span>';
         if (state.owned) {
-          button.innerHTML += '<span class="ownership-state">' + (selectedStarter === type ? "Starting weapon · Preview" : "Unlocked · Preview") + '</span>';
+          button.innerHTML += '<span class="ownership-state">' + (selectedStarter === type ? "Starting weapon" : "Unlocked") + '</span>';
         } else {
           if (!state.available && objective) {
             var definition = progression.definitions.find(function (item) { return item.type === type; });
@@ -1145,15 +1040,23 @@
             var count = definition.stat === "bestTime" ? formatTime(objective.current) + " / " + formatTime(objective.target) : Math.floor(objective.current) + " / " + objective.target;
             button.innerHTML += '<span class="unlock-requirement">' + progressLabel + ': ' + count + '</span>';
           }
-          button.innerHTML += '<span class="module-unlock-cost">' + state.cost + ' Fragments · Preview</span>';
-          if (state.available && !canBuy) button.innerHTML += '<span class="unlock-requirement">Need ' + Math.ceil(state.cost - save.fragments) + ' more Fragments</span>';
+          button.innerHTML += '<span class="module-unlock-cost">' + state.cost + ' Fragments</span>';
+          if (state.available && save.fragments < state.cost) button.innerHTML += '<span class="unlock-requirement">Need ' + Math.ceil(state.cost - save.fragments) + ' more Fragments</span>';
         }
-        button.setAttribute("aria-haspopup", "dialog");
         button.addEventListener("click", function () {
-          openModulePreview(type, "hangar");
+          selectedHangarModule = type;
+          newModuleBadges.delete(type);
+          ui.weaponPicker.querySelectorAll(".pick-button").forEach(function (card) {
+            var selected = card.dataset.module === type;
+            card.classList.toggle("selected", selected);
+            card.setAttribute("aria-pressed", String(selected));
+            if (selected) { var badge = card.querySelector(".new-unlock"); if (badge) badge.remove(); }
+          });
+          renderHangarModuleDetails();
         });
         ui.weaponPicker.appendChild(button);
       });
+      renderHangarModuleDetails();
     }
 
     function buyModuleUnlock(type) {
@@ -1209,12 +1112,11 @@
         var button = document.createElement("button");
         button.type = "button";
         button.className = "result-purchase-card";
-        button.dataset.preview = offer.type;
-        button.setAttribute("aria-haspopup", "dialog");
+        button.dataset.module = offer.type;
         button.innerHTML = moduleGlyphHtml(offer.type) + '<span class="result-purchase-copy"><strong>' + MODULES[offer.type].name +
           '</strong><span>' + offer.cost + ' Fragments' + (offer.newlyAvailable ? ' · Discovered this run' : '') +
-          '</span></span><span class="result-purchase-action">Preview →</span>';
-        button.addEventListener("click", function () { openModulePreview(offer.type, "result"); });
+          '</span></span><span class="result-purchase-action">View in Hangar →</span>';
+        button.addEventListener("click", function () { selectedHangarModule = offer.type; exitToHangar(); });
         ui.resultUnlocks.appendChild(button);
       });
       goalCard.classList.toggle("hidden", !model.goal);
@@ -1225,7 +1127,7 @@
       ui.resultObjectiveProgress.setAttribute("aria-label", model.goal ? model.goal.text : "");
       var ownedCount = Object.keys(MODULES).filter(function (type) { return progression.isUnlocked(save.progression, type); }).length;
       document.getElementById("hangarStatusSummary").classList.remove("hidden");
-      document.getElementById("hangarStatusSummary").textContent = ownedCount + " unlocked · " + model.affordableCount + " affordable · Preview any module";
+      document.getElementById("hangarStatusSummary").textContent = ownedCount + " unlocked · " + model.affordableCount + " affordable";
     }
 
     Game.prototype.recordProgress = function (delta) {
@@ -1233,7 +1135,7 @@
       var unlocked = progression.apply(save.progression, delta);
       if (!unlocked.length) return;
       Array.prototype.push.apply(this.runUnlocks, unlocked);
-      unlocked.forEach(function (type) { modulePreviewNew.add(type); });
+      unlocked.forEach(function (type) { newModuleBadges.add(type); });
       storeSave();
       renderObjectives();
     };
@@ -1364,6 +1266,7 @@
 
     function Game(options) {
       this.training = Boolean(options && options.training);
+      this.attackVfx = window.DriftAttackVfx ? window.DriftAttackVfx.create() : null;
       this.state = "playing";
       this.coreDef = campaign.getCore(this.training ? "standard" : save.campaign.selectedCore);
       this.coreRanks = Object.assign({}, selectedCoreRanks());
@@ -1435,6 +1338,7 @@
       this.backgroundPulse = 0;
       this.shakeTrauma = 0;
       this.damageVignette = 0;
+      this.deathFeedbackTime = 0;
       this.damageWarningTimer = 0;
       this.damageWarningText = "";
       this.coreWarningStage = 0;
@@ -1546,7 +1450,7 @@
       enemy.hp = def.hp;
       enemy.maxHp = enemy.hp;
       enemy.shield = def.shield || 0;
-      enemy.maxShield = def.shield || 0;
+      enemy.maxShield = enemy.shield;
       enemy.speed = def.speed;
       enemy.radius = def.radius;
       enemy.halfLength = def.halfLength || def.radius;
@@ -1574,6 +1478,7 @@
       enemy.visualRotation = initialFacing;
       enemy.visualTurnRate = ENEMY_VISUAL_TURN_RATES[type] || 3;
       enemy.hitFlash = 0;
+      enemy.nextHitFeedbackAt = 0;
       enemy.slowTimer = 0;
       enemy.slowFactor = 1;
       enemy.burnTimer = 0;
@@ -1603,7 +1508,7 @@
     };
 
     Game.prototype.endlessPressureStep = function () {
-      return Math.min(5, Math.floor(Math.max(0, (this.elapsed || 0) - 600) / 120));
+      return Math.min(10, Math.floor(Math.max(0, (this.elapsed || 0) - 600) / 90));
     };
 
     Game.prototype.chooseEnemyType = function (phase) {
@@ -1707,7 +1612,8 @@
         var formation = openingWave ? "ring" : (heavy ? "block" : formations[Math.floor(Math.random() * formations.length)]);
         var columns = Math.ceil(Math.sqrt(members));
         var packType = openingWave ? "drone" : this.chooseEnemyType(phase);
-        var rangedCount = heavy || openingWave ? 0 : Math.min(phase.assaultRanged, members);
+        var heavyEscortCount = this.elapsed >= HEAVY_RANGED_ESCORT_START ? 1 : 0;
+        var rangedCount = openingWave ? 0 : Math.min(heavy ? heavyEscortCount : phase.assaultRanged, MAX_ASSAULT_RANGED_ESCORTS, members);
         var colossi = 0;
         for (var slotIndex = 0; slotIndex < members; slotIndex += 1) {
           var type = heavy ? this.chooseEnemyTypeFromPool(phase.heavyPool) : packType;
@@ -1811,7 +1717,7 @@
         color: ["#ff637c", "#ff9b55", "#a987ff"][variantIndex],
         sides: variant === "pursuer" ? 3 : (variant === "storm" ? 8 : 12),
         combatPhase: 1,
-        fireClock: 3.2,
+        fireClock: 1.2,
         attackCharge: 0,
         attackChargeMax: 0,
         attackIndex: 0,
@@ -2002,7 +1908,11 @@
       effect.spin = 0;
       effect.glyph = "";
       effect.moduleType = null;
+      effect.weaponType = null;
       effect.moduleAim = 0;
+      effect.enemyType = null;
+      effect.fragment = 0;
+      effect.fragmentCount = 0;
       effect.points = null;
       this.effects.push(effect);
       return effect;
@@ -2494,6 +2404,7 @@
       projectile.mineFragments = false; projectile.sourceTile = null; projectile.detonated = false;
       if (projectile.hitIds) projectile.hitIds.clear();
       if ((kind === "rail" || kind === "sniperShot") && !projectile.hitIds) projectile.hitIds = new Set();
+      if (this.attackVfx) this.attackVfx.resetProjectile(projectile);
       this.projectiles.push(projectile);
       return projectile;
     };
@@ -2684,7 +2595,7 @@
                 projectile.life = 0;
                 break;
               } else if (projectile.kind === "cryo") {
-                this.damageEnemy(enemy, projectile.damage);
+                this.damageEnemy(enemy, projectile.damage, projectile.x, projectile.y);
                 if (!enemy.dead) {
                   enemy.slowFactor = Math.min(enemy.slowFactor, enemy.type === "boss" ? Math.max(.8, projectile.slowFactor) : projectile.slowFactor);
                   enemy.slowTimer = Math.max(enemy.slowTimer, projectile.slowDuration);
@@ -2700,7 +2611,7 @@
               } else if (projectile.kind === "rail" || projectile.penetration) {
                 if (projectile.hitIds.has(enemy.id)) continue;
                 projectile.hitIds.add(enemy.id);
-                this.damageEnemy(enemy, projectile.damage * (projectile.hitIds.size > 1 ? projectile.secondHitScale : 1));
+                this.damageEnemy(enemy, projectile.damage * (projectile.hitIds.size > 1 ? projectile.secondHitScale : 1), projectile.x, projectile.y);
                 if (projectile.penetration && projectile.hitIds.size >= projectile.penetration) projectile.life = 0;
                 if (!enemy.dead && enemy.type !== "boss" && projectile.kind === "rail") {
                   var railSpeed = Math.max(1, Math.sqrt(projectile.vx * projectile.vx + projectile.vy * projectile.vy));
@@ -2710,7 +2621,7 @@
                 this.burst(projectile.x, projectile.y, projectile.color, 5, 95);
                 if (projectile.life <= 0) break;
               } else {
-                this.damageEnemy(enemy, projectile.damage);
+                this.damageEnemy(enemy, projectile.damage, projectile.x, projectile.y);
                 this.burst(projectile.x, projectile.y, projectile.color, 3, 55);
                 projectile.life = 0;
                 break;
@@ -2757,6 +2668,7 @@
         }
       }
       this.compactProjectiles();
+      if (this.attackVfx) this.attackVfx.sampleProjectiles(this.projectiles);
     };
 
     Game.prototype.detonateMine = function(first) {
@@ -2775,7 +2687,7 @@
       }
     };
 
-    Game.prototype.explodeBlast = function (projectile, radius, color, particleCount) {
+    Game.prototype.explodeBlast = function (projectile, radius, color, particleCount, weaponType) {
       var candidates = this.radiusCandidates ? this.radiusCandidates(projectile.x, projectile.y, radius) : this.enemies;
       for (var i = 0; i < candidates.length; i += 1) {
         var enemy = candidates[i];
@@ -2788,14 +2700,15 @@
       var blastEffect = this.spawnEffect("ring", projectile.x, projectile.y, .28, color);
       blastEffect.radius = 5;
       blastEffect.maxRadius = radius;
+      blastEffect.weaponType = weaponType || null;
       this.burst(projectile.x, projectile.y, color, particleCount, 150);
       if (distanceSquared(projectile.x, projectile.y, this.ship.x, this.ship.y) < 420 * 420) this.addShake(1.2);
       audio.tone(75, .14, .04, "sawtooth", -25);
     };
 
     Game.prototype.explodeMissile = function (projectile) {
-      if (projectile.clusterCount) for (var child = 0; child < 3; child += 1) this.explodeBlast({x:projectile.x+Math.cos(child*TAU/3)*45,y:projectile.y+Math.sin(child*TAU/3)*45,damage:projectile.damage*.25},50,projectile.color,6);
-      this.explodeBlast(projectile, projectile.blastRadius || 74, "#ffd96a", 12);
+      if (projectile.clusterCount) for (var child = 0; child < 3; child += 1) this.explodeBlast({x:projectile.x+Math.cos(child*TAU/3)*45,y:projectile.y+Math.sin(child*TAU/3)*45,damage:projectile.damage*.25},50,projectile.color,6,"missile");
+      this.explodeBlast(projectile, projectile.blastRadius || 74, "#ffd96a", 12, "missile");
     };
 
     Game.prototype.findNearestHostileProjectile = function (origin, range) {
@@ -2839,6 +2752,7 @@
       var flakRing = this.spawnEffect("ring", impactX, impactY, .24, def.color);
       flakRing.radius = 5;
       flakRing.maxRadius = def.blastRadius;
+      flakRing.weaponType = "flak";
       this.burst(impactX, impactY, def.color, 12, 150);
     };
 
@@ -2981,6 +2895,7 @@
           this.placeGravityField(tile, origin, target, def, damageMultiplier);
           audio.tone(220, .18, .022, "sine", -100);
         }
+        if (this.attackVfx) this.attackVfx.shoot(tile.type, origin, nx, ny);
     };
 
     Game.prototype.fireEmberCone = function (origin, nx, ny, def, damageMultiplier) {
@@ -3139,6 +3054,7 @@
       var pulseEffect = this.spawnEffect("ring", origin.x, origin.y, .35, def.color);
       pulseEffect.radius = 8;
       pulseEffect.maxRadius = def.range;
+      pulseEffect.weaponType = "pulse";
       if (hitCount > 0) this.burst(origin.x, origin.y, def.color, Math.min(18, 4 + hitCount), 120);
     };
 
@@ -3178,8 +3094,19 @@
       var effect=this.spawnEffect('arc',origin.x,origin.y,.18,def.color);effect.points=points;
     };
 
-    Game.prototype.damageEnemy = function (enemy, amount) {
+    Game.prototype.enemyHitFeedback = function (enemy, hitX, hitY) {
+      if (this.elapsed < (enemy.nextHitFeedbackAt || 0)) return;
+      enemy.nextHitFeedbackAt = this.elapsed + .065;
+      var angle = Math.atan2(this.ship.y - enemy.y, this.ship.x - enemy.x);
+      var x = Number.isFinite(hitX) ? hitX : enemy.x + Math.cos(angle) * enemy.radius * .8;
+      var y = Number.isFinite(hitY) ? hitY : enemy.y + Math.sin(angle) * enemy.radius * .8;
+      var shielded = enemy.shield > 0;
+      combatFeedback.impact(this, x, y, Math.atan2(y - enemy.y, x - enemy.x), shielded, currentQualityTier(), save.settings.reducedFlash);
+    };
+
+    Game.prototype.damageEnemy = function (enemy, amount, hitX, hitY) {
       if (!enemy || enemy.dead || !Number.isFinite(amount) || amount <= 0) return;
+      this.enemyHitFeedback(enemy, hitX, hitY);
       var hpBefore = Math.max(0, enemy.hp);
       var shieldBefore = Math.max(0, enemy.shield || 0);
       if (enemy.shield > 0) {
@@ -3215,6 +3142,7 @@
     Game.prototype.killEnemy = function (enemy) {
       if (enemy.dead) return;
       enemy.dead = true;
+      combatFeedback.destruction(this, enemy, currentQualityTier(), save.settings.reducedFlash, enemyArt);
       if (enemy.spreadBurn) {
         this.enemies.forEach(function(other) {
           if (other.dead || distanceSquared(enemy.x,enemy.y,other.x,other.y)>80*80) return;
@@ -3237,11 +3165,7 @@
         this.ambientSpawnClock = 1.5;
         this.assaultClock = ASSAULT_FIRST_DELAY;
         this.addShake(14);
-        this.damageVignette = Math.max(this.damageVignette, save.settings.reducedFlash ? .25 : .42);
-        this.burst(enemy.x, enemy.y, "#ffd96a", 55, 260);
-        var bossDeathEffect = this.spawnEffect("ring", enemy.x, enemy.y, 1.1, "#ffd96a");
-        bossDeathEffect.radius = 10;
-        bossDeathEffect.maxRadius = 280;
+        this.burst(enemy.x, enemy.y, "#e9b477", 35, 260);
         this.kills += 1;
         this.matter += enemy.reward;
         this.ship.tiles.forEach(function (tile) {
@@ -3274,7 +3198,7 @@
         trainingEvent("target_destroyed", { id: enemy.trainingTarget.id, group: enemy.trainingTarget.group, upgraded: Boolean(this.upgrades.cannon && this.upgrades.cannon.level > 0) });
       }
       if (playtestTelemetry) playtestTelemetry.recordEnemyKill(enemy.type, earnedMatter);
-      this.burst(enemy.x, enemy.y, enemy.color, 8, 120);
+      this.burst(enemy.x, enemy.y, "#e9ad82", 5, 120);
       if (enemy.type === "splitter") {
         for (var i = 0; i < 2; i += 1) {
           var angle = i * Math.PI + Math.random() * .5;
@@ -3340,6 +3264,7 @@
       target.repairDelay = repairDef.repairDelay;
       target.flash = Math.max(target.flash, .24 + clamp(remaining / 40, 0, .18));
       var impactPos = this.gridToWorld(target.x, target.y);
+      combatFeedback.impact(this, impactPos.x, impactPos.y, this.ship.angle, false, currentQualityTier(), save.settings.reducedFlash);
       if (save.settings.damageNumbers && this.effects.length < (currentQualityTier() > 1 ? 65 : (currentQualityTier() > 0 ? 90 : 120))) {
         var shipDamageText = this.spawnEffect("shipDamageText", impactPos.x + (Math.random() - .5) * 10, impactPos.y - 16, .62, target.type === "core" ? "#ffffff" : "#ff8799");
         shipDamageText.value = Math.max(1, Math.round(remaining));
@@ -3362,9 +3287,12 @@
       if (!target) return;
       if (target.type === "core") {
         var corePos = this.gridToWorld(0, 0);
+        this.deathFeedbackTime = 1.5;
         this.addShake(18);
         this.damageVignette = save.settings.reducedFlash ? .42 : 1;
-        this.burst(corePos.x, corePos.y, "#ffffff", 42, 240);
+        this.burst(corePos.x, corePos.y, "#efbd79", 24, 220);
+        combatFeedback.destruction(this, { type:"core", x:corePos.x, y:corePos.y, radius:32, rotation:this.ship.angle }, currentQualityTier(), save.settings.reducedFlash, enemyArt);
+        this.ship.tiles.forEach(function (tile) { this.spawnTileDebris(tile, this.gridToWorld(tile.x, tile.y)); }, this);
         this.finishRun(false);
         return;
       }
@@ -3401,13 +3329,19 @@
       this.modulesLost += 1;
       if (playtestTelemetry) playtestTelemetry.recordModuleLost(tile.type, branch);
       this.burst(pos.x, pos.y, branch ? "#a987ff" : "#65e8ff", branch ? 12 : 8, branch ? 150 : 100);
-      var debrisEffect = this.spawnEffect("debris", pos.x, pos.y, .85, MODULES[tile.type].color);
+      this.spawnTileDebris(tile, pos);
+    };
+
+    Game.prototype.spawnTileDebris = function (tile, pos) {
+      if (this.effects.length >= (currentQualityTier() > 1 ? 70 : currentQualityTier() > 0 ? 100 : 140)) return;
+      var definition = tile.type === "core" ? { color:CORE_COLORS[this.coreDef.id], glyph:"◆" } : MODULES[tile.type];
+      var debrisEffect = this.spawnEffect("debris", pos.x, pos.y, 1.1, definition.color);
       debrisEffect.vx = (pos.x - this.ship.x) * .7 + (Math.random() - .5) * 90;
       debrisEffect.vy = (pos.y - this.ship.y) * .7 + (Math.random() - .5) * 90;
       debrisEffect.rotation = this.ship.angle;
       debrisEffect.spin = (Math.random() - .5) * 4;
-      debrisEffect.glyph = MODULES[tile.type].glyph;
-      debrisEffect.moduleType = tile.type;
+      debrisEffect.glyph = definition.glyph;
+      debrisEffect.moduleType = tile.type === "core" && this.coreDef.id !== "standard" ? "core-" + this.coreDef.id : tile.type;
       debrisEffect.moduleAim = tile.aim;
     };
 
@@ -3462,6 +3396,7 @@
       for (var e = 0; e < this.effects.length; e += 1) {
         var effect = this.effects[e];
         effect.life -= dt;
+        combatFeedback.update(effect, dt);
         if (effect.type === "ring") effect.radius = lerp(effect.radius, effect.maxRadius, ringExpansion);
         if (effect.type === "damageText" || effect.type === "shipDamageText") effect.y -= 30 * dt;
         if (effect.type === "debris") {
@@ -3490,6 +3425,7 @@
         effectWrite = maxEffects;
       }
       this.effects.length = effectWrite;
+      if (this.attackVfx) this.attackVfx.update(dt);
     };
 
     Game.prototype.update = function (dt) {
@@ -3655,7 +3591,6 @@
     }
 
     function buyRunUpgrade(type, choice, expectedRank) {
-      if (modulePreviewSession) return false;
       if (!game || game.state !== "building") return false;
       var copies = installedModuleCopies(type);
       if (!copies) return false;
@@ -3790,7 +3725,6 @@
     }
 
     function sellInstalledModule(sourceKey) {
-      if (modulePreviewSession) return false;
       if (!game || game.state !== "building") return false;
       var tile = game.ship.tiles.get(sourceKey);
       if (!tile || tile.type === "core") return false;
@@ -3819,7 +3753,6 @@
     }
 
     function placePurchasedModule(x, y) {
-      if (modulePreviewSession) return false;
       if (!game || game.state !== "building" || buildInteraction.selectedKey) return false;
       var type = selectedBuildModule;
       if (!moduleAvailable(type)) return false;
@@ -4129,7 +4062,8 @@
             button.classList.add("occupied");
             if (tile.type === "core") button.classList.add("core");
             var artType = tileArtType(tile);
-            var cellArt = moduleArt && moduleArt.iconHtml(artType, true);
+            var upgradeLevel = game.upgrades[tile.type] ? game.upgrades[tile.type].level : 0;
+            var cellArt = moduleArt && moduleArt.iconHtml(artType, true, { angle: tile.aim, level: upgradeLevel });
             var glyph = cellArt || (tile.type === "core" ? "▲" : moduleIconHtml(tile.type));
             if (cellArt) button.classList.add("has-module-art");
             button.setAttribute("aria-label", tile.type === "core" ? "Core" : MODULES[tile.type].name);
@@ -4203,13 +4137,6 @@
         : "Selected for inspection. Earn " + missingMatter + " more Matter to attach " + selected.name + ".";
       ui.buildMatter.textContent = Math.floor(game.matter);
       renderBuildModuleDetails();
-      var previewButton = document.getElementById("buildModulePreview");
-      var previewTile = selectedBuildTile();
-      var previewType = previewTile ? previewTile.type : selectedBuildModule;
-      if (previewButton) {
-        previewButton.classList.toggle("hidden", previewType === "core");
-        previewButton.setAttribute("aria-label", "Preview " + (MODULES[previewType] ? MODULES[previewType].name : "module"));
-      }
       renderRunUpgrades();
       updateBuildPreview();
       centerBuildSelection();
@@ -4218,7 +4145,6 @@
     }
 
     function openBuild() {
-      if (modulePreviewSession) return;
       if (!game || game.state !== "playing" || game.finished) return;
       resetMobileInput();
       dismissControlHint();
@@ -4229,11 +4155,11 @@
       createCatalog();
       renderBuildGrid();
       updateHud();
+      audio.stop();
       audio.tone(210, .08, .025, "sine", 80);
     }
 
     function closeBuild() {
-      if (modulePreviewSession) return;
       if (!game || game.state !== "building") return;
       if (typeof clearBuildInteraction === "function") clearBuildInteraction();
       requestMobileFullscreen();
@@ -4397,7 +4323,6 @@
     }
 
     function openHangar(tab) {
-      closeModulePreview();
       ui.menu.classList.add("hidden");
       ui.hangarOverlay.classList.remove("hidden");
       setHangarTab(tab || "upgrades");
@@ -4408,7 +4333,6 @@
     }
 
     function closeHangar() {
-      closeModulePreview();
       ui.hangarOverlay.classList.add("hidden");
       ui.menu.classList.remove("hidden");
       renderStarterSelection();
@@ -4450,7 +4374,6 @@
     }
 
     function openPause(reason) {
-      if (modulePreviewSession) return;
       if (!game || game.state !== "playing" || game.finished) return;
       resetMobileInput();
       settingsOpenedFromMenu = false;
@@ -4468,12 +4391,12 @@
       ui.pauseHangarButton.classList.remove("hidden");
       ui.pauseOverlay.classList.remove("hidden");
       syncSettingsUi();
-      audio.tone(190, .07, .02, "sine", -45);
+      audio.stop();
+      if (!reason || reason === "manual") audio.tone(190, .07, .02, "sine", -45);
       if (game.training) updateTrainingView();
     }
 
     function closePause() {
-      if (modulePreviewSession) return;
       if (settingsPageOpen && !settingsOpenedFromMenu) {
         showSettingsPage(false);
         document.getElementById("pauseSettingsButton").focus();
@@ -4526,12 +4449,12 @@
     }
 
     function startRun() {
-      closeModulePreview();
       if (rangeSession) { leaveRange(); return; }
       if (game && game.training) { leaveTraining(); return; }
       if (typeof clearBuildInteraction === "function") clearBuildInteraction();
       requestMobileFullscreen();
       audio.ensure();
+      audio.stop();
       resetMobileInput();
       if (game && !game.finished) game.finishRun(false, true);
       game = new Game();
@@ -4572,12 +4495,12 @@
     }
 
     function returnToMenu() {
-      closeModulePreview();
       if (rangeSession) { leaveRange(); return; }
       if (game && game.training) { leaveTraining(); return; }
       resetMobileInput();
       if (game && !game.finished) game.finishRun(false, true);
       game = null;
+      audio.stop();
       clearCombatPresentation();
       ui.milestoneOverlay.classList.add("hidden");
       ui.resultOverlay.classList.add("hidden");
@@ -4606,7 +4529,6 @@
     }
 
     function exitToHangar() {
-      closeModulePreview();
       if (rangeSession) { leaveRange(); return; }
       if (game && game.training) { leaveTraining(); return; }
       if (game && !game.finished) {
@@ -4671,21 +4593,35 @@
       ctx.fillRect(0, 0, viewWidth, viewHeight);
       var cameraX = game ? game.camera.x : Math.sin(time * .00008) * 120;
       var cameraY = game ? game.camera.y : Math.cos(time * .00006) * 90;
+      var velocityX = game ? game.ship.vx : 0;
+      var velocityY = game ? game.ship.vy : 0;
+      var speed = Math.hypot(velocityX, velocityY);
+      var trailLength = save.settings.reducedFlash ? 0 : Math.min(14, speed * .045);
       for (var i = 0; i < stars.length; i += 1) {
         var star = stars[i];
-        var sx = (star.x - cameraX * star.depth * .08) % viewWidth;
-        var sy = (star.y - cameraY * star.depth * .08) % viewHeight;
+        var near = i % 3 === 0;
+        var parallax = near ? .65 + star.depth * .35 : star.depth * .18;
+        var sx = (star.x - cameraX * parallax) % viewWidth;
+        var sy = (star.y - cameraY * parallax) % viewHeight;
         if (sx < 0) sx += viewWidth;
         if (sy < 0) sy += viewHeight;
         ctx.globalAlpha = star.alpha;
         ctx.fillStyle = i % 7 === 0 ? "#65e8ff" : "#b9d8e6";
+        if (near && trailLength > 1) {
+          ctx.strokeStyle = ctx.fillStyle;
+          ctx.lineWidth = star.size;
+          ctx.beginPath();
+          ctx.moveTo(sx + velocityX / speed * trailLength, sy + velocityY / speed * trailLength);
+          ctx.lineTo(sx, sy);
+          ctx.stroke();
+        }
         ctx.fillRect(sx, sy, star.size, star.size);
       }
       ctx.globalAlpha = 1;
       var grid = 84;
-      var offsetX = ((-cameraX * .22) % grid + grid) % grid;
-      var offsetY = ((-cameraY * .22) % grid + grid) % grid;
-      ctx.strokeStyle = "rgba(101,232,255,.045)";
+      var offsetX = ((-cameraX) % grid + grid) % grid;
+      var offsetY = ((-cameraY) % grid + grid) % grid;
+      ctx.strokeStyle = "rgba(101,232,255,.065)";
       ctx.lineWidth = 1;
       ctx.beginPath();
       for (var x = offsetX; x < viewWidth; x += grid) {
@@ -4711,13 +4647,13 @@
       context.closePath();
     }
 
-    function enemyPath(context, enemy, x, y, radiusMultiplier) {
+    function enemyPath(context, enemy, x, y, radiusMultiplier, rotation) {
       var radius = enemy.radius * (radiusMultiplier || 1);
       if (enemy.sides === 0 || enemy.sides >= 18) {
         context.beginPath();
         context.arc(x, y, radius, 0, TAU);
       } else {
-        polygonPath(context, x, y, radius, enemy.sides, enemy.rotation);
+        polygonPath(context, x, y, radius, enemy.sides, rotation === undefined ? enemy.rotation : rotation);
       }
     }
 
@@ -4781,52 +4717,36 @@
       Object.keys(ENEMY_DEFS).forEach(function (type) {
         var def = ENEMY_DEFS[type];
         var usesEnemyArt = enemyArt && enemyArt.available(type);
-        var frameCount = usesEnemyArt ? 32 : (def.sides === 3 ? 24 : (def.sides > 0 && def.sides < 18 ? 12 : 1));
-        var displaySize = Math.max(Math.ceil((def.radius + 10) * 2), usesEnemyArt ? enemyArt.displaySize(type, def.radius) : 0);
-        var frames = [];
-        for (var frameIndex = 0; frameIndex < frameCount; frameIndex += 1) {
-          var sprite = document.createElement("canvas");
-          sprite.width = Math.ceil(displaySize * dpr);
-          sprite.height = Math.ceil(displaySize * dpr);
-          var spriteContext = sprite.getContext("2d", { alpha: true });
-          spriteContext.setTransform(dpr, 0, 0, dpr, 0, 0);
-          var center = displaySize * .5;
-          var rotation = frameIndex / frameCount * TAU;
-          var spriteEnemy = { radius: def.radius, sides: def.sides, rotation: rotation };
-          if (usesEnemyArt) {
-            enemyArt.draw(spriteContext, type, center, center, def.radius, rotation);
-          } else {
-            spriteContext.strokeStyle = def.color;
-            spriteContext.fillStyle = def.color;
-            spriteContext.globalAlpha = .12;
-            enemyPath(spriteContext, spriteEnemy, center, center, 1);
-            spriteContext.fill();
-            spriteContext.globalAlpha = .24;
-            spriteContext.lineWidth = 5;
-            spriteContext.stroke();
-            spriteContext.globalAlpha = 1;
-            spriteContext.lineWidth = 2;
-            enemyPath(spriteContext, spriteEnemy, center, center, 1);
-            spriteContext.stroke();
-            drawEnemySpriteDetails(spriteContext, type, center, center, def.radius, rotation);
-          }
-          frames.push(sprite);
+        var displaySize = Math.max(
+          Math.ceil((def.radius + 10) * 2),
+          usesEnemyArt ? Math.ceil(enemyArt.displaySize(type, def.radius) * Math.SQRT2) : 0
+        );
+        var sprite = document.createElement("canvas");
+        sprite.width = Math.ceil(displaySize * dpr);
+        sprite.height = Math.ceil(displaySize * dpr);
+        var spriteContext = sprite.getContext("2d", { alpha: true });
+        spriteContext.setTransform(dpr, 0, 0, dpr, 0, 0);
+        var center = displaySize * .5;
+        var spriteEnemy = { radius: def.radius, sides: def.sides, rotation: 0 };
+        if (usesEnemyArt) {
+          enemyArt.draw(spriteContext, type, center, center, def.radius, 0);
+        } else {
+          spriteContext.strokeStyle = def.color;
+          spriteContext.fillStyle = def.color;
+          spriteContext.globalAlpha = .12;
+          enemyPath(spriteContext, spriteEnemy, center, center, 1);
+          spriteContext.fill();
+          spriteContext.globalAlpha = .24;
+          spriteContext.lineWidth = 5;
+          spriteContext.stroke();
+          spriteContext.globalAlpha = 1;
+          spriteContext.lineWidth = 2;
+          enemyPath(spriteContext, spriteEnemy, center, center, 1);
+          spriteContext.stroke();
+          drawEnemySpriteDetails(spriteContext, type, center, center, def.radius, 0);
         }
-        enemySpriteCache[type] = { frames: frames, size: displaySize, half: displaySize * .5 };
+        enemySpriteCache[type] = { sprite: sprite, size: displaySize, half: center };
       });
-    }
-
-    function cachedEnemySprite(enemy) {
-      var cached = enemySpriteCache[enemy.type];
-      if (!cached) return null;
-      var frameCount = cached.frames.length;
-      if (frameCount === 1) return cached.frames[0];
-      // A 32-angle cache keeps painted hulls smooth while avoiding a per-enemy
-      // canvas transform every frame in dense combat.
-      var facing = enemyVisualFacing(enemy);
-      var normalizedRotation = ((facing % TAU) + TAU) % TAU;
-      var frameIndex = Math.round(normalizedRotation / TAU * frameCount) % frameCount;
-      return cached.frames[frameIndex];
     }
 
     function drawBossAttackTelegraph(enemy, pos, progress) {
@@ -4894,6 +4814,7 @@
         var field = game.gravityFields[i];
         var pos = worldToScreen(field.x, field.y);
         if (!isScreenVisibleAtZoom(pos, field.radius)) continue;
+        if (game.attackVfx && game.attackVfx.field(ctx, field, pos, save.settings.reducedFlash, currentQualityTier())) continue;
         ctx.strokeStyle = field.color;
         ctx.fillStyle = field.color;
         ctx.globalAlpha = .06;
@@ -4965,17 +4886,20 @@
           ctx.globalAlpha = 1;
         }
         if (enemy.type !== "boss") {
-          var cachedSprite = cachedEnemySprite(enemy);
-          if (cachedSprite) {
-            var cachedGeometry = enemySpriteCache[enemy.type];
+          var cachedGeometry = enemySpriteCache[enemy.type];
+          if (cachedGeometry) {
             ctx.globalAlpha = 1;
             ctx.shadowBlur = 0;
-            ctx.drawImage(cachedSprite, Math.round(pos.x - cachedGeometry.half), Math.round(pos.y - cachedGeometry.half), cachedGeometry.size, cachedGeometry.size);
+            ctx.save();
+            ctx.translate(pos.x, pos.y);
+            ctx.rotate(enemyVisualFacing(enemy));
+            ctx.drawImage(cachedGeometry.sprite, -cachedGeometry.half, -cachedGeometry.half, cachedGeometry.size, cachedGeometry.size);
+            ctx.restore();
             if (enemy.hitFlash > 0) {
               ctx.globalAlpha = clamp(enemy.hitFlash / .1, 0, 1);
               ctx.strokeStyle = "#ffffff";
               ctx.lineWidth = 2;
-              enemyPath(ctx, enemy, pos.x, pos.y, 1);
+              enemyPath(ctx, enemy, pos.x, pos.y, 1, enemyVisualFacing(enemy));
               ctx.stroke();
             }
             if (enemy.shield > 0) {
@@ -5303,6 +5227,8 @@
 
     function drawShip() {
       if (!game) return;
+      var core = game.ship.tiles.get("0,0");
+      if (!core || core.hp <= 0) return;
       var simplifiedEffects = currentQualityTier() > 0;
       var shipScreen = worldToScreen(game.ship.x, game.ship.y);
       ctx.save();
@@ -5370,6 +5296,8 @@
           ctx.fillStyle = tile.hp / tile.maxHp < .35 ? "#ff637c" : "#70ffc2";
           ctx.fillRect(x - 15, y + 15, 30 * clamp(tile.hp / tile.maxHp, 0, 1), 2);
         }
+        var upgrade = game.upgrades[tile.type];
+        if (moduleArt && upgrade && moduleArt.available(tileArtType(tile))) moduleArt.drawUpgradeBadge(ctx, x, y, TILE_SIZE, upgrade.level);
       });
       ctx.restore();
     }
@@ -5459,7 +5387,9 @@
         }
         if (projectile.kind === "cannon" || projectile.kind === "scatter") {
           if (simpleProjectilesQueued < simpleProjectileBudget) {
-            queueProjectileCircle(projectile.color, pos.x, pos.y, projectile.radius);
+            if (!game.attackVfx || !game.attackVfx.projectile(ctx, projectile, pos, game.backgroundPulse, currentQualityTier(), save.settings.reducedFlash)) {
+              queueProjectileCircle(projectile.color, pos.x, pos.y, projectile.radius);
+            }
             simpleProjectilesQueued += 1;
           }
           continue;
@@ -5471,6 +5401,7 @@
         ctx.fillStyle = projectile.color;
         ctx.shadowBlur = 0;
         ctx.shadowColor = projectile.color;
+        if (game.attackVfx && game.attackVfx.projectile(ctx, projectile, pos, game.backgroundPulse, currentQualityTier(), save.settings.reducedFlash)) continue;
         if (projectile.kind === "missile") {
           var angle = Math.atan2(projectile.vy, projectile.vx);
           polygonPath(ctx, pos.x, pos.y, 6, 3, angle);
@@ -5556,6 +5487,8 @@
         ctx.fillStyle = effect.color;
         ctx.shadowBlur = simplifiedEffects ? 0 : 14;
         ctx.shadowColor = effect.color;
+        if (combatFeedback.draw(ctx, effect, effectPos.x, effectPos.y, alpha, save.settings.reducedFlash, enemyArt)) continue;
+        if (game.attackVfx && game.attackVfx.effect(ctx, effect, effectPos, save.settings.reducedFlash)) continue;
         if (effect.type === "flameCone") {
           ctx.globalAlpha = alpha * .12;
           ctx.beginPath();
@@ -5614,6 +5547,8 @@
           ctx.fillText((effect.type === "shipDamageText" ? "−" : "") + String(effect.value), effectPos.x, effectPos.y);
         } else if (effect.type === "debris") {
           ctx.save();
+          ctx.globalCompositeOperation = "source-over";
+          ctx.shadowBlur = 0;
           ctx.translate(effectPos.x, effectPos.y);
           ctx.rotate(effect.rotation);
           if (moduleArt && moduleArt.available(effect.moduleType)) {
@@ -5698,6 +5633,7 @@
         if (game.training && trainingSession) trainingSession.arena.draw(ctx, game, worldToScreen);
         if (game.testRange) rangeArena.draw(ctx, game, worldToScreen);
         drawEffects();
+        if (game.attackVfx) game.attackVfx.muzzles(ctx, worldToScreen, save.settings.reducedFlash);
         drawProjectiles(true);
         ctx.restore();
         drawBossLocator();
@@ -5750,6 +5686,12 @@
           if (game.accumulator >= FIXED_STEP) game.accumulator %= FIXED_STEP;
         } else {
           game.accumulator = 0;
+          // Let wreckage settle after death without advancing combat or rewards.
+          if ((game.finished && game.state === "result") || game.deathFeedbackTime > 0) {
+            game.updateEffects(delta);
+            game.updateFeedback(delta);
+            game.deathFeedbackTime = Math.max(0, game.deathFeedbackTime - delta);
+          }
         }
         if (now - lastHudUpdate > 100) {
           updateHud();
@@ -5834,7 +5776,7 @@
           expect(!!ENEMY_DEFS[phase.rangedPool[rangedPoolIndex][0]], "Every ranged phase entry must reference an enemy definition.");
         }
         expect((phase.assaultRanged === 0 && rangedPoolWeight === 0) || rangedPoolWeight === 100, "Every active ranged pool must total one hundred percent.");
-        expect(phase.assaultRanged >= 0 && phase.assaultRanged <= 4, "Assault ranged slots must stay bounded.");
+        expect(phase.assaultRanged >= 0 && phase.assaultRanged <= Math.min(MAX_ASSAULT_RANGED_ESCORTS, Math.floor(phase.squadSize / 4)), "Assault ranged escorts must stay bounded and leave most slots for swarm bodies.");
         var heavyPoolWeight = 0;
         for (var heavyIndex = 0; heavyIndex < phase.heavyPool.length; heavyIndex += 1) {
           heavyPoolWeight += phase.heavyPool[heavyIndex][1];
@@ -5970,7 +5912,7 @@
       Game.prototype.updateEffects.call(effectPoolProbe, .2);
       var reusedEffect = Game.prototype.spawnEffect.call(effectPoolProbe, "beam", 3, 4, .2, "#0ff");
       expect(reusedEffect === firstEffect && reusedEffect.type === "beam" && reusedEffect.radius === 0, "Expired effect objects must be reset and reused.");
-      var enemyPoolProbe = { enemyId: 1, enemies: [], enemyPool: [], enemyById: new Map() };
+      var enemyPoolProbe = Object.assign(Object.create(Game.prototype), { elapsed: 0, enemyId: 1, enemies: [], enemyPool: [], enemyById: new Map() });
       Game.prototype.spawnEnemy.call(enemyPoolProbe, "scout", 0, 0);
       var firstEnemy = enemyPoolProbe.enemies[0];
       firstEnemy.dead = true;
@@ -6046,10 +5988,6 @@
     ui.mobileBuildButton.addEventListener("click", openBuild);
     ui.mobilePauseButton.addEventListener("click", function () { openPause(); });
     ui.closeBuild.addEventListener("click", closeBuild);
-    document.getElementById("buildModulePreview").addEventListener("click", function () {
-      var selected = selectedBuildTile();
-      openModulePreview(selected ? selected.type : selectedBuildModule, "build");
-    });
     ui.resumeButton.addEventListener("click", closePause);
     document.getElementById("pauseSettingsButton").addEventListener("click", openPauseSettings);
     ui.restartButton.addEventListener("click", requestRestart);
@@ -6132,11 +6070,6 @@
       if (event.code !== "Escape" && target && (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName))) return;
       if (event.ctrlKey || event.metaKey || event.altKey || event.isComposing || event.repeat) return;
       if (event.code === "Escape" && buildInteraction && buildInteraction.drag) { clearBuildInteraction(); renderBuildGrid(); event.preventDefault(); return; }
-      if (modulePreviewSession) {
-        if (["KeyW", "KeyA", "KeyS", "KeyD", "KeyB", "KeyP", "Escape"].indexOf(event.code) >= 0) event.preventDefault();
-        if (event.code === "Escape") closeModulePreview();
-        return;
-      }
       if (["KeyW", "KeyA", "KeyS", "KeyD", "KeyB", "KeyP", "Escape"].indexOf(event.code) >= 0) event.preventDefault();
       var movementKey = ["KeyW", "KeyA", "KeyS", "KeyD"].indexOf(event.code) >= 0;
       if (movementKey) {
@@ -6268,13 +6201,16 @@
     canvas.addEventListener("contextmenu", function (event) { event.preventDefault(); });
 
     function clearUnfocusedInput() {
+      audio.setFocused(false);
       keys = Object.create(null);
       resetMobileInput();
       if (save.settings.autoPause && game && game.state === "playing" && !game.finished) openPause("FOCUS LOST — AUTO-PAUSED");
     }
     window.addEventListener("blur", clearUnfocusedInput);
+    window.addEventListener("focus", function () { audio.setFocused(true); });
     document.addEventListener("visibilitychange", function () {
       if (document.hidden) clearUnfocusedInput();
+      else audio.setFocused(true);
     });
 
     window.addEventListener("pagehide", function () {
@@ -6325,6 +6261,7 @@
     }
     function rangeSetModule(type) {
       if (!rangeSession || !MODULES[type]) return;
+      audio.stop();
       game = new Game({ training: true }); game.testRange = true;
       game.ship.tiles.clear();
       game.ship.tiles.set("0,0", makeTile("core", 0, 0, true, 1, true));
@@ -6347,11 +6284,9 @@
     }
     function startRange(type) {
       if (!canEnterRange()) return false;
-      var preview = modulePreviewSession ? { type: modulePreviewSession.type, context: modulePreviewSession.context } : null;
-      closeModulePreview();
       var overlayIds = ["menuOverlay", "hangarOverlay", "resultOverlay", "milestoneOverlay", "buildOverlay", "pauseOverlay", "hud", "bossHud", "debugBar"];
       rangeSession = { previousGame: game, previousState: game && game.state, selectedModule: selectedBuildModule,
-        selectedKey: buildInteraction.selectedKey, telemetry: playtestTelemetry, debug: DEBUG, preview: preview,
+        selectedKey: buildInteraction.selectedKey, telemetry: playtestTelemetry, debug: DEBUG,
         focus: document.activeElement, settings: settingsOpenedFromMenu,
         workspace: document.querySelector(".build-panel").classList.contains("pc-tree-open"),
         researchSelection: window.DriftPCResearch ? window.DriftPCResearch.captureSelection() : null,
@@ -6367,7 +6302,8 @@
     }
     function leaveRange() {
       if (!rangeSession) return;
-      closeModulePreview(); resetMobileInput(); clearBuildInteraction();
+      audio.stop();
+      resetMobileInput(); clearBuildInteraction();
       ui.toast.classList.remove("show");
       var session = rangeSession;
       game = session.previousGame; playtestTelemetry = session.telemetry; DEBUG = session.debug;
@@ -6383,8 +6319,7 @@
       });
       if (game && game.state === "building") { createCatalog(); buildInteraction.owner = game; buildInteraction.selectedKey = session.selectedKey; renderBuildGrid(); }
       updateHud();
-      if (session.preview) openModulePreview(session.preview.type, session.preview.context);
-      else if (session.focus && session.focus.isConnected) session.focus.focus({ preventScroll: true });
+      if (session.focus && session.focus.isConnected) session.focus.focus({ preventScroll: true });
     }
     function rangeUpgrade(state) {
       if (!rangeSession) return;
@@ -6403,7 +6338,6 @@
       rangeScenario: function (id) { if (rangeSession) rangeArena.reset(game, id); },
       rangeState: function () { return rangeSession ? Object.assign({ type: rangeSession.type, screen: game.state, upgrade: game.upgrades[rangeSession.type] || null }, rangeArena.snapshot()) : null; },
       rangeSnapshot: function () { return rangeSession ? { enemies: game.enemies.map(function(e) { return { hp: e.hp, x:e.x, y:e.y }; }), tiles:Array.from(game.ship.tiles.values()).map(function(t) { return { type:t.type,hp:t.hp,maxHp:t.maxHp,shield:t.shield }; }), definitions:JSON.parse(JSON.stringify(game.weaponDefinitions)) } : null; },
-      previewType: function () { return modulePreviewSession && modulePreviewSession.type; },
       icon: function (type) { return type === "core" ? moduleArt.iconHtml("core") : moduleIconHtml(type); },
       openBuild: openBuild, resize: resize, closeHangar: closeHangar, hangarTab: setHangarTab,
       clearBuildHover: function () { if (!buildInteraction.drag || !buildInteraction.drag.active) updateBuildPreview(); },

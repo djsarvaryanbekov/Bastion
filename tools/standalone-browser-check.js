@@ -15,7 +15,7 @@ const { chromium } = require('playwright');
   const browser = await chromium.launch({ headless: true });
   const errors = [];
   try {
-    const page = await browser.newPage({ viewport: { width: 1280, height: 800 }, acceptDownloads: true });
+    const page = await browser.newPage({ viewport: { width: 1920, height: 1080 }, acceptDownloads: true });
     page.on('pageerror', error => errors.push(error.message));
     await page.clock.install(); await page.goto(pathToFileURL(file).href);
     await page.locator('#startTrainingButton').click();
@@ -51,7 +51,7 @@ const { chromium } = require('playwright');
     assert.equal(data.schemaVersion, 2);
     const run = data.runs.at(-1);
     assert.equal(run.metricsVersion, 2);
-    assert.equal(run.gameBuild, '2026.09.23-pc-uiux-v22');
+    assert.equal(run.gameBuild, '2026.10.10-attack-vfx-27');
     await page.locator('#resumeButton').click();
     await page.locator('#pauseHangarButton').click();
     await page.clock.runFor(1000);

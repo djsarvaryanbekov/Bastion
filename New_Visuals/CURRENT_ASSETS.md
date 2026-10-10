@@ -42,3 +42,11 @@ Integration update: the user subsequently requested using these existing images 
 | Shard enemy | [v1](enemies/raw/mini-v1.png) |
 
 Reactor Link is excluded by user instruction. Its old image remains in `modules/` for history, not as an active asset. Striker/Bulwark/Salvager Core variants have not been designed in this pass. The Standard Core was the most recent design shown; no user approval was given before this folder reorganization.
+
+## Projectile artwork request — 2026-10-08
+
+[Weapon projectile artwork](modules/projectiles/README.md) now contains **12 drawn v1 SVG candidates and transparent PNG exports**, following the user's 2026-10-09 choice to draw editable artwork. [Preview all attacks with their module references](modules/projectiles/review.html); individual source/export links are in the projectile README. [The artwork manifest](modules/projectiles/artwork-manifest.json) records anchors, dimensions and reference mappings.
+
+**Latest feedback, 2026-10-09:** the user rejected the static v1 designs for Auto Cannon, Scatter Array, Missile Pod, Cryo Projector, Ember Projector, Gravity Well, Pulse Nova and Flak Battery. The drawings failed to show the attacks doing their job, especially Scatter's five-pellet shotgun spread. Laser, Arc, Rail and Mine were not included in this revision and have no implied approval.
+
+[Eight animated v2 effects](modules/projectiles/v2/README.md) were approved for import on 2026-10-10 and integrated into the main game and package as `2026.10.10-attack-vfx-27`. Editable SVG flipbooks and PNG sheets remain here; the root `attack-vfx.js` is the production renderer. Actual firing, homing, slow, burn, gravity pull and Flak interception were checked at 1920×1080, normal scale. All twelve weapons matched the pre-import combat baseline in seeded fixtures. The [earlier combat preview](../outputs/experiments/2026-10-09-attack-vfx-v2/Drift_Bastion_Playtest.html), v1 files and blank Chrome-generation history are preserved. Laser, Arc, Rail and Mine concepts remain outside this approval.

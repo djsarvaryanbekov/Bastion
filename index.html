@@ -15,7 +15,6 @@
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="training.css">
-  <link rel="stylesheet" href="module-preview.css">
   <link rel="stylesheet" href="pc-ui.css">
   <link rel="stylesheet" href="pc-workspaces.css">
 </head>
@@ -207,7 +206,12 @@
       <section id="hangarWeaponsPanel" class="hangar-panel hidden">
         <div class="hangar-section-title"><h3>Modules</h3></div>
         <div id="starterBrief" class="armory-selection" aria-label="Starting loadout"></div>
-        <div id="weaponPicker" class="weapon-picker armory-grid"></div>
+        <div class="armory-workspace">
+          <div class="armory-catalog">
+            <div id="weaponPicker" class="weapon-picker armory-grid" aria-label="Module catalog"></div>
+          </div>
+          <aside id="hangarModuleDetails" class="armory-details" aria-live="polite"></aside>
+        </div>
       </section>
       <footer class="hangar-footer"><span id="bestRun">BEST 00:00</span><span id="victoryCount">0 VICTORIES</span></footer>
     </main>
@@ -257,7 +261,6 @@
         </section>
         <aside class="build-inspector" aria-label="Selected module">
           <div id="buildSelection" class="build-selection"></div>
-          <button id="buildModulePreview" class="module-preview-trigger" aria-haspopup="dialog">See weapon in action</button>
           <div id="buildModuleDetails" class="build-module-details" aria-live="polite"></div>
         </aside>
           <section id="buildUpgradePanel" class="build-upgrade-panel hidden" aria-label="Selected module family upgrades">
@@ -327,28 +330,6 @@
     </div>
   </div>
 
-  <div id="modulePreviewDialog" class="module-preview-dialog hidden" role="dialog" aria-modal="true" aria-labelledby="modulePreviewTitle" aria-describedby="modulePreviewSummary" tabindex="-1">
-    <section class="module-preview-sheet">
-      <header class="module-preview-header">
-        <div class="module-preview-heading"><span class="module-preview-label">Mechanic preview · Base module</span><h2 id="modulePreviewTitle"></h2></div>
-        <button id="modulePreviewClose" class="module-preview-button" type="button">Close</button>
-      </header>
-      <div class="module-preview-body">
-        <canvas id="modulePreviewCanvas" class="module-preview-canvas" width="576" height="324" role="img" aria-label="Module mechanic preview"></canvas>
-        <p id="modulePreviewSummary" class="module-preview-summary"></p>
-        <ul id="modulePreviewStats" class="module-preview-stats" aria-label="Base module stats"></ul>
-      </div>
-      <footer class="module-preview-footer">
-        <p id="modulePreviewStatus" class="module-preview-status" role="status"></p>
-        <div class="module-preview-controls">
-          <button id="modulePreviewPlayPause" class="module-preview-button" type="button">Pause preview</button>
-          <button id="modulePreviewReplay" class="module-preview-button" type="button">Replay</button>
-          <div id="modulePreviewActionSlot" class="module-preview-action-slot hidden"></div>
-        </div>
-      </footer>
-    </section>
-  </div>
-
 </div>
   <script src="telemetry.js"></script>
   <script src="progression.js"></script>
@@ -358,8 +339,6 @@
   <script src="training-view.js"></script>
   <script src="training.js"></script>
   <script src="training-arena.js"></script>
-  <script src="module-preview.js"></script>
-  <script src="module-preview-panel.js"></script>
   <script src="upgrade-tree-view.js"></script>
   <script src="module-art-data.js"></script>
   <script src="module-art.js"></script>
@@ -368,6 +347,10 @@
   <script src="test-range.js"></script>
   <script src="pc-research.js"></script>
   <script src="pc-systems.js"></script>
+  <script src="combat-audio.js"></script>
+  <script src="combat-feedback.js"></script>
+  <script src="attack-vfx-data.js"></script>
+  <script src="attack-vfx.js"></script>
   <script src="game.js"></script>
   <script src="pc-build.js"></script>
   <script src="pc-ui.js"></script>

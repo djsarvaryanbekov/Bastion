@@ -20,8 +20,8 @@ const fs=require('fs'),path=require('path'),assert=require('node:assert/strict')
    assert.equal((await page.evaluate(()=>window.__driftBastion.getState())).upgrades.cannon.level,3);
    await page.locator('#catalog [data-type="cannon"]').click();await cell(1,0).click();if(profile.width<600)await cell(1,0).click();
    assert.equal((await page.evaluate(()=>window.__driftBastion.getState())).modules,3);
-   await cell(1,0).click();assert.match(await page.locator('[data-choice="twin"] b').innerText(),/60 Matter/);await page.locator('[data-choice="twin"]').click();await page.locator('[data-choice="focus"]').click();
-   const state=await page.evaluate(()=>window.__driftBastion.getState());assert.deepEqual(state.upgrades.cannon.path,['twin','focus']);assert.equal(state.matter,2000-8-12-24-69-60-108);
+   await cell(1,0).click();assert.match(await page.locator('[data-choice="twin"] b').innerText(),/90 Matter/);await page.locator('[data-choice="twin"]').click();await page.locator('[data-choice="focus"]').click();
+   const state=await page.evaluate(()=>window.__driftBastion.getState());assert.deepEqual(state.upgrades.cannon.path,['twin','focus']);assert.equal(state.matter,2000-8-18-36-87-90-162);
    await page.screenshot({path:'outputs/balance-qa/'+profile.name+'-build.png'});
    await page.locator('#catalog [data-type="shield"]').click();await cell(-1,0).click();if(profile.width<600)await cell(-1,0).click();
    await page.locator('#closeBuild').click();await page.clock.runFor(1000);assert.equal((await page.evaluate(()=>window.__driftBastion.getState())).screen,'playing');

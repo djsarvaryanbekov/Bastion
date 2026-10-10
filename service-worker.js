@@ -1,14 +1,11 @@
 "use strict";
 
-var CACHE_NAME = "drift-bastion-v28-module-art";
+var CACHE_NAME = "drift-bastion-v35-attack-vfx";
 var APP_SHELL = [
   "./",
   "./index.html",
   "./styles.css",
   "./training.css",
-  "./module-preview.css",
-  "./module-preview.js",
-  "./module-preview-panel.js",
   "./telemetry.js",
   "./progression.js",
   "./progression-view.js",
@@ -19,6 +16,10 @@ var APP_SHELL = [
   "./training-arena.js",
   "./training-view.js",
   "./game.js",
+  "./combat-audio.js",
+  "./combat-feedback.js",
+  "./attack-vfx-data.js",
+  "./attack-vfx.js",
   "./module-art-data.js",
   "./module-art.js",
   "./manifest.webmanifest",

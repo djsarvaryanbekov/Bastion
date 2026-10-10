@@ -1,0 +1,118 @@
+{
+  "version": 2,
+  "status": "approved-integrated-2026-10-10",
+  "sheets": [
+    {
+      "module": "cannon",
+      "name": "Auto Cannon hot tracer",
+      "width": 64,
+      "height": 64,
+      "frames": 4,
+      "anchor": [
+        32,
+        22
+      ],
+      "svg": "svg/cannon-effect-sheet-v2.svg",
+      "png": "png/cannon-effect-sheet-v2.png",
+      "exportScale": 2
+    },
+    {
+      "module": "scatter",
+      "name": "Scatter Array single small pellet",
+      "width": 64,
+      "height": 64,
+      "frames": 4,
+      "anchor": [
+        32,
+        23
+      ],
+      "svg": "svg/scatter-effect-sheet-v2.svg",
+      "png": "png/scatter-effect-sheet-v2.png",
+      "exportScale": 2
+    },
+    {
+      "module": "missile",
+      "name": "Missile Pod rocket and engine flicker",
+      "width": 64,
+      "height": 96,
+      "frames": 4,
+      "anchor": [
+        32,
+        38
+      ],
+      "svg": "svg/missile-effect-sheet-v2.svg",
+      "png": "png/missile-effect-sheet-v2.png",
+      "exportScale": 2
+    },
+    {
+      "module": "cryo",
+      "name": "Cryo Projector frost comet",
+      "width": 64,
+      "height": 64,
+      "frames": 6,
+      "anchor": [
+        32,
+        23
+      ],
+      "svg": "svg/cryo-effect-sheet-v2.svg",
+      "png": "png/cryo-effect-sheet-v2.png",
+      "exportScale": 2
+    },
+    {
+      "module": "ember",
+      "name": "Ember Projector moving flame packets",
+      "width": 128,
+      "height": 128,
+      "frames": 8,
+      "anchor": [
+        64,
+        120
+      ],
+      "svg": "svg/ember-effect-sheet-v2.svg",
+      "png": "png/ember-effect-sheet-v2.png",
+      "exportScale": 2
+    },
+    {
+      "module": "gravity",
+      "name": "Gravity Well inward energy wisp",
+      "width": 96,
+      "height": 96,
+      "frames": 4,
+      "anchor": [
+        48,
+        48
+      ],
+      "svg": "svg/gravity-effect-sheet-v2.svg",
+      "png": "png/gravity-effect-sheet-v2.png",
+      "exportScale": 2
+    },
+    {
+      "module": "pulse",
+      "name": "Pulse Nova energy edge",
+      "width": 256,
+      "height": 256,
+      "frames": 6,
+      "anchor": [
+        128,
+        128
+      ],
+      "svg": "svg/pulse-effect-sheet-v2.svg",
+      "png": "png/pulse-effect-sheet-v2.png",
+      "exportScale": 2
+    },
+    {
+      "module": "flak",
+      "name": "Flak Battery detonation flipbook",
+      "width": 128,
+      "height": 128,
+      "frames": 8,
+      "anchor": [
+        64,
+        64
+      ],
+      "svg": "svg/flak-effect-sheet-v2.svg",
+      "png": "png/flak-effect-sheet-v2.png",
+      "exportScale": 2
+    }
+  ]
+}

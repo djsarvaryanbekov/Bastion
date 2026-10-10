@@ -34,7 +34,7 @@ assert.equal(left.shield + right.shield, 0);
 assert.equal(core.hp, core.maxHp, "Overlapping local fields absorb their own remaining charges before hull damage");
 assert.equal(remote.shieldDelay, 0, "Damage outside a field cannot interrupt it");
 game.updateShields(1);
-assert.equal(remote.shield, 14, "A distant node recovers independently while the core fields are under attack");
+assert.equal(remote.shield, 13, "A distant node recovers independently while the core fields are under attack");
 for (let second = 0; second < 12; second++) {
   game.applyDamageToTile("0,0", 1);
   game.updateShields(1);
@@ -44,8 +44,8 @@ assert.equal(core.hp, core.maxHp - 12, "An empty field cannot secretly absorb on
 game.updateShields(5);
 assert.equal(left.shield + right.shield, 0, "Six complete quiet seconds are required, including the last second above");
 game.updateShields(1);
-assert.equal(left.shield, 4); assert.equal(right.shield, 4);
-game.updateShields(14);
+assert.equal(left.shield, 3); assert.equal(right.shield, 3);
+game.updateShields(19);
 assert.equal(left.shield, 60); assert.equal(right.shield, 60);
 assert.equal(remote.shield, 60, "Charge is capped separately for every generator");
 for (const invalid of [0, -1, NaN, Infinity]) game.applyDamageToTile("0,0", invalid);

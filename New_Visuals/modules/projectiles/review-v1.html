@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bastion — projectile artwork</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #09151f; color: #dbeaf0; font: 16px system-ui, sans-serif; }
+  header { height: 64px; padding: 20px 32px; display: flex; align-items: center; gap: 20px; }
+  h1 { font-size: 20px; font-weight: 600; margin: 0; }
+  header span { color: #879fae; font-size: 14px; }
+  main { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; padding: 0 32px 24px; }
+  article { min-width: 0; height: 314px; border: 1px solid #293d4b; border-radius: 8px; background: #10212d; overflow: hidden; }
+  .stage { height: 262px; display: flex; align-items: center; justify-content: space-evenly; background: radial-gradient(ellipse, #172d3b, #0d1c29); }
+  .module { width: 88px; height: 88px; object-fit: contain; opacity: .9; }
+  .attack { width: auto; height: 156px; max-width: 220px; object-fit: contain; }
+  .beam { height: 226px; }
+  .field { height: 220px; }
+  footer { display: flex; justify-content: space-between; padding: 14px 18px; font-size: 15px; }
+  a { color: #9ae5ee; text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .exports { display: flex; gap: 12px; font-size: 13px; }
+</style>
+<header><h1>Bastion · Projectile artwork</h1><span>Drawn v1 · review candidates</span></header>
+<main id="gallery"></main>
+<script>
+  // Inline catalog keeps this review page usable by opening it directly from disk.
+  const assets = [
+    ['Auto Cannon','auto-cannon-v2.png','auto-cannon-round-v1',''],
+    ['Piercing Laser','piercing-laser-v2.png','piercing-laser-beam-v1','beam'],
+    ['Missile Pod','missile-pod-v5.png','homing-missile-v1',''],
+    ['Scatter Array','scatter-array-v28.png','scatter-pellet-v1',''],
+    ['Arc Emitter','arc-emitter-v16.png','arc-lightning-segment-v1','beam'],
+    ['Rail Lance','rail-lance-v1.png','rail-slug-v1','beam'],
+    ['Flak Battery','flak-battery-v6.png','flak-airburst-v1',''],
+    ['Pulse Nova','pulse-nova-v1.png','pulse-nova-wave-v1','field'],
+    ['Cryo Projector','cryo-projector-v1.png','cryo-bolt-v1',''],
+    ['Mine Layer','mine-layer-v1.png','proximity-mine-v1',''],
+    ['Ember Projector','ember-projector-v1.png','ember-flame-cone-v1',''],
+    ['Gravity Well','gravity-well-v1.png','gravity-well-field-v1','field'],
+  ];
+  const gallery = document.getElementById('gallery');
+  for (const [name, reference, slug, kind] of assets) {
+    const card = document.createElement('article');
+    const stage = document.createElement('div');
+    stage.className = 'stage';
+    for (const [src, label, className] of [
+      [`../${reference}`, `${name} module reference`, 'module'],
+      [`png/${slug}.png`, `${name} attack`, `attack ${kind}`],
+    ]) {
+      const img = document.createElement('img');
+      Object.assign(img, { src, alt: label, className });
+      stage.append(img);
+    }
+    const footer = document.createElement('footer');
+    const label = document.createElement('span');
+    label.textContent = name;
+    const exports = document.createElement('span');
+    exports.className = 'exports';
+    for (const type of ['svg','png']) {
+      const link = document.createElement('a');
+      link.href = `${type}/${slug}.${type}`;
+      link.textContent = type.toUpperCase();
+      exports.append(link);
+    }
+    footer.append(label, exports);
+    card.append(stage, footer);
+    gallery.append(card);
+  }
+</script>
+</html>

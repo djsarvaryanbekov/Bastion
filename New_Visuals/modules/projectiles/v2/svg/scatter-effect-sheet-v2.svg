@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="64" viewBox="0 0 256 64"><title>Scatter Array single small pellet</title><desc>Horizontal editable flipbook. 4 frames, each 64 by 64. Runtime supplies movement, scale and timing.</desc><defs>
+  <radialGradient id="cyan"><stop stop-color="#edffff"/><stop offset=".25" stop-color="#9ef4ff" stop-opacity=".65"/><stop offset="1" stop-color="#65e8ff" stop-opacity="0"/></radialGradient>
+  <radialGradient id="ice"><stop stop-color="#f4fdff" stop-opacity=".9"/><stop offset=".4" stop-color="#a8e1ff" stop-opacity=".4"/><stop offset="1" stop-color="#8ac7ff" stop-opacity="0"/></radialGradient>
+  <radialGradient id="warm"><stop stop-color="#fff6d7"/><stop offset=".25" stop-color="#ffd494" stop-opacity=".8"/><stop offset="1" stop-color="#ffa86d" stop-opacity="0"/></radialGradient>
+  <radialGradient id="violet"><stop stop-color="#eee1ff" stop-opacity=".8"/><stop offset=".35" stop-color="#c8a2ff" stop-opacity=".3"/><stop offset="1" stop-color="#b187ee" stop-opacity="0"/></radialGradient>
+  <linearGradient id="trail" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#b6f8ff" stop-opacity=".65"/><stop offset="1" stop-color="#65e8ff" stop-opacity="0"/></linearGradient>
+  <linearGradient id="fire" x1="0" y1="1" x2="0" y2="0"><stop stop-color="#fff0b9" stop-opacity=".8"/><stop offset=".28" stop-color="#ffb96f" stop-opacity=".65"/><stop offset=".75" stop-color="#ff8050" stop-opacity=".3"/><stop offset="1" stop-color="#e85e47" stop-opacity="0"/></linearGradient>
+  <radialGradient id="fire-packet"><stop stop-color="#fff4bd" stop-opacity=".95"/><stop offset=".25" stop-color="#ffd580" stop-opacity=".85"/><stop offset=".55" stop-color="#ff8f49" stop-opacity=".65"/><stop offset=".8" stop-color="#ff623e" stop-opacity=".35"/><stop offset="1" stop-color="#ff623e" stop-opacity="0"/></radialGradient>
+</defs><g id="frame-0" transform="translate(0 0)">
+  <ellipse cx="32" cy="25" rx="13" ry="16" fill="url(#warm)" opacity=".3"/>
+  <path d="M27 27H37L34 46H30Z" fill="#ffc896" opacity=".3"/>
+  <ellipse cx="32" cy="23" rx="7" ry="8" fill="#fff2d6"/>
+  <ellipse cx="32" cy="21" rx="4" ry="5" fill="#fffdf5"/></g><g id="frame-1" transform="translate(64 0)">
+  <ellipse cx="32" cy="25" rx="13" ry="16" fill="url(#warm)" opacity=".3"/>
+  <path d="M27 27H37L34 48H30Z" fill="#ffc896" opacity=".3"/>
+  <ellipse cx="32" cy="23" rx="7" ry="8" fill="#fff2d6"/>
+  <ellipse cx="32" cy="21" rx="4" ry="5" fill="#fffdf5"/></g><g id="frame-2" transform="translate(128 0)">
+  <ellipse cx="32" cy="25" rx="13" ry="16" fill="url(#warm)" opacity=".3"/>
+  <path d="M27 27H37L34 50H30Z" fill="#ffc896" opacity=".3"/>
+  <ellipse cx="32" cy="23" rx="7" ry="8" fill="#fff2d6"/>
+  <ellipse cx="32" cy="21" rx="4" ry="5" fill="#fffdf5"/></g><g id="frame-3" transform="translate(192 0)">
+  <ellipse cx="32" cy="25" rx="13" ry="16" fill="url(#warm)" opacity=".3"/>
+  <path d="M27 27H37L34 52H30Z" fill="#ffc896" opacity=".3"/>
+  <ellipse cx="32" cy="23" rx="7" ry="8" fill="#fff2d6"/>
+  <ellipse cx="32" cy="21" rx="4" ry="5" fill="#fffdf5"/></g></svg>

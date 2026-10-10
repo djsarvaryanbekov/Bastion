@@ -1,0 +1,331 @@
+{
+  "createdOn": "2026-10-09",
+  "route": "hand-authored-svg-exported-with-inkscape",
+  "status": "eight-static-designs-rejected-moving-v2-review-available",
+  "exportScale": 4,
+  "renderer": "Inkscape 1.4.2 (f4327f4, 2025-05-13)",
+  "notes": "SVG paths, gradients and groups remain editable in Inkscape. PNGs have genuine transparency. Preview sizes are art evaluation suggestions, not runtime or balance changes. Existing gameplay owns movement, chaining, expansion, timing and hit areas.",
+  "assets": [
+    {
+      "module": "cannon",
+      "name": "Auto Cannon",
+      "svg": "svg/auto-cannon-round-v1.svg",
+      "png": "png/auto-cannon-round-v1.png",
+      "reference": "New_Visuals/modules/auto-cannon-v2.png",
+      "referenceSha256": "1413b0a009cf2c2c3e6853f8cae3a4fb0fe7f0a16c5a53b8a6146fb804b211e5",
+      "behavior": "Reliable kinetic fire at the nearest visible target.",
+      "viewBox": [
+        0,
+        0,
+        64,
+        128
+      ],
+      "anchor": [
+        32,
+        43
+      ],
+      "previewDrawSize": [
+        12,
+        24
+      ],
+      "orientation": "upward",
+      "status": "rejected-static-v1",
+      "revision": "v2/review-manifest.json"
+    },
+    {
+      "module": "laser",
+      "name": "Piercing Laser",
+      "svg": "svg/piercing-laser-beam-v1.svg",
+      "png": "png/piercing-laser-beam-v1.png",
+      "reference": "New_Visuals/modules/piercing-laser-v2.png",
+      "referenceSha256": "d33f33b9e0c6398c306a4487c8f2e87fcc404b360194553652f618119aced4b7",
+      "behavior": "Fixed-length beam. Every enemy on the line takes damage.",
+      "viewBox": [
+        0,
+        0,
+        64,
+        256
+      ],
+      "anchor": [
+        32,
+        128
+      ],
+      "previewDrawSize": [
+        16,
+        256
+      ],
+      "orientation": "upward",
+      "status": "unapproved-v1-outside-latest-revision"
+    },
+    {
+      "module": "missile",
+      "name": "Missile Pod",
+      "svg": "svg/homing-missile-v1.svg",
+      "png": "png/homing-missile-v1.png",
+      "reference": "New_Visuals/modules/missile-pod-v5.png",
+      "referenceSha256": "d7d47e449a2497bbc88394b09580a9a53971c0600f7c105f10d788b4c1195ec1",
+      "behavior": "Slow homing projectile with a small blast radius.",
+      "viewBox": [
+        0,
+        0,
+        64,
+        128
+      ],
+      "anchor": [
+        32,
+        46
+      ],
+      "previewDrawSize": [
+        16,
+        32
+      ],
+      "orientation": "upward",
+      "status": "rejected-static-v1",
+      "revision": "v2/review-manifest.json"
+    },
+    {
+      "module": "scatter",
+      "name": "Scatter Array",
+      "svg": "svg/scatter-pellet-v1.svg",
+      "png": "png/scatter-pellet-v1.png",
+      "reference": "New_Visuals/modules/scatter-array-v28.png",
+      "referenceSha256": "76789753087c91a800b7005e06040cb281560c02eb62353577f541ad8afb375f",
+      "behavior": "Five-shot cone. Brutal up close, weak at long range.",
+      "viewBox": [
+        0,
+        0,
+        64,
+        96
+      ],
+      "anchor": [
+        32,
+        35
+      ],
+      "previewDrawSize": [
+        12,
+        18
+      ],
+      "orientation": "upward",
+      "status": "rejected-static-v1",
+      "revision": "v2/review-manifest.json"
+    },
+    {
+      "module": "arc",
+      "name": "Arc Emitter",
+      "svg": "svg/arc-lightning-segment-v1.svg",
+      "png": "png/arc-lightning-segment-v1.png",
+      "reference": "New_Visuals/modules/arc-emitter-v16.png",
+      "referenceSha256": "e409e1868f1567963e62cecc0c51e7dc95a19799518da209e7c576a856141a06",
+      "behavior": "Lightning jumps through clustered enemies with falloff.",
+      "viewBox": [
+        0,
+        0,
+        128,
+        256
+      ],
+      "anchor": [
+        64,
+        128
+      ],
+      "previewDrawSize": [
+        32,
+        128
+      ],
+      "orientation": "upward",
+      "status": "unapproved-v1-outside-latest-revision",
+      "endpoints": [
+        [
+          64,
+          16
+        ],
+        [
+          64,
+          240
+        ]
+      ]
+    },
+    {
+      "module": "rail",
+      "name": "Rail Lance",
+      "svg": "svg/rail-slug-v1.svg",
+      "png": "png/rail-slug-v1.png",
+      "reference": "New_Visuals/modules/rail-lance-v1.png",
+      "referenceSha256": "19af22e8ff6eab2aa2f977b7f086332a1c8fdfc0871e062d772c5f979db1ff59",
+      "behavior": "High-speed piercing slug. Heavy damage and knockback.",
+      "viewBox": [
+        0,
+        0,
+        64,
+        192
+      ],
+      "anchor": [
+        32,
+        32
+      ],
+      "previewDrawSize": [
+        16,
+        48
+      ],
+      "orientation": "upward",
+      "status": "unapproved-v1-outside-latest-revision"
+    },
+    {
+      "module": "flak",
+      "name": "Flak Battery",
+      "svg": "svg/flak-airburst-v1.svg",
+      "png": "png/flak-airburst-v1.png",
+      "reference": "New_Visuals/modules/flak-battery-v6.png",
+      "referenceSha256": "fbf44630db43b54ee0b9978f0d81b252cf75d77ce5021e67087334e574a435d2",
+      "behavior": "Wide anti-projectile airburst. Clears hostile shots, but deals very low damage to enemies.",
+      "viewBox": [
+        0,
+        0,
+        128,
+        128
+      ],
+      "anchor": [
+        64,
+        64
+      ],
+      "previewDrawSize": [
+        64,
+        64
+      ],
+      "orientation": "radial",
+      "status": "rejected-static-v1",
+      "revision": "v2/review-manifest.json"
+    },
+    {
+      "module": "pulse",
+      "name": "Pulse Nova",
+      "svg": "svg/pulse-nova-wave-v1.svg",
+      "png": "png/pulse-nova-wave-v1.png",
+      "reference": "New_Visuals/modules/pulse-nova-v1.png",
+      "referenceSha256": "40e67a6775bff75d0ab88dac9b0c60522cd436662baa7175b1ac6a9d2362b074",
+      "behavior": "Radial shockwave. Hits every nearby enemy at once.",
+      "viewBox": [
+        0,
+        0,
+        256,
+        256
+      ],
+      "anchor": [
+        128,
+        128
+      ],
+      "previewDrawSize": [
+        256,
+        256
+      ],
+      "orientation": "radial",
+      "status": "rejected-static-v1",
+      "boundaryRadius": 104,
+      "revision": "v2/review-manifest.json"
+    },
+    {
+      "module": "cryo",
+      "name": "Cryo Projector",
+      "svg": "svg/cryo-bolt-v1.svg",
+      "png": "png/cryo-bolt-v1.png",
+      "reference": "New_Visuals/modules/cryo-projector-v1.png",
+      "referenceSha256": "bcec4f3b703b6ddfb31c77213d65641f0dc515082573ef7fadfd7a2ed707d641",
+      "behavior": "Freezing bolt halves enemy speed for two seconds.",
+      "viewBox": [
+        0,
+        0,
+        64,
+        128
+      ],
+      "anchor": [
+        32,
+        41
+      ],
+      "previewDrawSize": [
+        14,
+        28
+      ],
+      "orientation": "upward",
+      "status": "rejected-static-v1",
+      "revision": "v2/review-manifest.json"
+    },
+    {
+      "module": "mine",
+      "name": "Mine Layer",
+      "svg": "svg/proximity-mine-v1.svg",
+      "png": "png/proximity-mine-v1.png",
+      "reference": "New_Visuals/modules/mine-layer-v1.png",
+      "referenceSha256": "e2209e5cc15325f85de2a7ac882c56b3163da37f390af819579ec78a3fb91cb3",
+      "behavior": "Deploys proximity mines into approaching lanes.",
+      "viewBox": [
+        0,
+        0,
+        96,
+        96
+      ],
+      "anchor": [
+        48,
+        48
+      ],
+      "previewDrawSize": [
+        28,
+        28
+      ],
+      "orientation": "radial",
+      "status": "unapproved-v1-outside-latest-revision"
+    },
+    {
+      "module": "ember",
+      "name": "Ember Projector",
+      "svg": "svg/ember-flame-cone-v1.svg",
+      "png": "png/ember-flame-cone-v1.png",
+      "reference": "New_Visuals/modules/ember-projector-v1.png",
+      "referenceSha256": "250454e5950f5d7b7fb9c4b01825d12aab47eaea64a7a0e4a96f3d34a9804afc",
+      "behavior": "Hits a short cone and burns for 2.5s. Repeated flames refresh the burn.",
+      "viewBox": [
+        0,
+        0,
+        128,
+        192
+      ],
+      "anchor": [
+        64,
+        174
+      ],
+      "previewDrawSize": [
+        128,
+        192
+      ],
+      "orientation": "upward",
+      "status": "rejected-static-v1",
+      "revision": "v2/review-manifest.json"
+    },
+    {
+      "module": "gravity",
+      "name": "Gravity Well",
+      "svg": "svg/gravity-well-field-v1.svg",
+      "png": "png/gravity-well-field-v1.png",
+      "reference": "New_Visuals/modules/gravity-well-v1.png",
+      "referenceSha256": "5d4e3409c9090fe64889a605b8107a8eb664a08458b3bba9637528a0ad48d225",
+      "behavior": "Places a 2s field at a target. Pulls enemies together; bosses resist the pull.",
+      "viewBox": [
+        0,
+        0,
+        256,
+        256
+      ],
+      "anchor": [
+        128,
+        128
+      ],
+      "previewDrawSize": [
+        256,
+        256
+      ],
+      "orientation": "radial",
+      "status": "rejected-static-v1",
+      "boundaryRadius": 104,
+      "revision": "v2/review-manifest.json"
+    }
+  ],
+  "latestReview": "v2/README.md"
+}

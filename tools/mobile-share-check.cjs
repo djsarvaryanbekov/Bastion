@@ -1,0 +1,117 @@
+"use strict";
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
+const vm = require("node:vm");
+const crypto = require("node:crypto");
+const { pathToFileURL } = require("node:url");
+const { chromium } = require("playwright");
+const root = path.resolve(__dirname, "..");
+const file = path.join(root, "outputs/Drift_Bastion_Mobile.html");
+const captures = path.join(root, "outputs/qa/mobile-share");
+const html = fs.readFileSync(file, "utf8");
+for (const script of html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)) new vm.Script(script[1]);
+assert.ok(!/<script[^>]+src=|<link[^>]+href="(?!data:)/i.test(html), "No external scripts or styles");
+assert.ok(!html.includes('"drift-bastion-save-v2"') && !html.includes('"drift-bastion-playtest-v1"'), "Isolated storage");
+fs.mkdirSync(captures, { recursive: true });
+const report = { passed: false, captures: [], checks: [], errors: [] };
+
+(async function () {
+  const browser = await chromium.launch({ headless: true });
+  try {
+    for (const size of [{ width:390, height:844 }, { width:844, height:390 }]) {
+      const context = await browser.newContext({ viewport:size, isMobile:true, hasTouch:true, offline:true });
+      const page = await context.newPage();
+      page.on("pageerror", error => report.errors.push(error.message));
+      await page.addInitScript(() => {
+        localStorage.setItem("drift-bastion-save-v2", "pc-profile-sentinel");
+        window.fullscreenRequests = 0;
+        Element.prototype.requestFullscreen = function () { window.fullscreenRequests++; return Promise.reject(new Error("Embedded viewer blocks fullscreen")); };
+      });
+      await page.clock.install();
+      await page.goto(pathToFileURL(file).href, { waitUntil:"load" });
+      await page.waitForFunction(() => window.DriftPCGame && !document.body.classList.contains("pc-ui-pending"));
+      const box = await page.locator("#pcViewport").boundingBox();
+      assert.equal(Math.round(box.width), size.width);
+      assert.equal(Math.round(box.height), size.height);
+      assert.equal(await page.locator("#mobileControls").evaluate(el => getComputedStyle(el).display), "block");
+      async function capture(name) {
+        await page.clock.runFor(300);
+        const output = name + "-" + size.width + "x" + size.height + ".png";
+        await page.screenshot({ path:path.join(captures, output) });
+        report.captures.push(output);
+        assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false);
+      }
+      await capture("menu");
+      await page.locator("#startButton").tap();
+      assert.equal(await page.evaluate(() => fullscreenRequests), 1, "Fullscreen attempted on first real tap");
+      assert.equal(await page.evaluate(() => __driftBastion.getState().screen), "playing", "Fullscreen rejection never blocks play");
+      const cdp = await context.newCDPSession(page);
+      const target = { x:Math.round(size.width * .8), y:Math.round(size.height * .42), id:1 };
+      await cdp.send("Input.dispatchTouchEvent", { type:"touchStart", touchPoints:[target] });
+      assert.equal(await page.evaluate(() => DriftPCGame.presentation().inputActive), true);
+      assert.equal(await page.evaluate(() => __driftBastion.getState().mobileInput.active), false, "No relative joystick");
+      const initial = await page.evaluate(() => __driftBastion.getState().ship);
+      await page.clock.runFor(500);
+      const moving = await page.evaluate(() => __driftBastion.getState().ship);
+      assert.ok(moving.x > initial.x && moving.angle > initial.angle, "Finger target drives shared turn and thrust");
+      await cdp.send("Input.dispatchTouchEvent", { type:"touchStart", touchPoints:[target, { x:40, y:100, id:2 }] });
+      assert.equal(await page.evaluate(() => DriftPCGame.presentation().inputActive), true, "Second finger cannot steal control");
+      await cdp.send("Input.dispatchTouchEvent", { type:"touchEnd", touchPoints:[] });
+      assert.equal(await page.evaluate(() => DriftPCGame.presentation().inputActive), false);
+      const released = await page.evaluate(() => __driftBastion.getState().ship);
+      assert.ok(Math.hypot(released.vx, released.vy) > 0, "Release preserves momentum");
+      await page.clock.runFor(200);
+      const coasting = await page.evaluate(() => __driftBastion.getState().ship);
+      assert.ok(Math.hypot(coasting.vx, coasting.vy) < Math.hypot(released.vx, released.vy), "Shared coast deceleration");
+      await capture("combat");
+      await page.locator("#mobileBuildButton").tap();
+      await page.locator("#catalog .catalog-card").first().waitFor();
+      assert.equal(await page.evaluate(() => DriftPCGame.presentation().inputActive), false);
+      await capture("build");
+      await page.locator("#pcUpgradesTab").tap();
+      await capture("upgrades");
+      await page.locator("#closeBuild").tap();
+      await page.locator("#mobilePauseButton").tap();
+      await page.locator("#pauseHangarButton").tap();
+      await page.locator("#hangarButton").tap();
+      await page.locator("#hangarWeaponTab").tap();
+      await capture("hangar");
+      assert.ok(await page.locator("#weaponPicker").evaluate(el => el.scrollHeight > el.clientHeight && getComputedStyle(el).overflowY === "auto"), "Module catalog scrolls");
+      assert.ok(await page.locator(".armory-details").evaluate(el => el.scrollHeight <= el.clientHeight + 2), "Inspector fits");
+      await page.locator("#pcCoresTab").tap();
+      await capture("cores");
+      await page.locator("#closeHangar").tap();
+      await page.locator("#pcRangeMenu").tap();
+      await page.clock.runFor(300);
+      await page.locator(".mobile-range-toggle").tap();
+      await capture("range");
+      await page.locator("#pcRangeScenario").selectOption("boss");
+      await page.locator("#pcRangeExit").tap();
+      assert.equal(await page.evaluate(() => localStorage.getItem("drift-bastion-save-v2")), "pc-profile-sentinel");
+      report.checks.push(size.width + "x" + size.height + ": offline menus, touch steering/coast, multitouch, Build/upgrades, Hangar/Cores, fullscreen fallback, isolated profile");
+      await context.close();
+    }
+    const fullscreenContext = await browser.newContext({ viewport:{ width:390, height:844 }, isMobile:true, hasTouch:true });
+    const fullscreenPage = await fullscreenContext.newPage();
+    await fullscreenPage.goto(pathToFileURL(file).href);
+    await fullscreenPage.locator("#pcFullscreen").tap();
+    await fullscreenPage.waitForFunction(() => !!document.fullscreenElement);
+    await fullscreenPage.evaluate(() => document.exitFullscreen());
+    await fullscreenPage.waitForFunction(() => !document.fullscreenElement);
+    await fullscreenPage.locator("#pcFullscreen").tap();
+    await fullscreenPage.waitForFunction(() => !!document.fullscreenElement);
+    report.checks.push("Chromium: actual fullscreen entry, exit, re-entry");
+    await fullscreenContext.close();
+    assert.deepEqual(report.errors, []);
+    const pc = fs.readFileSync(path.join(root, "outputs/Drift_Bastion_Playtest.html"));
+    const backup = fs.readFileSync(path.join(root, "outputs/experiments/2026-10-02-mobile-share/Drift_Bastion_PC_backup.html"));
+    assert.ok(pc.equals(backup), "PC canonical unchanged");
+    report.sha256 = crypto.createHash("sha256").update(html).digest("hex");
+    report.passed = true;
+    console.log(JSON.stringify(report, null, 2));
+  } finally {
+    fs.writeFileSync(path.join(captures, "report.json"), JSON.stringify(report, null, 2));
+    await browser.close();
+  }
+})().catch(error => { console.error(error); process.exitCode = 1; });

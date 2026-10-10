@@ -1,0 +1,43 @@
+/* Mobile review export only; the PC game keeps its original workspace. */
+.mobile-range-toggle { display:none; }
+@media (hover:none) and (pointer:coarse), (max-width:760px) {
+  .mobile-share .pc-fullscreen { display:block!important; right:12px; bottom:calc(10px + env(safe-area-inset-bottom)); min-height:40px; padding:8px 12px; font-size:12px; z-index:100; }
+  .mobile-share .pc-fullscreen.hidden { display:none!important; }
+  .mobile-share .start-screen { padding-bottom:calc(64px + env(safe-area-inset-bottom)); }
+  .mobile-share .mobile-move-zone { display:none!important; }
+  .mobile-share .health-shell { position:absolute; bottom:calc(20px + env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%); width:min(240px,calc(100% - 184px)); min-width:0; }
+  .mobile-share #controlHint { bottom:calc(64px + env(safe-area-inset-bottom)); left:12px; right:94px; }
+  .mobile-share .mobile-range-toggle:not(.hidden) { display:block; position:absolute; left:12px; top:calc(54px + env(safe-area-inset-top)); z-index:72; min-height:40px; padding:8px 12px; font-size:12px; }
+  .mobile-share .pc-range-panel { top:calc(100px + env(safe-area-inset-top)); bottom:calc(96px + env(safe-area-inset-bottom)); right:12px; width:min(360px,calc(100% - 24px)); padding:14px; }
+  .mobile-share .pc-range-panel.mobile-range-collapsed { display:none; }
+  .mobile-share .pc-tree-open #catalog,.mobile-share .pc-tree-open #pcCatalogSearch,.mobile-share .pc-tree-open #pcCatalogEmpty { display:none!important; }
+  .mobile-share .armory-workspace { flex:1; display:grid; grid-template-columns:1fr; grid-template-rows:minmax(0,1fr) auto; gap:10px; overflow:hidden; }
+  .mobile-share #weaponPicker { overflow-y:auto!important; overflow-x:hidden!important; min-height:0; }
+  .mobile-share #weaponPicker .pick-button { min-height:124px; }
+  .mobile-share .armory-details { display:grid; grid-template-columns:48px minmax(0,1fr); gap:4px 8px; padding:8px 0 calc(8px + env(safe-area-inset-bottom)); border-left:0; border-top:1px solid var(--line); overflow:hidden; }
+  .mobile-share .armory-detail-art { width:48px; height:48px; grid-row:1/3; }
+  .mobile-share .armory-details>.eyebrow { grid-column:2; margin:0; font-size:9px; align-self:end; }
+  .mobile-share .armory-details>h3 { grid-column:2; font-size:18px; }
+  .mobile-share .armory-detail-description { grid-column:1/-1; font-size:12px; line-height:1.4; }
+  .mobile-share .armory-detail-status { grid-column:1/-1; font-size:12px; padding:3px 0; }
+  .mobile-share .armory-detail-actions { grid-column:1/-1; display:flex; gap:6px; margin:0; }
+  .mobile-share .armory-detail-action { min-height:44px; padding:6px; font-size:12px; }
+}
+@media (hover:none) and (pointer:coarse) and (orientation:landscape), (max-width:760px) and (orientation:landscape) {
+  .mobile-share .build-panel:not(.pc-tree-open) .build-content { grid-template-columns:120px minmax(0,1fr) 180px!important; grid-template-rows:minmax(0,1fr)!important; }
+  .mobile-share .build-panel:not(.pc-tree-open) .catalog-wrap { grid-column:1!important; grid-row:1!important; border-top:0!important; border-right:1px solid var(--line); }
+  .mobile-share .build-panel:not(.pc-tree-open) #catalog { flex-direction:column!important; overflow-y:auto!important; overflow-x:hidden!important; height:100%; }
+  .mobile-share .build-panel:not(.pc-tree-open) .build-stage { grid-column:2!important; grid-row:1!important; display:flex; flex-direction:column; }
+  .mobile-share .build-panel:not(.pc-tree-open) .pc-build-guide { position:static; flex-shrink:0; margin:7px!important; }
+  .mobile-share .build-panel:not(.pc-tree-open) .build-inspector { grid-column:3!important; grid-row:1!important; max-height:none!important; border-top:0!important; border-left:1px solid var(--line); }
+  .mobile-share .pc-range-panel { top:60px; bottom:12px; width:280px; }
+  .mobile-share .armory-workspace { grid-template-columns:minmax(0,1fr) minmax(210px,34%); grid-template-rows:minmax(0,1fr); }
+  .mobile-share .armory-details { align-content:start; border-top:0; border-left:1px solid var(--line); padding:0 0 0 10px; }
+  .mobile-share .armory-detail-actions { flex-direction:column; }
+  .mobile-share .start-screen { padding-top:52px; padding-bottom:12px; justify-content:flex-start; }
+  .mobile-share .start-title h1 { font-size:24px; }
+  .mobile-share .start-title h1 br { display:none; }
+  .mobile-share .start-actions { grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .mobile-share .play-button { grid-column:1/-1; }
+  .mobile-share #pcRangeMenu { grid-column:auto; }
+}

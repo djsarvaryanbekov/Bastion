@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="192" viewBox="0 0 64 192">
+  <title>Rail Lance — hypervelocity slug</title>
+  <desc>Upward narrow pale dart with a long magenta wake. No missile fins or exhaust.</desc>
+  <defs>
+    <linearGradient id="wake" x1="0" y1="43" x2="0" y2="182" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ffb8ed"/><stop offset=".35" stop-color="#ff8ee8" stop-opacity=".7"/><stop offset="1" stop-color="#e460c4" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="core" x1="0" y1="42" x2="0" y2="155" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fff"/><stop offset=".5" stop-color="#ffe7fb" stop-opacity=".9"/><stop offset="1" stop-color="#ffd9f4" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <g id="magnetic-wake"><path d="M22 39H42L35 182H29Z" fill="url(#wake)"/><path d="M29 40H35L33 155H31Z" fill="url(#core)"/></g>
+  <g id="slug"><path d="M32 13 38 32 36 48H28L26 32Z" fill="#c2d1dc" stroke="#343b4c" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M32 18 33 44H30L29 32Z" fill="#fff4ff"/>
+    <path d="M28 45H36" stroke="#ffb5f0" stroke-width="3"/>
+  </g>
+</svg>

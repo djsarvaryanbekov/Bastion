@@ -23,6 +23,8 @@ function createClassList() {
 function createElement(id) {
   return {
     id,
+    clientWidth: 1920,
+    clientHeight: 1080,
     classList: createClassList(),
     style: { setProperty(name, value) { this[name] = value; } },
     dataset: {},
@@ -34,6 +36,15 @@ function createElement(id) {
     children: [],
     listeners: {},
     appendChild(child) { this.children.push(child); return child; },
+    querySelectorAll(selector) {
+      const descendants = this.children.flatMap(child => [child, ...child.querySelectorAll("*")]);
+      if (selector === "*") return descendants;
+      if (selector.startsWith(".")) return descendants.filter(child =>
+        String(child.className || "").split(/\s+/).includes(selector.slice(1)) || child.classList.contains(selector.slice(1)));
+      if (selector.startsWith("#")) return descendants.filter(child => child.id === selector.slice(1));
+      return [];
+    },
+    querySelector(selector) { return this.querySelectorAll(selector)[0] || null; },
     click() { downloadClicks += 1; },
     remove() {},
     addEventListener(type, callback) { this.listeners[type] = callback; },
@@ -80,8 +91,8 @@ const storage = new Map();
 const sandbox = {
   console,
   document: documentMock,
-  innerWidth: 1280,
-  innerHeight: 720,
+  innerWidth: 1920,
+  innerHeight: 1080,
   location: { search: process.env.BALANCE_SECONDS ? "" : "?debug=1" },
   navigator: { userAgent: "Drift Bastion Runtime Check", language: "en", maxTouchPoints: 0, hardwareConcurrency: 4 },
   localStorage: {
@@ -120,6 +131,8 @@ vm.runInNewContext(fs.readFileSync("run-upgrades.js", "utf8"), sandbox, { filena
 vm.runInNewContext(fs.readFileSync("campaign.js", "utf8"), sandbox, { filename: "campaign.js" });
 vm.runInNewContext(fs.readFileSync("upgrade-tree-view.js", "utf8"), sandbox, { filename: "upgrade-tree-view.js" });
 vm.runInNewContext(fs.readFileSync("test-range.js", "utf8"), sandbox, { filename: "test-range.js" });
+vm.runInNewContext(fs.readFileSync("combat-audio.js", "utf8"), sandbox, { filename: "combat-audio.js" });
+vm.runInNewContext(fs.readFileSync("combat-feedback.js", "utf8"), sandbox, { filename: "combat-feedback.js" });
 vm.runInNewContext(fs.readFileSync("game.js", "utf8"), sandbox, { filename: "game.js" });
 if (!sandbox.window.__driftBastion || typeof sandbox.frameCallback !== "function") {
   throw new Error("Game did not initialize its public state and animation loop.");

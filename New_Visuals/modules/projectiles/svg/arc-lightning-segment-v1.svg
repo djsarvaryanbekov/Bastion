@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="256" viewBox="0 0 128 256">
+  <title>Arc Emitter — lightning segment</title>
+  <desc>One connected mint lightning segment between two targets. Endpoints are centered at x64, y16 and y240.</desc>
+  <defs>
+    <linearGradient id="mint" x1="0" y1="16" x2="0" y2="240" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#b7ffe3"/><stop offset=".5" stop-color="#67f8be"/><stop offset="1" stop-color="#b7ffe3"/>
+    </linearGradient>
+  </defs>
+  <g id="lightning" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M64 16 49 65 82 58 42 134 84 118 57 187 77 181 64 240" stroke="#4ce5ac" stroke-width="19" opacity=".12"/>
+    <path d="M64 16 49 65 82 58 42 134 84 118 57 187 77 181 64 240" stroke="url(#mint)" stroke-width="10"/>
+    <path d="M64 16 49 65 82 58 42 134 84 118 57 187 77 181 64 240" stroke="#effff7" stroke-width="4"/>
+  </g>
+</svg>

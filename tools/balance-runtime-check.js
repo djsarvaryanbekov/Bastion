@@ -1,7 +1,8 @@
 'use strict';
 const {assert,Game,makeTile,save,MODULES,ENEMY_DEFS,metaCost,U,game,enemy,upgrades,tile}=require('./balance-fixture');
 let g=game();assert.equal(g.nextBossAt,180);g.elapsed=600;g.bossesDefeated=3;g.checkSurvival();assert.equal(g.state,'playing');assert.equal(g.finished,false);
-const ordinary=[];for(const time of [0,600,1200,3600]){g.elapsed=time;ordinary.push(g.spawnEnemy('raptor',0,0));}for(const e of ordinary)for(const stat of ['hp','speed','damage','shield'])assert.equal(e[stat],ordinary[0][stat]);
+const ordinary=[];for(const time of [0,180,600,1200,3600]){g.elapsed=time;ordinary.push(g.spawnEnemy('raptor',0,0));}
+for(const e of ordinary){assert.equal(e.hp,ENEMY_DEFS.raptor.hp);assert.equal(e.damage,ENEMY_DEFS.raptor.damage);assert.equal(e.speed,ENEMY_DEFS.raptor.speed);assert.equal(e.shield,ENEMY_DEFS.raptor.shield||0);}
 g=game();g.elapsed=180;g.spawnBoss();g.ambientSpawnClock=10;g.assaultClock=10;g.updateSpawner(1);assert.equal(g.ambientSpawnClock,9.4);g.killEnemy(g.boss);assert.equal(g.nextBossAt,390);assert.equal(g.enemies.filter(e=>!e.dead&&e.type!=='boss').length,0);
 g=game();const gun=tile(g,'cannon',0,-1);const r=tile(g,'reactor',1,-2);assert.equal(g.weaponCooldownRate(gun),1.25);assert.equal(g.countAdjacentType(gun,'reactor'),0);upgrades(g,'reactor',['base1','base2','base3']);assert.equal(g.weaponCooldownRate(gun),1.4);
 const armor=tile(g,'armor',1,0);armor.hp=60;upgrades(g,'armor',['base1']);g.refreshFamilyTiles('armor',false);assert.equal(armor.maxHp,150);assert.equal(armor.hp,75);
@@ -13,4 +14,4 @@ g=game();const mineTile=tile(g,'mine',1,0);const m1=g.spawnProjectile(true,'mine
 g=game();const fieldTile=tile(g,'gravity',1,0);const gravity=upgrades(g,'gravity',['base1','base2','well','well','collapse']);const target=enemy(g,250,0);g.placeGravityField(fieldTile,{x:42,y:0},target,gravity,1);for(let i=0;i<35;i++)g.updateWeaponStatuses(.1);g.updateWeaponStatuses(.01);assert.equal(g.gravityFields.length,0);assert.ok(Math.abs((10000-target.hp)-(gravity.damage*3.5+50))<1e-6);
 g=game();const stopped=enemy(g,1000,0);stopped.vx=100;stopped.vy=80;stopped.freezeUntil=.6;g.updateEnemies(.1);assert.equal(stopped.x,1000);assert.equal(stopped.y,0);assert.equal(stopped.vx,0);
 let total=0;for(let rank=0;rank<25;rank++)total+=metaCost(rank);assert.equal(total,75);
-console.log(JSON.stringify({passed:true,checks:['endless','static enemies','boss stream','diagonal reactor','damaged hull upgrade','collector diminishing returns','cannon penetration','freeze immunity','reserve shield','mine chain','gravity collapse','core prices']}));
+console.log(JSON.stringify({passed:true,checks:['endless','fixed enemy stats throughout run','boss stream','diagonal reactor','damaged hull upgrade','collector diminishing returns','cannon penetration','freeze immunity','reserve shield','mine chain','gravity collapse','core prices']}));

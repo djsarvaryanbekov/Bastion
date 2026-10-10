@@ -1,0 +1,12 @@
+Weapon: Scatter Array. Actual behavior: Five-shot cone. Brutal up close, weak at long range.
+
+Generate one original game-ready concept sprite for this weapon's attack, using the attached module image as a visual-family reference. The attachment is the weapon that fires this attack: do not redraw the weapon, its mount, or a platform.
+
+Match its clean illustrated sci-fi treatment: confident contours, broad readable forms, simple faceted highlights and controlled shading. Physical ammunition can use the reference's pale metal and graphite. Energy must read as energy, with a clearly visible luminous core and a restrained colored edge; do not turn beams, lightning, flames or fields into metal ornaments or faint wireframes. Keep the silhouette understandable at small gameplay sizes on a dark navy battlefield. Avoid tiny greebles, cloudy photorealistic texture, excessive bloom, decorative geometry and large smoke clouds. Enemy shots use warm orange warnings, so friendly fire must retain its specific identity.
+
+Output one isolated asset, centered with generous transparent margins, as a PNG with real alpha transparency. Preferred square canvas 1024x1024. No painted checkerboard, background, scene, labels, text, arrows, turret, tile, collage, comparison sheet or additional variants. Directional attacks point upward; radial attacks are centered. Preserve clear shape over tiny surface detail. This is artwork development only and does not change gameplay.
+
+Specific asset brief:
+One short chunky scatter pellet with a warm pale center and a small peach-orange tracer. It should read as a close-range kinetic pellet, clearly shorter and wider than the Cannon round. Make one pellet only; the game supplies the five-shot cone. Do not bake a whole volley, muzzle flash, cloud or gun into the image.
+
+Existing attack color: #ff9b6a. Match that identity except where the attached physical ammunition provides a specific nose/armed-light color. Generate the image now.

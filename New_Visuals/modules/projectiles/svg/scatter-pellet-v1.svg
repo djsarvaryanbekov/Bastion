@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="96" viewBox="0 0 64 96">
+  <title>Scatter Array — single pellet</title>
+  <desc>One upward short kinetic pellet. The existing weapon supplies the five-shot spread.</desc>
+  <defs>
+    <linearGradient id="wake" x1="0" y1="46" x2="0" y2="85" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ffd2ac" stop-opacity=".8"/><stop offset="1" stop-color="#ff9b6a" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="pellet" x1="21" y1="0" x2="43" y2="0" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#d49a79"/><stop offset=".45" stop-color="#fff3df"/><stop offset="1" stop-color="#e8bd96"/>
+    </linearGradient>
+  </defs>
+  <path id="short-tracer" d="M23 46H41L35 85H29Z" fill="url(#wake)"/>
+  <g id="pellet-body" stroke="#3a3839" stroke-width="2.5" stroke-linejoin="round">
+    <path d="M27 21H37L44 29V43L38 50H26L20 43V29Z" fill="url(#pellet)"/>
+    <path d="M21 41H43L38 50H26Z" fill="#be8667"/>
+  </g>
+  <path id="highlight" d="M28 26H34L38 31H25Z" fill="#fffdf1"/>
+  <path d="M25 44H39" stroke="#ffcf9e" stroke-width="3"/>
+</svg>

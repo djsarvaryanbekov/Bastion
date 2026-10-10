@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="384" height="96" viewBox="0 0 384 96"><title>Gravity Well inward energy wisp</title><desc>Horizontal editable flipbook. 4 frames, each 96 by 96. Runtime supplies movement, scale and timing.</desc><defs>
+  <radialGradient id="cyan"><stop stop-color="#edffff"/><stop offset=".25" stop-color="#9ef4ff" stop-opacity=".65"/><stop offset="1" stop-color="#65e8ff" stop-opacity="0"/></radialGradient>
+  <radialGradient id="ice"><stop stop-color="#f4fdff" stop-opacity=".9"/><stop offset=".4" stop-color="#a8e1ff" stop-opacity=".4"/><stop offset="1" stop-color="#8ac7ff" stop-opacity="0"/></radialGradient>
+  <radialGradient id="warm"><stop stop-color="#fff6d7"/><stop offset=".25" stop-color="#ffd494" stop-opacity=".8"/><stop offset="1" stop-color="#ffa86d" stop-opacity="0"/></radialGradient>
+  <radialGradient id="violet"><stop stop-color="#eee1ff" stop-opacity=".8"/><stop offset=".35" stop-color="#c8a2ff" stop-opacity=".3"/><stop offset="1" stop-color="#b187ee" stop-opacity="0"/></radialGradient>
+  <linearGradient id="trail" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#b6f8ff" stop-opacity=".65"/><stop offset="1" stop-color="#65e8ff" stop-opacity="0"/></linearGradient>
+  <linearGradient id="fire" x1="0" y1="1" x2="0" y2="0"><stop stop-color="#fff0b9" stop-opacity=".8"/><stop offset=".28" stop-color="#ffb96f" stop-opacity=".65"/><stop offset=".75" stop-color="#ff8050" stop-opacity=".3"/><stop offset="1" stop-color="#e85e47" stop-opacity="0"/></linearGradient>
+  <radialGradient id="fire-packet"><stop stop-color="#fff4bd" stop-opacity=".95"/><stop offset=".25" stop-color="#ffd580" stop-opacity=".85"/><stop offset=".55" stop-color="#ff8f49" stop-opacity=".65"/><stop offset=".8" stop-color="#ff623e" stop-opacity=".35"/><stop offset="1" stop-color="#ff623e" stop-opacity="0"/></radialGradient>
+</defs><g id="frame-0" transform="translate(0 0)">
+  <ellipse cx="47" cy="46" rx="17" ry="29" fill="url(#violet)" opacity=".7"/>
+  <path d="M39 72Q24 47 48 21 36 44 51 59Z" fill="#cbb2f6" opacity=".65"/>
+  <path d="M43 61Q35 44 48 25" fill="none" stroke="#f4eaff" stroke-width="3" opacity=".95"/></g><g id="frame-1" transform="translate(96 0)">
+  <ellipse cx="47" cy="46" rx="17" ry="29" fill="url(#violet)" opacity=".7"/>
+  <path d="M40 72Q24 47 48 21 36 44 51 59Z" fill="#cbb2f6" opacity=".65"/>
+  <path d="M43 61Q35 44 48 25" fill="none" stroke="#f4eaff" stroke-width="3" opacity=".95"/></g><g id="frame-2" transform="translate(192 0)">
+  <ellipse cx="47" cy="46" rx="17" ry="29" fill="url(#violet)" opacity=".7"/>
+  <path d="M41 72Q24 47 48 21 36 44 51 59Z" fill="#cbb2f6" opacity=".65"/>
+  <path d="M43 61Q35 44 48 25" fill="none" stroke="#f4eaff" stroke-width="3" opacity=".95"/></g><g id="frame-3" transform="translate(288 0)">
+  <ellipse cx="47" cy="46" rx="17" ry="29" fill="url(#violet)" opacity=".7"/>
+  <path d="M42 72Q24 47 48 21 36 44 51 59Z" fill="#cbb2f6" opacity=".65"/>
+  <path d="M43 61Q35 44 48 25" fill="none" stroke="#f4eaff" stroke-width="3" opacity=".95"/></g></svg>

@@ -34,7 +34,7 @@ assert.ok(U.purchase(state,'cannon','twin',1000,1,undefined,['cannon:twin']));
 assert.ok(U.purchase(state,'cannon','twin',1000,1,undefined,['cannon:twin']));
 assert.equal(U.purchase(state,'cannon','focus',1000,1,undefined,['cannon:twin']),null);
 assert.ok(U.purchase(state,'cannon','focus',1000,1,undefined,['cannon:twin','cannon:focus']));
-assert.equal(U.investment('cannon',state.cannon),128);
+assert.equal(U.investment('cannon',state.cannon),188);
 assert.equal(U.resolve(defs.cannon,state.cannon).shots,4);
 assert.ok(Math.abs(U.resolve(defs.cannon,state.cannon).damage/U.resolve(defs.cannon,state.cannon).cooldown*4-88.872)<1e-8);
 assert.equal(P.definitions.reduce((sum,d)=>sum+d.cost,0),476);

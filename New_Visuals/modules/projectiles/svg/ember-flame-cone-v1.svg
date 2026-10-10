@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="192" viewBox="0 0 128 192">
+  <title>Ember Projector — flame cone</title>
+  <desc>Upward three-tongue flame from origin 64,174. Broad curved layers; transparent between the tips.</desc>
+  <defs>
+    <linearGradient id="flame" x1="0" y1="22" x2="0" y2="176" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#e35447" stop-opacity=".75"/><stop offset=".4" stop-color="#ff7c48"/><stop offset="1" stop-color="#ffc77d"/>
+    </linearGradient>
+    <linearGradient id="heat" x1="0" y1="48" x2="0" y2="176" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ffaf62" stop-opacity=".7"/><stop offset=".65" stop-color="#ffce83"/><stop offset="1" stop-color="#fff4c5"/>
+    </linearGradient>
+  </defs>
+  <path id="outer-flame" d="M57 174C42 159 33 145 28 123 23 102 16 80 17 61 28 69 36 82 40 94 38 61 47 31 61 16 58 39 74 51 76 75 84 58 92 48 109 39 102 60 113 78 106 102 101 119 88 136 82 150L72 174Z" fill="url(#flame)"/>
+  <path id="warm-core" d="M60 174C43 154 43 138 38 115 47 125 53 128 55 140 57 116 45 100 52 76 57 89 67 93 68 109 72 92 84 77 93 70 86 92 92 110 83 128 77 141 73 154 70 174Z" fill="url(#heat)"/>
+  <path id="hot-root" d="M61 174C53 162 52 151 53 141 61 147 61 154 63 160 65 141 72 134 77 126 72 145 75 157 68 174Z" fill="#fff2bc"/>
+  <path d="M62 174 64 159 67 174Z" fill="#fffdf0"/>
+</svg>

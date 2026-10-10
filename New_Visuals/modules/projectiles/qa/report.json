@@ -1,0 +1,290 @@
+{
+  "checkedOn": "2026-10-09",
+  "scope": "Artwork exports and static review, not gameplay integration",
+  "viewport": {
+    "width": 1920,
+    "height": 1080,
+    "scrollWidth": 1920,
+    "scrollHeight": 1080,
+    "images": 24
+  },
+  "errors": [],
+  "assets": [
+    {
+      "module": "cannon",
+      "dimensions": [
+        256,
+        512
+      ],
+      "minAlpha": 0,
+      "maxAlpha": 255,
+      "edgeAlpha": 0,
+      "centerAlpha": 255,
+      "paintedPixels": 24080,
+      "bounds": [
+        83,
+        63,
+        172,
+        458
+      ],
+      "previewDrawSize": [
+        12,
+        24
+      ],
+      "highContrastPixels": 42
+    },
+    {
+      "module": "laser",
+      "dimensions": [
+        256,
+        1024
+      ],
+      "minAlpha": 0,
+      "maxAlpha": 255,
+      "edgeAlpha": 0,
+      "centerAlpha": 255,
+      "paintedPixels": 169172,
+      "bounds": [
+        40,
+        31,
+        215,
+        992
+      ],
+      "previewDrawSize": [
+        16,
+        256
+      ],
+      "highContrastPixels": 1832
+    },
+    {
+      "module": "missile",
+      "dimensions": [
+        256,
+        512
+      ],
+      "minAlpha": 0,
+      "maxAlpha": 255,
+      "edgeAlpha": 0,
+      "centerAlpha": 255,
+      "paintedPixels": 29069,
+      "bounds": [
+        55,
+        43,
+        200,
+        470
+      ],
+      "previewDrawSize": [
+        16,
+        32
+      ],
+      "highContrastPixels": 88
+    },
+    {
+      "module": "scatter",
+      "dimensions": [
+        256,
+        384
+      ],
+      "minAlpha": 0,
+      "maxAlpha": 255,
+      "edgeAlpha": 0,
+      "centerAlpha": 255,
+      "paintedPixels": 17792,
+      "bounds": [
+        75,
+        79,
+        180,
+        339
+      ],
+      "previewDrawSize": [
+        12,
+        18
+      ],
+      "highContrastPixels": 28
+    },
+    {
+      "module": "arc",
+      "dimensions": [
+        512,
+        1024
+      ],
+      "minAlpha": 0,
+      "maxAlpha": 255,
+      "edgeAlpha": 0,
+      "centerAlpha": 255,
+      "paintedPixels": 110427,
+      "bounds": [
+        130,
+        26,
+        373,
+        997
+      ],
+      "previewDrawSize": [
+        32,
+        128
+      ],
+      "highContrastPixels": 544
+    },
+    {
+      "module": "rail",
+      "dimensions": [
+        256,
+        768
+      ],
+      "minAlpha": 0,
+      "maxAlpha": 255,
+      "edgeAlpha": 0,
+      "centerAlpha": 247,
+      "paintedPixels": 34374,
+      "bounds": [
+        88,
+        48,
+        167,
+        726
+      ],
+      "previewDrawSize": [
+        16,
+        48
+      ],
+      "highContrastPixels": 110
+    },
+    {
+      "module": "flak",
+      "dimensions": [
+        512,
+        512
+      ],
+      "minAlpha": 0,
+      "maxAlpha": 255,
+      "edgeAlpha": 0,
+      "centerAlpha": 255,
+      "paintedPixels": 114766,
+      "bounds": [
+        56,
+        56,
+        459,
+        455
+      ],
+      "previewDrawSize": [
+        64,
+        64
+      ],
+      "highContrastPixels": 1018
+    },
+    {
+      "module": "pulse",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "minAlpha": 0,
+      "maxAlpha": 255,
+      "edgeAlpha": 0,
+      "centerAlpha": 0,
+      "paintedPixels": 259640,
+      "bounds": [
+        78,
+        78,
+        945,
+        945
+      ],
+      "previewDrawSize": [
+        256,
+        256
+      ],
+      "highContrastPixels": 3942
+    },
+    {
+      "module": "cryo",
+      "dimensions": [
+        256,
+        512
+      ],
+      "minAlpha": 0,
+      "maxAlpha": 255,
+      "edgeAlpha": 0,
+      "centerAlpha": 255,
+      "paintedPixels": 24892,
+      "bounds": [
+        64,
+        60,
+        191,
+        453
+      ],
+      "previewDrawSize": [
+        14,
+        28
+      ],
+      "highContrastPixels": 69
+    },
+    {
+      "module": "mine",
+      "dimensions": [
+        384,
+        384
+      ],
+      "minAlpha": 0,
+      "maxAlpha": 255,
+      "edgeAlpha": 0,
+      "centerAlpha": 255,
+      "paintedPixels": 35658,
+      "bounds": [
+        86,
+        86,
+        297,
+        297
+      ],
+      "previewDrawSize": [
+        28,
+        28
+      ],
+      "highContrastPixels": 70
+    },
+    {
+      "module": "ember",
+      "dimensions": [
+        512,
+        768
+      ],
+      "minAlpha": 0,
+      "maxAlpha": 255,
+      "edgeAlpha": 0,
+      "centerAlpha": 255,
+      "paintedPixels": 131575,
+      "bounds": [
+        67,
+        64,
+        435,
+        695
+      ],
+      "previewDrawSize": [
+        128,
+        192
+      ],
+      "highContrastPixels": 8239
+    },
+    {
+      "module": "gravity",
+      "dimensions": [
+        1024,
+        1024
+      ],
+      "minAlpha": 0,
+      "maxAlpha": 255,
+      "edgeAlpha": 0,
+      "centerAlpha": 255,
+      "paintedPixels": 199214,
+      "bounds": [
+        86,
+        86,
+        937,
+        937
+      ],
+      "previewDrawSize": [
+        256,
+        256
+      ],
+      "highContrastPixels": 2960
+    }
+  ]
+}

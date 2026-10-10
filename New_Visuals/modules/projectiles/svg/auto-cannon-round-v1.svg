@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="128" viewBox="0 0 64 128">
+  <title>Auto Cannon — kinetic round</title>
+  <desc>Upward pale metal round with a short cyan wake. Editable vector artwork; transparent background.</desc>
+  <defs>
+    <linearGradient id="wake" x1="0" y1="62" x2="0" y2="115" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#80efff" stop-opacity=".8"/><stop offset="1" stop-color="#43cce8" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="metal" x1="21" y1="0" x2="43" y2="0" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8fabb7"/><stop offset=".42" stop-color="#f5fcff"/><stop offset="1" stop-color="#a5c1cc"/>
+    </linearGradient>
+  </defs>
+  <g id="tracer"><path d="M24 61H40L35 115H29Z" fill="url(#wake)"/><path d="M29 65H35L32 104Z" fill="#c8faff" opacity=".7"/></g>
+  <g id="round" stroke="#25353f" stroke-width="2.5" stroke-linejoin="round">
+    <path d="M32 17 42 31V62L37 69H27L22 62V31Z" fill="url(#metal)"/>
+    <path d="M22 56H42V63L37 69H27L22 63Z" fill="#526c7a"/>
+  </g>
+  <path id="highlight" d="M30 28 26 34V51" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+  <path id="cyan-band" d="M24 59H40" stroke="#7af1ff" stroke-width="4"/>
+</svg>

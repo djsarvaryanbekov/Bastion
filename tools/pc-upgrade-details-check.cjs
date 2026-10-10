@@ -15,14 +15,14 @@ const output=path.resolve(__dirname,'../outputs/qa/upgrade-details');fs.mkdirSyn
    await page.click('#catalog [data-type="scatter"]');
    for(const [x,y] of [[1,0],[1,1],[0,1]])await page.click(`.build-cell[data-x="${x}"][data-y="${y}"]`);
    await page.click('#pcUpgradesTab');await tick();
-   for(const cost of [30,42]){
+   for(const cost of [30,63]){
     const before=await state();await page.locator('#upgradeList .research-node').filter({hasText:cost===30?'Damage':'Fire rate'}).click();
     const buy=page.locator('#upgradeList button.research-purchase');assert.equal(await buy.innerText(),`Upgrade · ${cost} Matter`);
     await buy.click();await tick();assert.equal((await state()).matter,before.matter-cost);
    }
    await page.locator('#upgradeList .research-node').filter({hasText:'Buckshot 1'}).click();await tick();
    const detail=page.locator('#upgradeList .research-detail');
-   assert.match(await detail.innerText(),/64 Fragments/);assert.match(await detail.innerText(),/78 Matter · 3 copies/);
+   assert.match(await detail.innerText(),/64 Fragments/);assert.match(await detail.innerText(),/117 Matter · 3 copies/);
    assert.ok((await detail.innerText()).split(/\s+/).length<55);
    assert.equal(await detail.locator('.upgrade-option').count(),0,'Locked data must not masquerade as a purchase button');
    assert.equal(await detail.locator('button').count(),0);

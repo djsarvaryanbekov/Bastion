@@ -18,6 +18,15 @@ body.pc-game.pc-ui-pending #pcViewport { visibility:hidden; }
 .pc-game h1,.pc-game h2,.pc-game h3 { font-family:"Segoe UI",Arial,sans-serif; letter-spacing:.015em; text-shadow:none; }
 .pc-game .scanlines,.pc-game #mobileControls,.pc-game .touch-control,.pc-game #installButton { display:none!important; }
 .pc-game .overlay { position:absolute; inset:0; width:100%; height:100%; padding:0; background:rgba(6,15,24,.86); backdrop-filter:blur(6px); align-items:stretch; justify-content:stretch; }
+@keyframes pc-panel-enter { from { opacity:0; } to { opacity:1; } }
+.pc-game .overlay:not(.hidden)>.panel,
+.pc-game #menuOverlay:not(.hidden)>.start-screen,
+.pc-game #hangarOverlay:not(.hidden)>.hangar-screen,
+.pc-game .hangar-panel:not(.hidden) { animation:pc-panel-enter .16s ease-out; }
+.pc-game.reduced-flash .overlay>.panel,
+.pc-game.reduced-flash .start-screen,
+.pc-game.reduced-flash .hangar-screen,
+.pc-game.reduced-flash .hangar-panel { animation:none; }
 .pc-game .panel { border:0; border-radius:0; box-shadow:none; }
 .pc-game .module-glyph { background:none; border:0; box-shadow:none; }
 .pc-game .module-art { filter:drop-shadow(0 8px 10px #0005); }
@@ -215,14 +224,6 @@ body.pc-game.pc-ui-pending #pcViewport { visibility:hidden; }
 .pc-game #resultFragments { color:var(--gold); }
 .pc-game .result-panel .button-row { margin:28px auto 0; max-width:620px; }
 .pc-game .objective-card { border-radius:2px; background:#132a36; }
-.pc-game .module-preview-dialog { position:absolute; inset:0; padding:5% 8%; background:#050e17e8; }
-.pc-game .module-preview-sheet { width:100%; max-width:none; max-height:100%; border:1px solid #36535f; border-radius:2px; background:#102431; box-shadow:0 25px 100px #0008; }
-.pc-game .module-preview-header { background:#122b38; padding:20px 30px; }
-.pc-game .module-preview-body { padding:25px 30px; }
-.pc-game .module-preview-canvas { width:min(100%,720px); max-height:38vh; margin:auto; border:0; }
-.pc-game .module-preview-summary { font-size:.95rem; line-height:1.6; }
-.pc-game .module-preview-footer { background:#122b38; padding:20px 30px; }
-.pc-game .module-preview-button { border-radius:2px; }
 .pc-game .training-hud { position:absolute; top:100px; border-radius:2px; background:#142f39e8; border:1px solid #45717d; }
 .pc-game .training-result { position:absolute; border-radius:2px; background:#132d39; }
 .pc-range-panel { position:absolute; z-index:35; right:24px; top:100px; bottom:28px; width:280px; overflow:auto; padding:22px; background:#0e2230f5; border:1px solid #355462; box-shadow:0 15px 45px #0003; }

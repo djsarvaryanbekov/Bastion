@@ -86,18 +86,6 @@
   new MutationObserver(filterCatalog).observe(el("catalog"), { childList: true });
   var illustration = element("div", "pc-inspector-art"); illustration.id = "pcInspectorArt";
   document.querySelector(".build-inspector").prepend(illustration);
-  el("modulePreviewActionSlot").before(button("pcRangePreview", "Try in test range ↗", function () { api.startRange(api.previewType()); }, "module-preview-button"));
-  var previewBody = document.querySelector(".module-preview-body");
-  var previewStage = element("section", "equipment-stage", '<span class="eyebrow">BEHAVIOR DEMONSTRATION / BASE CONFIGURATION</span>');
-  var previewInfo = element("aside", "equipment-info", '<div id="pcPreviewArt"></div><span class="eyebrow">MODULE SPECIFICATION</span>');
-  previewStage.appendChild(el("modulePreviewCanvas"));
-  var playback = element("div", "equipment-playback"); playback.append(el("modulePreviewPlayPause"), el("modulePreviewReplay")); previewStage.appendChild(playback);
-  var previewSpecs = element("div", "equipment-specs");
-  Array.from(previewInfo.children).forEach(function (child) { previewSpecs.appendChild(child); });
-  previewSpecs.append(el("modulePreviewSummary"), el("modulePreviewStats"), el("modulePreviewStatus"));
-  previewInfo.append(previewSpecs, el("modulePreviewActionSlot"), el("pcRangePreview"));
-  previewBody.replaceChildren(previewStage, previewInfo);
-  document.querySelector(".module-preview-footer").remove();
   function setWorkspace(upgrades) {
     api.clearBuildHover();
     if (upgrades) {
@@ -145,8 +133,6 @@
     var state = api.presentation();
     refreshCoreHealthVisibility(state.inputActive);
     buildWorkspace.refresh();
-    el("pcRangePreview").classList.toggle("hidden", !api.canEnterRange());
-    if (!el("modulePreviewDialog").classList.contains("hidden") && el("pcPreviewArt").dataset.type !== api.previewType()) { el("pcPreviewArt").dataset.type = api.previewType(); el("pcPreviewArt").innerHTML = api.icon(api.previewType()); }
     if (state.module !== lastModule) { el("pcInspectorArt").innerHTML = api.icon(state.module); lastModule = state.module; }
     el("pcSelectedCore").textContent = state.core;
     document.querySelector(".build-panel").classList.toggle("pc-has-tree", !el("buildUpgradePanel").classList.contains("hidden"));
@@ -167,14 +153,14 @@
     } else { lastRange = ""; lastConfig = ""; }
   }
   window.addEventListener("keydown", function (event) {
-    if (event.code === "Escape" && el("modulePreviewDialog").classList.contains("hidden")) {
+    if (event.code === "Escape") {
       if (!el("pauseOverlay").classList.contains("hidden") && !el("resetProgressConfirm").classList.contains("hidden")) { el("cancelResetProgress").click(); event.preventDefault(); event.stopImmediatePropagation(); }
       else if (!el("buildOverlay").classList.contains("hidden") && document.querySelector(".build-panel").classList.contains("pc-tree-open")) { setWorkspace(false); event.preventDefault(); event.stopImmediatePropagation(); }
       else if (!el("hangarOverlay").classList.contains("hidden")) { api.closeHangar(); event.preventDefault(); event.stopImmediatePropagation(); }
       else if (!el("pauseOverlay").classList.contains("hidden") && el("pauseOverlay").classList.contains("settings-view") && !api.presentation().menuSettings) { api.closeSettings(); event.preventDefault(); event.stopImmediatePropagation(); }
     }
     if (event.code === "Tab") {
-      var scope = !el("modulePreviewDialog").classList.contains("hidden") ? el("modulePreviewDialog") : ["pauseOverlay", "hangarOverlay", "buildOverlay", "resultOverlay", "menuOverlay"].map(el).find(function (node) { return !node.classList.contains("hidden"); });
+      var scope = ["pauseOverlay", "hangarOverlay", "buildOverlay", "resultOverlay", "menuOverlay"].map(el).find(function (node) { return !node.classList.contains("hidden"); });
       if (!scope) return;
       var focusable = Array.from(scope.querySelectorAll("button:not(:disabled), select, input, [tabindex='0']")).filter(function (node) { return node.getClientRects().length && !node.closest("[inert]"); });
       if (!full.classList.contains("hidden")) focusable.push(full);

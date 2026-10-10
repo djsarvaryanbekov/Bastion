@@ -119,8 +119,6 @@
   .pc-game .result-title { font-size:1.55rem; margin:10px 0; }
   .pc-game .result-stats { margin:14px 0; padding:10px 0; }
   .pc-game .result-stat b { font-size:1.25rem; }
-  .pc-game .module-preview-dialog { padding:calc(8px + env(safe-area-inset-top)) max(8px,env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left)); }
-  .pc-game .module-preview-header,.pc-game .module-preview-body,.pc-game .module-preview-footer { padding:10px; }
 }
 
 @media (hover:none) and (pointer:coarse) and (orientation:landscape),
@@ -446,7 +444,6 @@
   .pc-game .build-module-details p,.pc-game .build-module-details .installed-module-heading { display:none!important; }
   .pc-game .build-detail-actions { margin:0!important; gap:5px!important; }
   .pc-game .build-detail-actions button { min-height:34px!important; padding:6px 8px!important; font-size:.58rem!important; }
-  .pc-game #buildModulePreview { display:none!important; }
   .pc-game #pcOpenFamilyTree { grid-column:2; grid-row:1 / span 2; min-height:42px!important; max-width:112px; padding:7px 9px!important; font-size:.6rem!important; }
 
   /* Library becomes a real bottom tray. */

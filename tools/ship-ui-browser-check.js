@@ -106,14 +106,13 @@ async function prepare(browser, url, profile, errors) {
       await page.screenshot({ path: path.join(output, profile.name + "-menu.png") });
       await page.locator("#menuLoadoutButton").click();
       assert.equal(await page.locator("#weaponPicker").isVisible(), true);
-      assert.equal(await page.locator("#weaponPicker .pick-button").count(), 19, "Hangar must render every existing module directly");
+      assert.equal(await page.locator("#weaponPicker .pick-button").count(), 18, "Hangar must render every existing module directly");
       const missile = page.locator('[data-module="missile"]');
       await missile.scrollIntoViewIfNeeded(); await assertControl(missile, profile.name + " owned starter weapon");
       await missile.click();
-      assert.equal(await page.locator("#modulePreviewDialog").isVisible(), true);
+      assert.match(await page.locator("#hangarModuleDetails").innerText(), /Missile/);
       assert.equal(await page.evaluate(() => window.__shipUiFixture.save.lastLoadout.selectedWeapon), "cannon", "Viewing an owned weapon cannot change the starting loadout");
-      await page.locator("#modulePreviewAction").click();
-      if (await page.locator("#modulePreviewDialog").isVisible()) await page.locator("#modulePreviewClose").click();
+      await page.locator("#hangarModuleDetails .armory-detail-action.primary").click();
       assert.match(await missile.innerText(), /Starting weapon/);
       await page.locator("#closeHangar").click();
       assert.match(await page.locator("#startWeaponName").innerText(), /Missile/);
@@ -123,8 +122,7 @@ async function prepare(browser, url, profile, errors) {
       assert.deepEqual((await page.evaluate(() => window.__shipUiFixture.save.progression.purchasedModules)).sort(), purchasedModules.slice().sort());
       await page.locator("#menuLoadoutButton").click();
       await page.locator('[data-module="cannon"]').click();
-      await page.locator("#modulePreviewAction").click();
-      if (await page.locator("#modulePreviewDialog").isVisible()) await page.locator("#modulePreviewClose").click();
+      await page.locator("#hangarModuleDetails .armory-detail-action.primary").click();
       await page.locator("#closeHangar").click();
 
       await page.locator("#hangarMenuButton").click();

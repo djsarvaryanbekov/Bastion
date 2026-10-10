@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256">
+  <title>Pulse Nova — expanding wave</title>
+  <desc>Open cyan ring; center fully transparent. Leading edge radius 104 around center 128,128.</desc>
+  <defs>
+    <radialGradient id="inside-wave" cx=".5" cy=".5" r=".5">
+      <stop offset=".78" stop-color="#5ff1ff" stop-opacity="0"/><stop offset=".94" stop-color="#5ff1ff" stop-opacity=".07"/><stop offset="1" stop-color="#5ff1ff" stop-opacity=".35"/>
+    </radialGradient>
+  </defs>
+  <g id="wave">
+    <circle cx="128" cy="128" r="104" fill="url(#inside-wave)"/>
+    <circle cx="128" cy="128" r="104" fill="none" stroke="#55e5f6" stroke-width="9" opacity=".18"/>
+    <circle cx="128" cy="128" r="104" fill="none" stroke="#a1f9ff" stroke-width="3.5"/>
+    <circle cx="128" cy="128" r="104" fill="none" stroke="#e7feff" stroke-width="1.2"/>
+  </g>
+</svg>

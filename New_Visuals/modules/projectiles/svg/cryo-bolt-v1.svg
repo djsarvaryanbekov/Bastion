@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="128" viewBox="0 0 64 128">
+  <title>Cryo Projector — freezing bolt</title>
+  <desc>Upward pale blue ice bolt with three broad facets and a short frost wake.</desc>
+  <defs>
+    <linearGradient id="frost" x1="0" y1="52" x2="0" y2="114" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#9bdfff" stop-opacity=".65"/><stop offset="1" stop-color="#71adff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <g id="frost-wake"><path d="M23 51 32 60 41 51 38 91 32 114 26 91Z" fill="url(#frost)"/><path d="M29 61H35L32 96Z" fill="#d0f4ff" opacity=".6"/></g>
+  <g id="ice-bolt" stroke-linejoin="round">
+    <path d="M32 16 47 39 41 59 32 67 23 59 17 39Z" fill="#8ac7ff" stroke="#4a8ecc" stroke-width="2"/>
+    <path d="M32 16 32 56 17 39Z" fill="#d9f6ff"/>
+    <path d="M32 16 47 39 32 56Z" fill="#a8e4ff"/>
+    <path d="M17 39 32 56 47 39 41 59 32 67 23 59Z" fill="#6baff4"/>
+    <path d="M32 21V52L22 39Z" fill="#f0fdff"/>
+  </g>
+</svg>

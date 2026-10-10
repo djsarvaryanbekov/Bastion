@@ -8,7 +8,7 @@ const output = path.resolve(process.argv[3] || path.join(root, "outputs/module-a
 const types = ["armor", "missile", "rail", "laser", "arc", "scatter", "flak", "pulse", "cryo", "mine", "ember", "gravity", "shield", "repair", "collector", "bulkhead", "reactor"];
 
 // QA inventory: offline boot; complete sprite roster/alpha; fixed platforms and
-// bearings vs aimed upper assemblies; catalog/build/preview/combat; mobile fit;
+// bearings vs aimed upper assemblies; catalog/build/combat; mobile fit;
 // legacy Reactor/Core fallback; save reload; failure fallback without art.
 (async function () {
   fs.mkdirSync(output, { recursive: true });
@@ -69,10 +69,7 @@ const types = ["armor", "missile", "rail", "laser", "arc", "scatter", "flak", "p
     assert.equal(await page.locator(".build-cell.has-module-art").count(), 18);
     await page.screenshot({ path: path.join(output, "build-desktop.png") });
     await page.locator('.build-cell[data-x="0"][data-y="-1"]').click();
-    await page.locator("#buildModulePreview").click();
-    await page.clock.runFor(500);
-    await page.screenshot({ path: path.join(output, "module-preview.png") });
-    await page.keyboard.press("Escape");
+    assert.equal(await page.locator("#buildModulePreview, #modulePreviewDialog").count(), 0);
     await page.locator("#closeBuild").click();
     await page.clock.runFor(1200);
     await page.screenshot({ path: path.join(output, "combat-desktop.png") });
@@ -84,14 +81,16 @@ const types = ["armor", "missile", "rail", "laser", "arc", "scatter", "flak", "p
     await page.locator("#buildButton").click();
     await page.setViewportSize({ width: 1920, height: 1080 });
     await page.screenshot({ path: path.join(output, "build-wide.png") });
-    console.log("Desktop combat, preview and layouts passed");
+    console.log("Desktop combat, module art and layouts passed");
     await page.setViewportSize({ width: 1280, height: 800 });
     await page.reload();
     report.persistedFragments = (await page.evaluate(() => window.__driftBastion.getState())).fragments;
     assert.equal(report.persistedFragments, 1234);
     console.log("Save reload passed");
     await page.locator("#hangarMenuButton").click();
-    await page.locator('#corePicker [data-core="striker"]').click();
+    await page.locator("#pcCoresTab").click();
+    await page.locator("#corePicker .systems-selector").nth(1).click();
+    await page.locator("#corePicker .systems-action").click();
     await page.locator("#closeHangar").click();
     await page.locator("#startButton").click();
     assert.equal((await page.evaluate(() => window.__driftBastion.getState())).coreId, "striker");

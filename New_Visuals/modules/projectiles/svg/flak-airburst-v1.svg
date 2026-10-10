@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
+  <title>Flak Battery — targeted airburst</title>
+  <desc>Compact warm impact flash with open space between broad fragments. An instant burst, not a traveling shell.</desc>
+  <defs>
+    <radialGradient id="flash"><stop stop-color="#fff7d8" stop-opacity=".9"/><stop offset=".4" stop-color="#ffc981" stop-opacity=".35"/><stop offset="1" stop-color="#ffad5c" stop-opacity="0"/></radialGradient>
+  </defs>
+  <circle id="soft-flash" cx="64" cy="64" r="47" fill="url(#flash)"/>
+  <g id="fragments" fill="#ffd49b">
+    <path d="M59 43 61 14 67 17 66 43Z"/><path d="M80 46 102 28 105 35 85 52Z"/>
+    <path d="M88 62 115 60 113 67 88 69Z"/><path d="M81 82 103 101 97 105 76 87Z"/>
+    <path d="M60 89 64 114 69 111 67 88Z"/><path d="M42 80 21 97 17 91 39 74Z"/>
+    <path d="M39 61 14 55 14 62 38 68Z"/><path d="M46 44 30 22 24 28 40 49Z"/>
+  </g>
+  <g id="pressure-ring" fill="none" stroke="#ffbd77" stroke-width="2.5" stroke-linecap="round" opacity=".65">
+    <path d="M76 25A41 41 0 0 1 103 51M103 79A41 41 0 0 1 82 101M49 102A41 41 0 0 1 25 78M24 49A41 41 0 0 1 44 28"/>
+  </g>
+  <path id="hot-center" d="M64 45 70 56 82 59 74 67 75 79 63 73 52 79 54 67 46 59 58 56Z" fill="#fff6d5"/>
+  <path d="M63 54 68 61 73 64 66 67 62 73 59 66 54 63 60 60Z" fill="#fff"/>
+</svg>

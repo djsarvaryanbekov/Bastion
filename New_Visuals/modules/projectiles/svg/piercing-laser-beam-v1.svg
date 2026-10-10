@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="256" viewBox="0 0 64 256">
+  <title>Piercing Laser — beam strip</title>
+  <desc>Upward violet beam with a continuous white core. Transparent ends; no baked weapon or impact.</desc>
+  <defs>
+    <linearGradient id="end-fade" x1="0" y1="0" x2="0" y2="256" gradientUnits="userSpaceOnUse">
+      <stop offset=".03" stop-color="#fff" stop-opacity="0"/><stop offset=".08" stop-color="#fff"/><stop offset=".92" stop-color="#fff"/><stop offset=".97" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="beam" x1="10" y1="0" x2="54" y2="0" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#865bff" stop-opacity="0"/><stop offset=".25" stop-color="#a382ff" stop-opacity=".55"/><stop offset=".5" stop-color="#c4adff"/><stop offset=".75" stop-color="#a382ff" stop-opacity=".55"/><stop offset="1" stop-color="#865bff" stop-opacity="0"/>
+    </linearGradient>
+    <mask id="ends"><rect width="64" height="256" fill="url(#end-fade)"/></mask>
+  </defs>
+  <g id="beam-layers" mask="url(#ends)">
+    <rect x="10" width="44" height="256" fill="url(#beam)"/>
+    <rect x="22" width="20" height="256" rx="10" fill="#bda5ff" opacity=".8"/>
+    <rect x="27" width="10" height="256" rx="5" fill="#fbf7ff"/>
+    <rect x="30" width="4" height="256" fill="#fff"/>
+  </g>
+</svg>

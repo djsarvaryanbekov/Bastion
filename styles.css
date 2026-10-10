@@ -1469,9 +1469,7 @@
     }
 
     #toast.show { display: block; opacity: 1; }
-    #toast .toast-preview { pointer-events: auto; min-height: 44px; margin: 0 0 0 12px; padding: 8px 14px; color: var(--cyan); border-color: currentColor; font-size: .75rem; }
     .new-unlock { color: var(--green); font-size: .6875rem; font-weight: 800; }
-    .module-preview-trigger { min-height: 44px; padding: 8px 14px; font-size: .75rem; color: var(--cyan); border-color: var(--line); background: transparent; }
 
     #damageVignette {
       position: fixed;

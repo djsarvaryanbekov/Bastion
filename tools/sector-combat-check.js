@@ -114,6 +114,18 @@ for (const rule of ["standard", "swarm", "crossfire", "armored", "volatile"]) {
 
 const api = runtime(83);
 const game = api.create();
+// Heavy fronts acquire one ranged escort near the third-boss stretch, retaining their body formation.
+for (const [time, escorts] of [[225, 0], [480, 1], [1200, 1]]) {
+  clearEnemies(game);
+  game.elapsed = time;
+  game.assaultPhaseLevel = game.currentEnemyPhase().level;
+  game.assaultGroupIndex = 1;
+  game.assaultIndex = 2;
+  game.spawnAssaultWave(false);
+  assert.equal(game.enemies.filter(enemy => rangedTypes.includes(enemy.type)).length, escorts);
+  assert.equal(game.enemies.filter(enemy => heavyTypes.includes(enemy.type)).length, game.enemies.length - escorts,
+    "A heavy front must remain heavy bodies with a limited ranged escort.");
+}
 for (const zoom of [.35, .8, 1, 1.8]) {
   game.camera.zoom = zoom;
   game.elapsed = 1200;
@@ -194,7 +206,7 @@ assert.ok(longestEmissionGap < 4.2, "Grouped arrivals must keep overlapping in t
 
 clearEnemies(game);
 game.elapsed = 1000000;
-assert.equal(game.endlessPressureStep(), 5, "Endless quantity scaling must have a finite ceiling.");
+assert.equal(game.endlessPressureStep(), 10, "Endless quantity scaling must have a finite ceiling.");
 for (let wave = 0; wave < 100; wave += 1) {
   game.spawnAssaultWave(false);
   game.spawnAmbientPack();

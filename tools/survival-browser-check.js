@@ -97,15 +97,14 @@ const server = http.createServer((req, res) => {
     await page.locator("#hangarButton").click();
     assert.equal(await page.locator("#metaList").isVisible(), true, "Returning to Hangar must show permanent upgrades without an expander");
     await page.locator("#hangarWeaponTab").click();
-    assert.equal(await page.locator("#weaponPicker .pick-button").count(), 19);
-    const beforePreviewSave = await page.evaluate(() => localStorage.getItem("drift-bastion-save-v2"));
+    assert.equal(await page.locator("#weaponPicker .pick-button").count(), 18);
+    const beforeInspectionSave = await page.evaluate(() => localStorage.getItem("drift-bastion-save-v2"));
     await page.locator('[data-module="scatter"]').click();
-    assert.equal(await page.locator("#modulePreviewDialog").isVisible(), true);
-    assert.equal(await page.evaluate(() => localStorage.getItem("drift-bastion-save-v2")), beforePreviewSave,
+    assert.match(await page.locator("#hangarModuleDetails").innerText(), /Scatter Array/);
+    assert.equal(await page.evaluate(() => localStorage.getItem("drift-bastion-save-v2")), beforeInspectionSave,
       "Viewing an available module must not buy its licence");
-    await page.locator("#modulePreviewAction").click();
-    if (await page.locator("#modulePreviewDialog").isVisible()) await page.locator("#modulePreviewClose").click();
-    assert.match(await page.locator('[data-module="scatter"]').innerText(), /Unlocked · Preview/);
+    await page.locator("#hangarModuleDetails .armory-detail-action.primary").click();
+    assert.match(await page.locator('[data-module="scatter"]').innerText(), /Unlocked/);
     await page.screenshot({ path: path.join(output, "hangar.png") });
     await page.locator("#hangarUpgradeTab").click();
     assert.equal(await page.locator("#corePicker .core-card").count(), 4);

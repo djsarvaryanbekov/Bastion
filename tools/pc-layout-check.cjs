@@ -27,8 +27,8 @@ fs.mkdirSync(output, { recursive: true });
             const alignment=await page.locator('#catalog .catalog-card').first().evaluate(card=>{const a=card.getBoundingClientRect(),b=card.querySelector('.module-glyph').getBoundingClientRect();return Math.abs(a.y+a.height/2-b.y-b.height/2);});
             assert.ok(alignment<1,`Catalog center offset ${alignment}`);
           }
-          if(screen==='preview') {
-            const visibleControls=await page.locator('.equipment-playback').evaluate(el=>{const a=el.getBoundingClientRect(),b=el.closest('.module-preview-body').getBoundingClientRect();return a.top>=b.top&&a.bottom<=b.bottom+1;});assert.ok(visibleControls,'Preview playback controls clipped');
+          if(screen==='module-detail') {
+            const detail=await page.locator('#hangarModuleDetails').boundingBox();assert.ok(detail&&detail.width>200&&detail.height>200,'Module details clipped');
           }
           await page.screenshot({ path:path.join(output,`${height}-${uiScale}-${screen}.png`) });
           report.push(`${width}x${height}@${uiScale}: ${screen}`);
@@ -36,7 +36,7 @@ fs.mkdirSync(output, { recursive: true });
         await capture('menu');
         await page.click('#hangarMenuButton'); await page.click('#hangarWeaponTab'); await capture('modules');
         await page.click('#pcCoresTab'); await capture('cores');
-        await page.click('#hangarUpgradeTab'); await capture('permanent'); await page.click('#pcResearchTab'); await capture('research'); await page.click('#hangarWeaponTab'); await page.locator('#weaponPicker button').first().click(); await capture('preview'); await page.click('#modulePreviewClose');
+        await page.click('#hangarUpgradeTab'); await capture('permanent'); await page.click('#pcResearchTab'); await capture('research'); await page.click('#hangarWeaponTab'); await page.locator('#weaponPicker button').first().click(); await capture('module-detail');
         await page.click('#closeHangar'); await page.click('#pcRangeMenu'); await capture('range');
         await page.click('#pcRangeBuild'); await capture('build');
         await page.click('.build-cell[data-x="0"][data-y="-1"]'); await page.click('#pcUpgradesTab'); await capture('tree');

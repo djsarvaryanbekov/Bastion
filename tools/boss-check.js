@@ -54,7 +54,7 @@ assert.ok(originalEnemies.every((enemy) => !enemy.dead && game.enemyById.get(ene
 assert.equal(game.kills, 0, "Boss arrival must not award free kills.");
 assert.equal(game.matter, 0, "Boss arrival must not award free Matter.");
 assert.ok(game.projectiles.includes(friendly), "Boss arrival must preserve friendly projectiles.");
-assert.equal(game.boss.maxHp, 850);
+assert.equal(game.boss.maxHp, 3200);
 game.spawnBoss();
 assert.equal(game.enemies.filter((enemy) => enemy.type === "boss" && !enemy.dead).length, 1, "A second boss must not overlap a live boss.");
 game.ambientSpawnClock = 1;
@@ -110,9 +110,9 @@ assert.equal(game.bossSpawned, false, "Recurring boss must wait for its schedule
 game.elapsed = 360;
 game.updateSpawner(1 / 30);
 assert.equal(game.boss.encounter, 2);
-assert.equal(game.boss.maxHp, 4500);
+assert.equal(game.boss.maxHp, 16000, "Boss health depends on its encounter, without an additional combat-time multiplier.");
 assert.equal(game.enemies.filter((enemy) => enemy.type === "boss" && !enemy.dead).length, 1);
-let lastBossHp = 850;
+let lastBossHp = 3200;
 game.continued = true; // Exercise recurring encounters beyond the main three-boss route.
 for (let encounter = 2; encounter <= 16; encounter += 1) {
   assert.equal(game.boss.encounter, encounter);
@@ -183,12 +183,12 @@ function cannonBenchmark(cannonCount) {
 }
 const benchmarks = [cannonBenchmark(1), cannonBenchmark(3)];
 assert.ok(benchmarks[0].died, "An idle, unprotected cannon must not trivialize the boss.");
-assert.ok(benchmarks[1].bossKilled && benchmarks[1].elapsed < 30,
-  "Three baseline cannons should defeat the first boss promptly, with real damage and module loss enabled.");
+assert.ok(!benchmarks[1].bossKilled || benchmarks[1].elapsed >= 30,
+  "An idle three-cannon starter must not melt the stronger boss before its attacks matter.");
 console.log(JSON.stringify({
   passed: true,
   encountersVerified: game.bossesDefeated,
-  firstBossHp: 850,
+  firstBossHp: 3200,
   sixteenthBossHp: lastBossHp,
   firstArrival: 180,
   subsequentArrival: "210 seconds after defeat",

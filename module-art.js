@@ -48,27 +48,50 @@
     return data[type].integrated || draw(context, type, x, y, size, angle);
   }
 
-  function layerHtml(type, rotate) {
+  function layerHtml(type, angle) {
     var sprite = data[type];
     if (!sprite) return "";
-    return '<image href="' + sprite.src + '" x="' + sprite.x + '" y="' + sprite.y + '" width="' + sprite.width + '" height="' + sprite.height + '"' + (rotate ? ' transform="rotate(' + (-90 - sprite.forward) + ')"' : "") + '/>';
+    return '<image href="' + sprite.src + '" x="' + sprite.x + '" y="' + sprite.y + '" width="' + sprite.width + '" height="' + sprite.height + '"' + (sprite.rotates ? ' transform="rotate(' + ((Number.isFinite(angle) ? angle * 180 / Math.PI : -90) - sprite.forward) + ')"' : "") + '/>';
   }
 
-  function iconHtml(type, cell) {
+  function upgradeRank(level) {
+    return Number.isInteger(level) && level > 0 ? Math.min(6, level + 1) : 0;
+  }
+
+  function drawUpgradeBadge(context, x, y, size, level) {
+    var rank = upgradeRank(level);
+    if (!rank) return;
+    context.save();
+    context.translate(x, y);
+    context.scale(size, size);
+    context.fillStyle = "#102c37";
+    context.fillRect(-.46, -.46, .26, .25);
+    context.fillStyle = "#b9f5ff";
+    context.font = "bold .2px sans-serif";
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+    context.fillText(String(rank), -.33, -.325);
+    context.restore();
+  }
+
+  function iconHtml(type, cell, options) {
     var sprite = data[type];
     if (!sprite) return "";
     var key = type + (cell ? ":cell" : ":icon");
-    if (icons[key]) return icons[key];
+    if (!options && icons[key]) return icons[key];
     // Catalog icons contain the entire silhouette; build cells preserve tile pitch.
     var radius = .53;
     if (!cell) {
       radius = Math.max(radius, Math.abs(sprite.x), Math.abs(sprite.y), Math.abs(sprite.x + sprite.width), Math.abs(sprite.y + sprite.height));
     }
     var view = cell ? "-.5 -.5 1 1" : [-radius, -radius, radius * 2, radius * 2].join(" ");
-    var content = sprite.integrated ? "" : layerHtml("platform", false) + (sprite.mount ? layerHtml("mount", false) : "");
-    icons[key] = '<svg class="module-icon module-art' + (cell ? ' module-art-cell' : '') + '" viewBox="' + view + '" aria-hidden="true" focusable="false">' + content + layerHtml(type, sprite.rotates) + '</svg>';
-    return icons[key];
+    var content = sprite.integrated ? "" : layerHtml("platform") + (sprite.mount ? layerHtml("mount") : "");
+    var rank = upgradeRank(options && options.level);
+    var badge = rank ? '<g class="module-rank" data-rank="' + rank + '"><rect x="-.46" y="-.46" width=".26" height=".25" fill="#102c37"/><text x="-.33" y="-.325" fill="#b9f5ff" font-family="sans-serif" font-size=".2" font-weight="bold" text-anchor="middle" dominant-baseline="central">' + rank + '</text></g>' : "";
+    var result = '<svg class="module-icon module-art' + (cell ? ' module-art-cell' : '') + '" viewBox="' + view + '" aria-hidden="true" focusable="false">' + content + layerHtml(type, options && options.angle) + badge + '</svg>';
+    if (!options) icons[key] = result;
+    return result;
   }
 
-  root.DriftModuleArt = { ready: Promise.all(pending), available: available, drawBase: drawBase, drawEquipment: drawEquipment, iconHtml: iconHtml };
+  root.DriftModuleArt = { ready: Promise.all(pending), available: available, drawBase: drawBase, drawEquipment: drawEquipment, drawUpgradeBadge: drawUpgradeBadge, iconHtml: iconHtml };
 })(window);

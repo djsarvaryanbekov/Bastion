@@ -27,13 +27,18 @@ See `CONTENT_PLAN.md` for gameplay decisions and `PLAYTEST_README.txt` for contr
 
 ## Current changes
 
+- Eight approved animated attack effects are integrated: Auto Cannon, Scatter Array, Missile Pod, Cryo, Ember, Gravity Well, Pulse Nova and Flak. Their SVG/PNG sources remain in `New_Visuals/modules/projectiles/v2`; `npm run build:attack-vfx` rebuilds the embedded sheets. `npm run test:attack-vfx` checks actual rendering, attack mechanics, pooled cosmetics and missing-art fallback at 1920×1080 with isolated storage.
 - Grouped swarm retains the previous formations, random group origins and overlapping arrivals.
-- Eighteen module families have shared run upgrades priced per living copy. New copies include the family's paid upgrade investment.
+- Eighteen module families have shared run upgrades priced per living copy. New copies include the family's paid upgrade investment. The first two copies and first upgrade retain their base prices; extra copies grow more expensive and later upgrade stages cost about 50% more Matter.
 - Permanent branch licenses and four per-core rank tracks use Fragments; run purchases use Matter. Existing saves migrate without losing purchased bonuses.
-- The first boss arrives after three minutes; subsequent bosses arrive 210 seconds after the previous defeat. Ordinary enemy statistics stay fixed while later wave composition becomes harder.
+- The first boss arrives after three minutes; subsequent bosses arrive 210 seconds after the previous defeat. Each ordinary enemy type keeps fixed HP, shields, damage, movement speed and kill payout. Later hordes grow through group size, arrival frequency and composition, with bounded entity counts. Boss health varies by encounter.
+- Shield charge stays at 60 / 75 per node, with slower recharge. The opening wave settings are preserved; added horde density and ranged escorts begin at 8:00, approaching boss three.
 - Rewards combine combat time, kills capped independently per combat minute, and boss rewards. There is no ten-minute completion bonus.
 - Shield preview has reserved space, preventing ship-grid movement when hover text appears or disappears.
 - Bosses take damage without external knockback; their own movement and attacks remain.
+- Installed modules retain their turret orientation in Build and show the same upgrade rank in combat and the ship grid. Near stars and a world-anchored grid make forward travel visible.
+
+See `BALANCE_FEEDBACK_2026-10-08.md` for the current balance pass, measured fixtures and remaining human playtest questions. `npm run test:feedback` verifies late pressure, boss endurance and presentation at 1920×1080 with isolated saves. `npm run test:economy-browser` checks advertised prices against actual purchases in the canonical HTML at the same resolution.
 
 The balance specification is `outputs/documents/drift-bastion-balance/Drift_Bastion_Full_Balance_Document_RU.docx`. See `PLAYTEST_README.txt` for implemented values and provisional tuning. Automated checks do not establish the target run duration or progression pace.
 

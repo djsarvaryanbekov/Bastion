@@ -47,7 +47,11 @@ function makeGame(type = "cannon") {
   tile.cooldown = 0;
   game.ship.tiles.set("0,-1", tile);
   let shotCount = 0;
-  api.audio.tone = () => { shotCount += 1; };
+  const fireAttack = game.fireAttack;
+  game.fireAttack = function (...args) {
+    shotCount += 1;
+    return fireAttack.apply(this, args);
+  };
   return { game, tile, shots: () => shotCount };
 }
 
