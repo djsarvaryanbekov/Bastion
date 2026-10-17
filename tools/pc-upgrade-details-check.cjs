@@ -22,7 +22,7 @@ const output=path.resolve(__dirname,'../outputs/qa/upgrade-details');fs.mkdirSyn
    }
    await page.locator('#upgradeList .research-node').filter({hasText:'Buckshot 1'}).click();await tick();
    const detail=page.locator('#upgradeList .research-detail');
-   assert.match(await detail.innerText(),/64 Fragments/);assert.match(await detail.innerText(),/117 Matter · 3 copies/);
+   assert.match(await detail.innerText(),/64 Fragments/);assert.match(await detail.innerText(),/39 × 3 copies = 117 Matter/);
    assert.ok((await detail.innerText()).split(/\s+/).length<55);
    assert.equal(await detail.locator('.upgrade-option').count(),0,'Locked data must not masquerade as a purchase button');
    assert.equal(await detail.locator('button').count(),0);

@@ -32,6 +32,8 @@
         placement: ".build-grid-wrap",
         "placement-pending": "#buildGrid .build-cell.preview-origin",
         upgrade: '#upgradeList .upgrade-option[data-weapon="cannon"]:not(:disabled)',
+        "upgrade-workspace": "#pcUpgradesTab", "layout-workspace": "#pcLayoutTab",
+        "family-cannon": '.pc-family-card[data-family="cannon"]',
         resume: "#closeBuild", build: "#trainingOpenBuildButton", controls: ".controls-tip"
       };
       if (target && selectors[target] && document.querySelector) highlighted = document.querySelector(selectors[target]);

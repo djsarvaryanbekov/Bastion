@@ -73,6 +73,7 @@
     if (needsCannon) {
       var cannonShortfall = missing(context.cannonCost);
       if (cannonShortfall) return guide("Resume and earn " + cannonShortfall + " more Matter for a Cannon.", "resume");
+      if (context.upgradeWorkspaceOpen === true) return guide("Open Ship layout to attach another Cannon.", "layout-workspace");
       if (context.selectedTileType || context.selectedCatalogType !== "cannon") return guide("Select Cannon in Weapons to add another.", "catalog-cannon");
       if (context.touch && context.pendingPlacement) return guide("Tap the highlighted + again to attach the Cannon.", "placement-pending");
       return guide(context.touch ? "Tap a + cell beside the ship to place the Cannon." : "Click a + cell to attach the Cannon, or drag it there.", "placement");
@@ -82,7 +83,9 @@
 
     var upgradeShortfall = missing(context.cannonUpgradeCost);
     if (upgradeShortfall) return guide("Resume and earn " + upgradeShortfall + " more Matter for the shared upgrade.", "resume");
+    if (context.upgradeWorkspaceOpen === false) return guide("Open Upgrade tree to improve both Cannons.", "upgrade-workspace");
     var selectedType = context.selectedTileType || context.selectedCatalogType;
+    if (context.upgradeWorkspaceOpen === true && selectedType !== "cannon") return guide("Select Cannon in installed systems to upgrade both copies.", "family-cannon");
     if (selectedType !== "cannon") return guide("Select Cannon in Weapons to see its shared upgrade.", "catalog-cannon");
     return guide("Buy the Cannon upgrade. Every current and future Cannon improves.", "upgrade");
   }

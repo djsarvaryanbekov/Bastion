@@ -40,7 +40,7 @@
 .training-active .mobile-build,
 .training-active .mobile-settings { display: none !important; }
 .training-in-build .build-header { display: block; padding: 8px 14px; }
-.training-in-build .build-header > :not(.training-build-bar) { display: none; }
+.training-in-build .build-header > :not(.training-build-bar):not(.pc-build-tabs):not(#closeBuild) { display: none; }
 .training-build-bar .training-detail-row { margin-top: 0; }
 .training-in-build .build-section-label { display: none; }
 .training-active .training-action-target {

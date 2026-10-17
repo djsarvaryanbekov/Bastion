@@ -1,6 +1,6 @@
 "use strict";
 
-var CACHE_NAME = "drift-bastion-v35-attack-vfx";
+var CACHE_NAME = "drift-bastion-v56-cryo-missile";
 var APP_SHELL = [
   "./",
   "./index.html",
@@ -17,9 +17,16 @@ var APP_SHELL = [
   "./training-view.js",
   "./game.js",
   "./combat-audio.js",
+  "./weapon-feedback.js",
+  "./ship-handling.js",
+  "./weapon-muzzles.js",
   "./combat-feedback.js",
+  "./ship-debris.js",
+  "./shield-vfx.js",
   "./attack-vfx-data.js",
   "./attack-vfx.js",
+  "./fire-vfx.js",
+  "./cold-vfx.js",
   "./module-art-data.js",
   "./module-art.js",
   "./manifest.webmanifest",

@@ -45,7 +45,7 @@ html = replaceExactly(html, '  <script src="campaign.js"></script>', `  <script>
   html = replaceExactly(html, '  <script src="' + file + '"></script>', `  <script>\n${safeInlineScript(read(file))}\n  </script>`);
 });
 html = replaceExactly(html, '  <link rel="stylesheet" href="pc-ui.css">', `<style>\n${read("pc-ui.css")}\n</style>`);
-["test-range.js", "pc-research.js", "pc-systems.js", "combat-audio.js", "combat-feedback.js", "attack-vfx-data.js", "attack-vfx.js", "pc-build.js", "pc-ui.js"].forEach(file => { html = replaceExactly(html, '  <script src="' + file + '"></script>', `<script>\n${safeInlineScript(read(file))}\n</script>`); });
+["test-range.js", "pc-research.js", "pc-systems.js", "combat-audio.js", "weapon-feedback.js", "weapon-muzzles.js", "ship-handling.js", "combat-feedback.js", "ship-debris.js", "shield-vfx.js", "attack-vfx-data.js", "attack-vfx.js", "fire-vfx.js", "cold-vfx.js", "pc-build.js", "pc-ui.js"].forEach(file => { html = replaceExactly(html, '  <script src="' + file + '"></script>', `<script>\n${safeInlineScript(read(file))}\n</script>`); });
 html = replaceExactly(html, '  <link rel="stylesheet" href="pc-workspaces.css">', `<style>\n${read("pc-workspaces.css")}\n</style>`);
 html = replaceExactly(html, '  <script src="game.js"></script>', `  <script>\n${game}\n  </script>`);
 

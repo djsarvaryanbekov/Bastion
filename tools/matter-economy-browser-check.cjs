@@ -70,7 +70,7 @@ const { chromium } = require("playwright");
     await page.locator("#upgradeList .research-node").filter({ hasText: "Focused volley" }).click();
     await tick();
     assert.match(await page.locator("#upgradeList .research-detail").innerText(), /80 Fragments/);
-    assert.match(await page.locator("#upgradeList .research-detail").innerText(), /324 Matter · 4 copies/);
+    assert.match(await page.locator("#upgradeList .research-detail").innerText(), /81 × 4 copies = 324 Matter/);
     assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("drift-bastion-save-v2")).fragments),
       57, "Matter purchases preserve the permanent wallet");
     await page.screenshot({ path: path.join(output, "later-upgrade-prices-1080.png") });

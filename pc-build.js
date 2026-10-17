@@ -24,6 +24,73 @@
     copy.append(mode, title, instruction);
     guide.append(copy);
     document.querySelector(".build-stage").prepend(guide);
+    var viewport = document.querySelector(".build-grid-wrap");
+    var grid = document.getElementById("buildGrid");
+    var zoomControls = element("div", "pc-build-zoom");
+    zoomControls.setAttribute("role", "group");
+    zoomControls.setAttribute("aria-label", "Ship layout zoom");
+    var zoomLabel = element("output", "pc-build-zoom-label");
+    zoomLabel.id = "pcBuildZoomLabel";
+    var autoFit = true;
+    var cellSize = 88;
+    function zoomButton(id, label, text, action) {
+      var control = element("button", "secondary", text);
+      control.id = id;
+      control.type = "button";
+      control.setAttribute("aria-label", label);
+      control.addEventListener("click", action);
+      return control;
+    }
+    var zoomOut = zoomButton("pcBuildZoomOut", "Zoom out ship layout", "−", function () { changeZoom(-1); });
+    var zoomIn = zoomButton("pcBuildZoomIn", "Zoom in ship layout", "+", function () { changeZoom(1); });
+    var fit = zoomButton("pcBuildFit", "Fit entire ship and attachment cells", "Fit ship", function () { autoFit = true; fitLayout(); });
+    zoomControls.append(zoomOut, zoomLabel, zoomIn, fit);
+    guide.appendChild(zoomControls);
+    function changeZoom(direction) {
+      autoFit = false;
+      cellSize = Math.max(12, Math.min(128, Math.round(cellSize * (direction > 0 ? 1.2 : 1 / 1.2))));
+      fitLayout();
+      var core = grid.querySelector('.build-cell[data-x="0"][data-y="0"]');
+      if (!core) return;
+      var bounds = viewport.getBoundingClientRect(), center = core.getBoundingClientRect();
+      viewport.scrollLeft += (center.left + center.right - bounds.left - bounds.right) / 2;
+      viewport.scrollTop += (center.top + center.bottom - bounds.top - bounds.bottom) / 2;
+    }
+    function fitLayout() {
+      var state = api.buildState();
+      if (!state || state.dragging || panel.classList.contains("pc-tree-open") || !viewport.clientWidth || !viewport.clientHeight) return;
+      var minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      Array.from(grid.children).forEach(function (cell) {
+        var x = Number(cell.dataset.x), y = Number(cell.dataset.y);
+        minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+        minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+      });
+      if (!Number.isFinite(minX)) return;
+      var columns = maxX - minX + 1, rows = maxY - minY + 1;
+      if (autoFit) {
+        var outer = getComputedStyle(viewport), inner = getComputedStyle(grid);
+        var width = viewport.clientWidth - parseFloat(outer.paddingLeft) - parseFloat(outer.paddingRight) - parseFloat(inner.paddingLeft) - parseFloat(inner.paddingRight);
+        var height = viewport.clientHeight - parseFloat(outer.paddingTop) - parseFloat(outer.paddingBottom) - parseFloat(inner.paddingTop) - parseFloat(inner.paddingBottom);
+        var gapX = parseFloat(inner.columnGap) || 0, gapY = parseFloat(inner.rowGap) || 0;
+        cellSize = Math.max(12, Math.min(88, Math.floor(Math.min((width - gapX * (columns - 1)) / columns, (height - gapY * (rows - 1)) / rows))));
+      }
+      grid.style.setProperty("--pc-cell", cellSize + "px");
+      grid.style.gridTemplateColumns = "repeat(" + columns + ", var(--pc-cell))";
+      zoomLabel.textContent = Math.round(cellSize / 88 * 100) + "%";
+      fit.setAttribute("aria-pressed", String(autoFit));
+      zoomOut.disabled = cellSize <= 12;
+      zoomIn.disabled = cellSize >= 128;
+      if (autoFit) { viewport.scrollLeft = 0; viewport.scrollTop = 0; }
+    }
+    var fitScheduled = false;
+    function scheduleFit() {
+      if (fitScheduled) return;
+      fitScheduled = true;
+      requestAnimationFrame(function () { fitScheduled = false; fitLayout(); });
+    }
+    // Only grid structure changes refit; hovering a ghost must not move its destination.
+    new MutationObserver(scheduleFit).observe(grid, { childList: true });
+    new ResizeObserver(scheduleFit).observe(viewport);
     var treeButton = element("button", "primary", "Upgrade this family →");
     treeButton.id = "pcOpenFamilyTree";
     treeButton.type = "button";
@@ -43,6 +110,7 @@
       var state = api.buildState();
       if (!state) { previous = ""; return; }
       if (state.dragging) return;
+      fitLayout();
       var tree = panel.classList.contains("pc-tree-open");
       var key = JSON.stringify(state) + tree;
       if (key === previous) return;

@@ -3,8 +3,12 @@
 
     var TAU = Math.PI * 2;
     var TILE_SIZE = 42;
+    var MODULE_PROJECTILE_GRACE = .10;
+    var MODULE_PLACEMENT_GRACE = .35;
     var moduleArt = window.DriftModuleArt || null;
     var enemyArt = window.DriftEnemyArt || null;
+    var shipHandling = window.DriftShipHandling;
+    var shieldVfx = window.DriftShieldVfx.create();
     var FIXED_STEP = 1 / 30;
     var MAX_SIMULATION_STEPS = 3;
     var SPATIAL_CELL_SIZE = 110;
@@ -14,6 +18,17 @@
     var MAX_ASSAULT_RANGED_ESCORTS = 6;
     var HEAVY_RANGED_ESCORT_START = 480;
     var ADDITIONAL_COPY_COST_SCALE = 1.20;
+    var EMBER_BURST_DURATION = .2;
+    var EMBER_COMBO_BURN_DAMAGE = 3;
+    var EMBER_COMBO_BURN_DURATION = 1.5;
+    var CRYO_SHATTER_DAMAGE_MULTIPLIER = 1.25;
+    var CRYO_MISSILE_SLOW_FACTOR = .75;
+    var CRYO_MISSILE_SLOW_DURATION = 1;
+    var EMBER_COMBO_OFFSETS = [[1,0],[-1,0],[0,1],[0,-1]];
+    var BURN_FLAME_DETAIL_BUDGETS = [32, 16, 0];
+    var fireVfx = window.DriftFireVfx;
+    var COLD_DETAIL_BUDGETS = [32, 16, 0];
+    var coldVfx = window.DriftColdVfx;
     var SIMPLE_PROJECTILE_RENDER_BUDGETS = [180, 120, 80];
     var SAVE_VERSION = 9;
     var SAVE_KEY = "drift-bastion-save-v2";
@@ -44,7 +59,7 @@
         baseCost: 20, scale: 1.22, hp: 50, mass: 1,
         range: 400, cooldown: .5, damage: 12,
         summary: "Steady fire at nearby enemies.",
-        description: "Reliable kinetic fire at the nearest visible target."
+        description: "Reliable kinetic fire at the nearest visible target. Edge-adjacent Ember flame bursts briefly ignite its rounds."
       },
       laser: {
         id: "laser", name: "Piercing Laser", glyph: "L", color: "#a987ff",
@@ -58,14 +73,14 @@
         baseCost: 42, scale: 1.22, hp: 45, mass: 1.2,
         range: 520, cooldown: 1.7, damage: 32,
         summary: "Homing shots with splash damage.",
-        description: "Slow homing projectile with a small blast radius."
+        description: "Slow homing projectile with a small blast radius. An edge-adjacent Cryo adds a cold payload: blasts slow survivors by 25% for one second."
       },
       scatter: {
         id: "scatter", name: "Scatter Array", glyph: "V", color: "#ff9b6a",
         baseCost: 24, scale: 1.21, hp: 48, mass: 1,
         range: 250, cooldown: .8, damage: 6, pellets: 5, spread: .28,
         summary: "Wide burst, strongest up close.",
-        description: "Five-shot cone. Brutal up close, weak at long range."
+        description: "Five-shot cone. Brutal up close, weak at long range. Edge-adjacent Ember flame bursts briefly ignite its pellets."
       },
       arc: {
         id: "arc", name: "Arc Emitter", glyph: "Z", color: "#70ffc2",
@@ -79,14 +94,14 @@
         baseCost: 52, scale: 1.24, hp: 46, mass: 1.3,
         range: 650, cooldown: 2.6, damage: 85,
         summary: "Heavy piercing shots. Long reload.",
-        description: "High-speed piercing slug. Heavy damage and knockback."
+        description: "High-speed piercing slug. Heavy damage and knockback. An edge-adjacent Cryo enables Shatter rounds: +25% damage to chilled or frozen enemies."
       },
       flak: {
         id: "flak", name: "Flak Battery", glyph: "F", color: "#ffb15c",
         baseCost: 29, scale: 1.21, hp: 48, mass: 1.05,
         range: 360, cooldown: 1.1, damage: 7, blastRadius: 125,
         summary: "Clears enemy shots. Low damage.",
-        description: "Wide anti-projectile airburst. Clears hostile shots, but deals very low damage to enemies."
+        description: "Wide anti-projectile airburst. Clears hostile shots, but deals very low damage to enemies. Edge-adjacent Ember flame bursts briefly ignite its hits."
       },
       pulse: {
         id: "pulse", name: "Pulse Nova", glyph: "P", color: "#54f4ff",
@@ -100,7 +115,7 @@
         baseCost: 34, scale: 1.21, hp: 44, mass: 1.1,
         range: 430, cooldown: 1.1, damage: 9, slowFactor: .5, slowDuration: 2,
         summary: "Slows enemies with freezing shots.",
-        description: "Freezing bolt halves enemy speed for two seconds."
+        description: "Freezing bolt halves enemy speed for two seconds. Edge-adjacent Rail Lances gain Shatter; Missile Pods gain briefly chilling blasts."
       },
       mine: {
         id: "mine", name: "Mine Layer", glyph: "X", color: "#ff6f91",
@@ -114,7 +129,7 @@
         baseCost: 32, scale: 1.21, hp: 46, mass: 1.1,
         range: 190, cooldown: .7, damage: 8, coneAngle: .65, burnDamage: 6, burnDuration: 2.5,
         summary: "Close flame cone. Burns enemies.",
-        description: "Hits a short cone and burns for 2.5s. Repeated flames refresh the burn."
+        description: "Hits a short cone and burns for 2.5s. During each flame burst, edge-adjacent Cannon, Scatter and Flak shots also apply a minor burn."
       },
       gravity: {
         id: "gravity", name: "Gravity Well", glyph: "G", color: "#c8a2ff",
@@ -135,7 +150,7 @@
         baseCost: 32, scale: 1.20, hp: 50, mass: 1.15,
         repairAmount: 5, repairInterval: 1.5, repairRadius: 1.5, repairDelay: 2,
         summary: "Repairs nearby tiles out of danger.",
-        description: "Repairs nearby tiles after 2s without damage. Overlapping repair areas do not stack."
+        description: "Repairs nearby tiles, including Repair Arrays, after 2s without hull damage. Overlapping repair areas do not stack."
       },
       reactor: {
         id: "reactor", name: "Reactor Link", glyph: "O", color: "#ffe06a",
@@ -155,8 +170,8 @@
         id: "bulkhead", name: "Aegis Bulkhead", glyph: "B", color: "#9bb4c8",
         baseCost: 13, scale: 1.18, hp: 170, mass: 1.7,
         damageReduction: .12,
-        summary: "Reduces damage to adjacent tiles.",
-        description: "Adjacent tiles take 12% less damage, up to 48%."
+        summary: "Protects the surrounding 3×3 area.",
+        description: "The eight surrounding tiles take 12% less hull damage, up to 48%. Does not protect itself."
       }
     };
 
@@ -631,6 +646,7 @@
     var save = loadSave();
     var audio = window.DriftCombatAudio.create();
     var combatFeedback = window.DriftCombatFeedback;
+    var shipDebris = window.DriftShipDebris;
     audio.muted = save.settings.muted;
     audio.setVolume(save.settings.masterVolume);
     var selectedStarter = isStarterWeapon(save.lastLoadout.selectedWeapon) ? save.lastLoadout.selectedWeapon : "cannon";
@@ -686,6 +702,8 @@
       var presentation = trainingApi.presentation(state, {
         inBuild: game.state === "building", selectedCatalogType: selectedBuildModule,
         selectedTileType: selected ? selected.type : null, matter: game.matter,
+        upgradeWorkspaceOpen: document.body.classList.contains("pc-game")
+          ? document.querySelector(".build-panel").classList.contains("pc-tree-open") : undefined,
         cannonCost: modulePrice("cannon"), cannonUpgradeCost: upgradeOptions.length ? upgradeOptions[0].cost : null,
         cannonDamageBonusPercent: Math.round((cannonDef.damage / MODULES.cannon.damage - 1) * 100),
         cannonRateBonusPercent: Math.round((MODULES.cannon.cooldown / cannonDef.cooldown - 1) * 100),
@@ -1260,6 +1278,8 @@
         supportClock: Math.random() * .6,
         aim: -Math.PI / 2,
         aimTargetId: 0,
+        placementProtectedUntil: 0,
+        projectileHitProtectedUntil: 0,
         flash: 0
       };
     }
@@ -1267,6 +1287,7 @@
     function Game(options) {
       this.training = Boolean(options && options.training);
       this.attackVfx = window.DriftAttackVfx ? window.DriftAttackVfx.create() : null;
+      this.weaponFeedback = window.DriftWeaponFeedback.create();
       this.state = "playing";
       this.coreDef = campaign.getCore(this.training ? "standard" : save.campaign.selectedCore);
       this.coreRanks = Object.assign({}, selectedCoreRanks());
@@ -1278,6 +1299,7 @@
         vx: 0, vy: 0, angularVelocity: 0,
         tiles: new Map()
       };
+      this.handling = {};
       this.ship.tiles.set("0,0", makeTile("core", 0, 0, true, 1, this.training));
       var startingCore = this.ship.tiles.get("0,0");
       startingCore.maxHp *= this.coreDef.hpMultiplier;
@@ -1330,6 +1352,9 @@
       this.enemyGridBucketCount = 0;
       this.enemyById = new Map();
       this.nearbyBuffer = [];
+      this.projectileHitBuffer = [];
+      this.projectileHitCount = 0;
+      this.maxEnemyCollisionRadius = 0;
       this.shieldBuffer = [];
       this.enemyPool = [];
       this.projectilePool = [];
@@ -1754,12 +1779,16 @@
 
     Game.prototype.updateMovement = function (dt) {
       var ship = this.ship;
-      var mass = this.shipMass();
+      var handling = shipHandling.measure(ship.tiles, this.handling);
+      var mass = handling.mass;
       var massFactor = clamp(1 / (1 + .035 * Math.max(0, mass - 4)), .52, 1);
       var drive = this.driveMultiplier();
       var maxSpeed = 230 * massFactor * drive;
       var acceleration = 430 * massFactor * drive;
-      var turnRate = 2.45 * clamp(massFactor + .08, .58, 1) * drive;
+      var turnRate = 2.45 * clamp(massFactor + .08, .58, 1) * drive * handling.turnMultiplier;
+      var turnResponse = 10 * handling.responseMultiplier;
+      // Match pointer gain to turn response so heavier shapes still settle on their heading.
+      var steeringGain = 7.5 * handling.responseMultiplier;
       var mobileSteering = mobileInput.active;
       var mouseSteering = mouseInput.active;
       var mouseX = 0, mouseY = 0, mouseDistance = 0;
@@ -1780,20 +1809,20 @@
           thrust = mouseStrength * mouseStrength * (3 - 2 * mouseStrength);
           var mouseAngle = Math.atan2(mouseX, -mouseY);
           var mouseAngleDelta = Math.atan2(Math.sin(mouseAngle - ship.angle), Math.cos(mouseAngle - ship.angle));
-          targetAngular = clamp(mouseAngleDelta * 7.5, -turnRate, turnRate);
+          targetAngular = clamp(mouseAngleDelta * steeringGain, -turnRate, turnRate);
           thrust *= Math.max(0, Math.cos(mouseAngleDelta));
         }
       } else if (mobileSteering) {
         var desiredAngle = Math.atan2(mobileInput.x, -mobileInput.y);
         var angleDelta = Math.atan2(Math.sin(desiredAngle - ship.angle), Math.cos(desiredAngle - ship.angle));
-        targetAngular = mobileInput.magnitude > .08 ? clamp(angleDelta * 7.5, -turnRate, turnRate) : 0;
+        targetAngular = mobileInput.magnitude > .08 ? clamp(angleDelta * steeringGain, -turnRate, turnRate) : 0;
         thrust = mobileInput.magnitude > .08 ? mobileInput.magnitude * Math.max(0, Math.cos(angleDelta)) : 0;
       } else {
         var turnInput = (keys.KeyD ? 1 : 0) - (keys.KeyA ? 1 : 0);
         targetAngular = turnInput * turnRate;
         thrust = keys.KeyW && keys.KeyS ? 0 : (keys.KeyW ? 1 : 0) - (keys.KeyS ? .58 : 0);
       }
-      ship.angularVelocity = clamp(lerp(ship.angularVelocity, targetAngular, 1 - Math.exp(-10 * dt)), -turnRate, turnRate);
+      ship.angularVelocity = clamp(lerp(ship.angularVelocity, targetAngular, 1 - Math.exp(-turnResponse * dt)), -turnRate, turnRate);
       ship.angle += ship.angularVelocity * dt;
       if (thrust !== 0) {
         // Every input drives the same forward/reverse engine; none can strafe past the turn limit.
@@ -1889,6 +1918,7 @@
 
     Game.prototype.spawnEffect = function (type, x, y, life, color) {
       var effect = this.effectPool.pop() || {};
+      if (shipDebris) shipDebris.release(effect);
       effect.type = type;
       effect.x = x;
       effect.y = y;
@@ -1909,11 +1939,16 @@
       effect.glyph = "";
       effect.moduleType = null;
       effect.weaponType = null;
+      effect.coldPayload = false;
       effect.moduleAim = 0;
       effect.enemyType = null;
       effect.fragment = 0;
       effect.fragmentCount = 0;
       effect.points = null;
+      effect.chunk = null;
+      effect.muzzleX = null;
+      effect.muzzleY = null;
+      effect.incendiary = false;
       this.effects.push(effect);
       return effect;
     };
@@ -1991,6 +2026,54 @@
       return count;
     };
 
+    function receivesEmberCombo(type) {
+      return type === "cannon" || type === "scatter" || type === "flak";
+    }
+
+    Game.prototype.hasActiveEmberNeighbor = function (tile) {
+      if (!receivesEmberCombo(tile.type)) return false;
+      for (var i = 0; i < EMBER_COMBO_OFFSETS.length; i += 1) {
+        var neighbor = this.ship.tiles.get(keyOf(tile.x + EMBER_COMBO_OFFSETS[i][0], tile.y + EMBER_COMBO_OFFSETS[i][1]));
+        if (neighbor && neighbor.type === "ember" && neighbor.emberActiveTime > 1e-6) return true;
+      }
+      return false;
+    };
+
+    Game.prototype.applyEmberComboBurn = function (enemy) {
+      if (enemy.dead || (enemy.burnTimer > 0 && enemy.burnDamage > EMBER_COMBO_BURN_DAMAGE)) return;
+      if (!(enemy.burnTimer > 0)) enemy.burnTickTime = 0;
+      enemy.burnDamage = EMBER_COMBO_BURN_DAMAGE;
+      enemy.burnTimer = Math.max(enemy.burnTimer || 0, EMBER_COMBO_BURN_DURATION);
+      enemy.spreadBurn = false;
+    };
+
+    function receivesCryoCombo(type) {
+      return type === "rail" || type === "missile";
+    }
+
+    Game.prototype.hasCryoNeighbor = function (tile) {
+      return receivesCryoCombo(tile.type) && this.ship.tiles.get(keyOf(tile.x, tile.y)) === tile &&
+        this.countAdjacentType(tile, "cryo") > 0;
+    };
+
+    Game.prototype.applyMissileChill = function (enemy) {
+      if (enemy.dead) return;
+      var factor = enemy.type === "boss" ? Math.max(.8, CRYO_MISSILE_SLOW_FACTOR) : CRYO_MISSILE_SLOW_FACTOR;
+      var active = enemy.slowTimer > 0;
+      // A weak payload must not keep a stronger direct Cryo hit alive.
+      if (active && enemy.slowFactor < factor) return;
+      enemy.slowTimer = active && enemy.slowFactor === factor ?
+        Math.max(enemy.slowTimer, CRYO_MISSILE_SLOW_DURATION) : CRYO_MISSILE_SLOW_DURATION;
+      enemy.slowFactor = factor;
+    };
+
+    Game.prototype.spawnCryoShatter = function (enemy, x, y, angle) {
+      if (this.effects.length >= (currentQualityTier() > 1 ? 65 : (currentQualityTier() > 0 ? 90 : 120))) return;
+      var effect = this.spawnEffect("cryoShatter", x, y, .24, MODULES.cryo.color);
+      effect.radius = Math.min(32, enemyCollisionRadius(enemy) * .65 + 8);
+      effect.angle = angle;
+    };
+
     Game.prototype.weaponCooldownRate = function (tile) {
       var reactors = 0;
       for (var y = -1; y <= 1; y += 1) for (var x = -1; x <= 1; x += 1) {
@@ -2010,7 +2093,13 @@
     };
 
     Game.prototype.bulkheadReduction = function (target) {
-      return Math.min(.48, this.countAdjacentType(target, "bulkhead") * MODULES.bulkhead.damageReduction);
+      var bulkheads = 0;
+      for (var y = -1; y <= 1; y += 1) for (var x = -1; x <= 1; x += 1) {
+        if (!x && !y) continue;
+        var neighbor = this.ship.tiles.get(keyOf(target.x + x, target.y + y));
+        if (neighbor && neighbor.type === "bulkhead") bulkheads += 1;
+      }
+      return Math.min(.48, bulkheads * MODULES.bulkhead.damageReduction);
     };
 
     Game.prototype.updateSpawner = function (dt) {
@@ -2061,8 +2150,8 @@
       var localY = -worldX * sin + worldY * cos;
       var centerGridX = Math.round(localX / TILE_SIZE);
       var centerGridY = Math.round(localY / TILE_SIZE);
-      var limit = radius + TILE_SIZE * .48;
-      var limitSquared = limit * limit;
+      var halfSize = TILE_SIZE / 2;
+      var limit = radius + halfSize;
       var searchRadius = Math.max(1, Math.ceil(limit / TILE_SIZE));
       for (var offsetY = -searchRadius; offsetY <= searchRadius; offsetY += 1) {
         for (var offsetX = -searchRadius; offsetX <= searchRadius; offsetX += 1) {
@@ -2075,13 +2164,88 @@
           var dx = localX - tileLocalX;
           var dy = localY - tileLocalY;
           var d2 = dx * dx + dy * dy;
-          if (d2 <= limitSquared && d2 < bestDistance) {
+          var edgeX = Math.max(0, Math.abs(dx) - halfSize);
+          var edgeY = Math.max(0, Math.abs(dy) - halfSize);
+          if (edgeX * edgeX + edgeY * edgeY <= radius * radius && d2 < bestDistance) {
             bestDistance = d2;
             bestKey = key;
           }
         }
       }
       return bestKey;
+    };
+
+    function sweptCircleHitTime(startX, startY, endX, endY, centerX, centerY, radius) {
+      var dx = endX - startX, dy = endY - startY;
+      var relativeX = startX - centerX, relativeY = startY - centerY;
+      var distanceFromEdge = relativeX * relativeX + relativeY * relativeY - radius * radius;
+      if (distanceFromEdge <= 0) return 0;
+      var speedSquared = dx * dx + dy * dy;
+      if (speedSquared === 0) return -1;
+      var projection = relativeX * dx + relativeY * dy;
+      var discriminant = projection * projection - speedSquared * distanceFromEdge;
+      if (discriminant < 0) return -1;
+      var time = (-projection - Math.sqrt(discriminant)) / speedSquared;
+      return time >= 0 && time <= 1 ? time : -1;
+    }
+
+    function sweptRectangleHitTime(startX, startY, endX, endY, centerX, centerY, halfX, halfY, radius) {
+      var extentX = halfX + radius, extentY = halfY + radius;
+      var dx = endX - startX, dy = endY - startY;
+      var relativeX = startX - centerX, relativeY = startY - centerY;
+      var entry = 0, exit = 1;
+      if (Math.abs(dx) < 1e-10) {
+        if (Math.abs(relativeX) > extentX) return -1;
+      } else {
+        var x1 = (-extentX - relativeX) / dx, x2 = (extentX - relativeX) / dx;
+        entry = Math.max(entry, Math.min(x1, x2));
+        exit = Math.min(exit, Math.max(x1, x2));
+      }
+      if (Math.abs(dy) < 1e-10) {
+        if (Math.abs(relativeY) > extentY) return -1;
+      } else {
+        var y1 = (-extentY - relativeY) / dy, y2 = (extentY - relativeY) / dy;
+        entry = Math.max(entry, Math.min(y1, y2));
+        exit = Math.min(exit, Math.max(y1, y2));
+      }
+      if (entry > exit) return -1;
+      var hitX = relativeX + dx * entry, hitY = relativeY + dy * entry;
+      var edgeX = Math.max(0, Math.abs(hitX) - halfX);
+      var edgeY = Math.max(0, Math.abs(hitY) - halfY);
+      if (edgeX * edgeX + edgeY * edgeY <= radius * radius + 1e-9) return entry;
+
+      // Only the projectile's circular radius rounds the hull's swept corners.
+      var cornerX = hitX < 0 ? -halfX : halfX;
+      var cornerY = hitY < 0 ? -halfY : halfY;
+      var time = sweptCircleHitTime(relativeX, relativeY, endX - centerX, endY - centerY,
+        cornerX, cornerY, radius);
+      return time >= entry - 1e-9 && time <= exit + 1e-9 ? Math.max(entry, time) : -1;
+    }
+
+    Game.prototype.findProjectileImpact = function (startX, startY, endX, endY, radius, ignoredKeys) {
+      var cos = Math.cos(this.ship.angle), sin = Math.sin(this.ship.angle);
+      var worldStartX = startX - this.ship.x, worldStartY = startY - this.ship.y;
+      var worldEndX = endX - this.ship.x, worldEndY = endY - this.ship.y;
+      var localStartX = worldStartX * cos + worldStartY * sin;
+      var localStartY = -worldStartX * sin + worldStartY * cos;
+      var localEndX = worldEndX * cos + worldEndY * sin;
+      var localEndY = -worldEndX * sin + worldEndY * cos;
+      var extent = TILE_SIZE / 2 + radius;
+      var minX = Math.ceil((Math.min(localStartX, localEndX) - extent) / TILE_SIZE);
+      var maxX = Math.floor((Math.max(localStartX, localEndX) + extent) / TILE_SIZE);
+      var minY = Math.ceil((Math.min(localStartY, localEndY) - extent) / TILE_SIZE);
+      var maxY = Math.floor((Math.max(localStartY, localEndY) + extent) / TILE_SIZE);
+      var bestKey = null, bestTime = Infinity;
+      for (var gridY = minY; gridY <= maxY; gridY += 1) {
+        for (var gridX = minX; gridX <= maxX; gridX += 1) {
+          var key = keyOf(gridX, gridY);
+          if (!this.ship.tiles.has(key) || (ignoredKeys && ignoredKeys.has(key))) continue;
+          var time = sweptRectangleHitTime(localStartX, localStartY, localEndX, localEndY,
+            gridX * TILE_SIZE, gridY * TILE_SIZE, TILE_SIZE / 2, TILE_SIZE / 2, radius);
+          if (time >= 0 && time < bestTime) { bestTime = time; bestKey = key; }
+        }
+      }
+      return bestKey === null ? null : { key: bestKey, time: bestTime };
     };
 
     function enemyDirectionalExtent(enemy, axisX, axisY) {
@@ -2121,6 +2285,21 @@
       var deltaForward = localForward - nearestForward;
       var deltaSide = localSide - nearestSide;
       return deltaForward * deltaForward + deltaSide * deltaSide <= radius * radius;
+    }
+
+    function enemyProjectileHitTime(enemy, projectile, startX, startY) {
+      var halfLength = enemy.halfLength || enemy.radius || 0;
+      var halfWidth = enemy.halfWidth || enemy.radius || 0;
+      if (halfLength === halfWidth) {
+        return sweptCircleHitTime(startX, startY, projectile.x, projectile.y,
+          enemy.x, enemy.y, halfLength + projectile.radius);
+      }
+      var facing = enemyCollisionFacing(enemy), cos = Math.cos(facing), sin = Math.sin(facing);
+      var dx = startX - enemy.x, dy = startY - enemy.y;
+      var endX = projectile.x - enemy.x, endY = projectile.y - enemy.y;
+      return sweptRectangleHitTime(dx * cos + dy * sin, -dx * sin + dy * cos,
+        endX * cos + endY * sin, -endX * sin + endY * cos,
+        0, 0, halfLength, halfWidth, projectile.radius);
     }
 
     function enemyMuzzlePosition(enemy, aimX, aimY) {
@@ -2387,6 +2566,8 @@
       projectile.kind = kind;
       projectile.x = x;
       projectile.y = y;
+      projectile.launchX = null;
+      projectile.launchY = null;
       projectile.vx = vx;
       projectile.vy = vy;
       projectile.damage = damage;
@@ -2402,6 +2583,9 @@
       projectile.penetration = 0; projectile.secondHitScale = 1; projectile.knockback = 125;
       projectile.freezeHits = 0; projectile.clusterCount = 0; projectile.chainMine = false;
       projectile.mineFragments = false; projectile.sourceTile = null; projectile.detonated = false;
+      projectile.incendiary = false;
+      projectile.shatter = false;
+      projectile.coldPayload = false;
       if (projectile.hitIds) projectile.hitIds.clear();
       if ((kind === "rail" || kind === "sniperShot") && !projectile.hitIds) projectile.hitIds = new Set();
       if (this.attackVfx) this.attackVfx.resetProjectile(projectile);
@@ -2420,9 +2604,11 @@
       }
       this.enemyGrid.clear();
       this.enemyGridBucketCount = 0;
+      this.maxEnemyCollisionRadius = 0;
       for (var i = 0; i < this.enemies.length; i += 1) {
         var enemy = this.enemies[i];
         if (enemy.dead) continue;
+        this.maxEnemyCollisionRadius = Math.max(this.maxEnemyCollisionRadius, enemyCollisionRadius(enemy));
         var gx = Math.floor(enemy.x / SPATIAL_CELL_SIZE);
         var gy = Math.floor(enemy.y / SPATIAL_CELL_SIZE);
         var key = spatialKey(gx, gy);
@@ -2460,6 +2646,29 @@
     Game.prototype.radiusCandidates = function (x, y, radius) {
       if (!this.enemyGrid || this.enemyGrid.size === 0 || !this.collectNearbyEnemies) return this.enemies;
       return this.collectNearbyEnemies(x, y, Math.ceil(radius / SPATIAL_CELL_SIZE));
+    };
+
+    Game.prototype.collectProjectileHits = function (projectile, startX, startY) {
+      var distance = Math.hypot(projectile.x - startX, projectile.y - startY);
+      var candidates = this.radiusCandidates((startX + projectile.x) / 2, (startY + projectile.y) / 2,
+        distance / 2 + this.maxEnemyCollisionRadius + projectile.radius);
+      var hits = this.projectileHitBuffer, count = 0;
+      for (var i = 0; i < candidates.length; i += 1) {
+        var enemy = candidates[i];
+        if (enemy.dead || (projectile.hitIds && projectile.hitIds.has(enemy.id))) continue;
+        var time = enemyProjectileHitTime(enemy, projectile, startX, startY);
+        if (time < 0) continue;
+        var hit = hits[count] || {};
+        hit.enemy = enemy; hit.time = time;
+        var index = count;
+        // Reuse hit records while keeping first contact ahead of later hulls.
+        while (index > 0 && hits[index - 1].time > time) {
+          hits[index] = hits[index - 1]; index -= 1;
+        }
+        hits[index] = hit; count += 1;
+      }
+      this.projectileHitCount = count;
+      return hits;
     };
 
     Game.prototype.resolveEnemyOverlaps = function () {
@@ -2546,11 +2755,14 @@
     };
 
     Game.prototype.updateProjectiles = function (dt) {
-      var shieldDef = this.weaponDefinitions ? this.weaponDefinitions.shield : MODULES.shield, repairDef = this.weaponDefinitions ? this.weaponDefinitions.repair : MODULES.repair;
       var missileSteering = 1 - Math.exp(-5 * dt);
       var mineDamping = Math.exp(-4.5 * dt);
       for (var i = 0; i < this.projectiles.length; i += 1) {
+        if (this.finished) break;
         var projectile = this.projectiles[i];
+        var startX = projectile.x, startY = projectile.y;
+        var launchX = projectile.launchX, launchY = projectile.launchY;
+        projectile.launchX = null; projectile.launchY = null;
         projectile.life -= dt;
         if (projectile.life <= 0) continue;
         if (projectile.kind === "missile") {
@@ -2573,7 +2785,12 @@
         projectile.x += projectile.vx * dt;
         projectile.y += projectile.vy * dt;
         if (projectile.friendly) {
-          var nearby = this.nearbyEnemies(projectile.x, projectile.y);
+          var sweptTravel = projectile.kind === "rail" || projectile.kind === "cryo";
+          var pathStartX = Number.isFinite(launchX) ? launchX : startX;
+          var pathStartY = Number.isFinite(launchY) ? launchY : startY;
+          var nearby = sweptTravel ? this.collectProjectileHits(projectile, pathStartX, pathStartY) :
+            this.nearbyEnemies(projectile.x, projectile.y);
+          var nearbyCount = sweptTravel ? this.projectileHitCount : nearby.length;
           if (projectile.kind === "mine") {
             if (projectile.armTime > 0) continue;
             for (var mineTargetIndex = 0; mineTargetIndex < nearby.length; mineTargetIndex += 1) {
@@ -2587,15 +2804,33 @@
             }
             continue;
           }
-          for (var n = 0; n < nearby.length; n += 1) {
-            var enemy = nearby[n];
-            if (!enemy.dead && enemyIntersectsCircle(enemy, projectile.x, projectile.y, projectile.radius)) {
+          for (var n = 0; n < nearbyCount; n += 1) {
+            var enemy = sweptTravel ? nearby[n].enemy : nearby[n];
+            if (enemy.dead) continue;
+            var launchHit = sweptTravel ? nearby[n].time :
+              Number.isFinite(launchX) ? projectileLaunchHit(enemy, projectile, launchX, launchY) : -1;
+            if (launchHit >= 0 || enemyIntersectsCircle(enemy, projectile.x, projectile.y, projectile.radius)) {
+              var hitX = launchHit >= 0 ? pathStartX + (projectile.x - pathStartX) * launchHit : projectile.x;
+              var hitY = launchHit >= 0 ? pathStartY + (projectile.y - pathStartY) * launchHit : projectile.y;
               if (projectile.kind === "missile") {
-                this.explodeMissile(projectile);
+                projectile.x = hitX; projectile.y = hitY;
+                var primaryImpact = null;
+                if (enemy.type === "boss") {
+                  var contactX = hitX - enemy.x, contactY = hitY - enemy.y;
+                  var contactDistance = Math.hypot(contactX, contactY);
+                  // Detonate on the hull, not outside blast range at the missile's outer edge.
+                  if (contactDistance > enemy.radius) primaryImpact = {
+                    x: enemy.x + contactX * enemy.radius / contactDistance,
+                    y: enemy.y + contactY * enemy.radius / contactDistance,
+                    damage: projectile.damage, coldPayload: projectile.coldPayload
+                  };
+                }
+                this.explodeMissile(projectile, primaryImpact);
                 projectile.life = 0;
                 break;
               } else if (projectile.kind === "cryo") {
-                this.damageEnemy(enemy, projectile.damage, projectile.x, projectile.y);
+                projectile.x = hitX; projectile.y = hitY;
+                this.damageEnemy(enemy, projectile.damage, hitX, hitY);
                 if (!enemy.dead) {
                   enemy.slowFactor = Math.min(enemy.slowFactor, enemy.type === "boss" ? Math.max(.8, projectile.slowFactor) : projectile.slowFactor);
                   enemy.slowTimer = Math.max(enemy.slowTimer, projectile.slowDuration);
@@ -2605,24 +2840,31 @@
                     if (enemy.freezeHitTimes.length >= 4) { enemy.freezeUntil = this.elapsed + .6; enemy.freezeImmuneUntil = this.elapsed + 3.6; enemy.freezeHitTimes = []; }
                   }
                 }
-                this.burst(projectile.x, projectile.y, projectile.color, 6, 65);
+                this.burst(hitX, hitY, projectile.color, 6, 65);
                 projectile.life = 0;
                 break;
               } else if (projectile.kind === "rail" || projectile.penetration) {
                 if (projectile.hitIds.has(enemy.id)) continue;
                 projectile.hitIds.add(enemy.id);
-                this.damageEnemy(enemy, projectile.damage * (projectile.hitIds.size > 1 ? projectile.secondHitScale : 1), projectile.x, projectile.y);
+                var shatterHit = projectile.kind === "rail" && projectile.shatter && ((enemy.slowTimer > 0 && enemy.slowFactor < 1) ||
+                  (enemy.type !== "boss" && this.elapsed < (enemy.freezeUntil || 0)));
+                var hitDamage = projectile.damage * (projectile.hitIds.size > 1 ? projectile.secondHitScale : 1);
+                if (shatterHit) hitDamage *= CRYO_SHATTER_DAMAGE_MULTIPLIER;
+                this.damageEnemy(enemy, hitDamage, hitX, hitY);
+                if (shatterHit) this.spawnCryoShatter(enemy, hitX, hitY, Math.atan2(projectile.vy, projectile.vx));
+                if (projectile.incendiary) this.applyEmberComboBurn(enemy);
                 if (projectile.penetration && projectile.hitIds.size >= projectile.penetration) projectile.life = 0;
                 if (!enemy.dead && enemy.type !== "boss" && projectile.kind === "rail") {
                   var railSpeed = Math.max(1, Math.sqrt(projectile.vx * projectile.vx + projectile.vy * projectile.vy));
                   enemy.vx += projectile.vx / railSpeed * projectile.knockback;
                   enemy.vy += projectile.vy / railSpeed * projectile.knockback;
                 }
-                this.burst(projectile.x, projectile.y, projectile.color, 5, 95);
+                this.burst(hitX, hitY, projectile.color, 5, 95);
                 if (projectile.life <= 0) break;
               } else {
-                this.damageEnemy(enemy, projectile.damage, projectile.x, projectile.y);
-                this.burst(projectile.x, projectile.y, projectile.color, 3, 55);
+                this.damageEnemy(enemy, projectile.damage, hitX, hitY);
+                if (projectile.incendiary) this.applyEmberComboBurn(enemy);
+                this.burst(hitX, hitY, projectile.color, 3, 55);
                 projectile.life = 0;
                 break;
               }
@@ -2630,40 +2872,32 @@
           }
         } else {
           var piercingShot = projectile.kind === "sniperShot";
-          var tileKey = this.findImpactedTile(projectile.x, projectile.y, projectile.radius, piercingShot ? projectile.hitIds : null);
-          if (tileKey) {
+          var endX = projectile.x, endY = projectile.y;
+          // A fast shot can cross both Sniper targets during one simulation step.
+          for (var impactIndex = 0; impactIndex < (piercingShot ? 2 : 1) && projectile.life > 0; impactIndex += 1) {
+            var impact = this.findProjectileImpact(startX, startY, endX, endY,
+              projectile.radius, piercingShot ? projectile.hitIds : null);
+            if (!impact) break;
+            var tileKey = impact.key;
+            var hitX = startX + (endX - startX) * impact.time;
+            var hitY = startY + (endY - startY) * impact.time;
             var hitTile = this.ship.tiles.get(tileKey);
             var hpBeforeImpact = hitTile.hp;
             var canPenetrate = piercingShot && projectile.hitIds.size === 0 &&
               hitTile.type !== "armor" && hitTile.type !== "bulkhead" && hitTile.type !== "core";
-            var shieldsBeforeImpact = 0;
             var hullReduction = canPenetrate ? this.bulkheadReduction(hitTile) : 0;
-            if (canPenetrate) {
-              this.ship.tiles.forEach(function (tile) {
-                if (tile.type !== "shield" || tile.shield <= 0) return;
-                var shieldDx = tile.x - hitTile.x;
-                var shieldDy = tile.y - hitTile.y;
-                if (shieldDx * shieldDx + shieldDy * shieldDy <= shieldDef.shieldRadius * shieldDef.shieldRadius) {
-                  shieldsBeforeImpact += tile.shield;
-                }
-              });
-            }
             if (piercingShot) projectile.hitIds.add(tileKey);
-            this.applyDamageToTile(tileKey, projectile.damage);
-            this.burst(projectile.x, projectile.y, projectile.color, 4, 55);
+            this.applyProjectileDamageToTile(tileKey, projectile.damage);
+            this.burst(hitX, hitY, projectile.color, 4, 55);
             if (canPenetrate && hitTile.hp < hpBeforeImpact) {
-              // applyDamageToTile leaves its participating shields in this buffer,
-              // including any detached nodes, so lost capacity is not counted as absorption.
-              var shieldsAfterImpact = 0;
-              for (var shieldIndex = 0; shieldIndex < this.shieldBuffer.length; shieldIndex += 1) {
-                shieldsAfterImpact += this.shieldBuffer[shieldIndex].shield;
-              }
               var shieldAbsorption = this.lastShieldAbsorbed || 0;
               projectile.damage = Math.max(0, projectile.damage - shieldAbsorption) * (1 - hullReduction) * .65;
               if (projectile.damage <= 0) projectile.life = 0;
             } else {
               projectile.life = 0;
             }
+            if (projectile.life <= 0) { projectile.x = hitX; projectile.y = hitY; }
+            if (this.finished) break;
           }
         }
       }
@@ -2696,19 +2930,31 @@
         if (d2 > radius * radius) continue;
         var falloff = 1 - Math.sqrt(d2) / radius * .5;
         this.damageEnemy(enemy, projectile.damage * falloff);
+        if (weaponType === "missile" && projectile.coldPayload) this.applyMissileChill(enemy);
       }
       var blastEffect = this.spawnEffect("ring", projectile.x, projectile.y, .28, color);
       blastEffect.radius = 5;
       blastEffect.maxRadius = radius;
       blastEffect.weaponType = weaponType || null;
+      blastEffect.coldPayload = weaponType === "missile" && Boolean(projectile.coldPayload);
       this.burst(projectile.x, projectile.y, color, particleCount, 150);
       if (distanceSquared(projectile.x, projectile.y, this.ship.x, this.ship.y) < 420 * 420) this.addShake(1.2);
       audio.tone(75, .14, .04, "sawtooth", -25);
     };
 
-    Game.prototype.explodeMissile = function (projectile) {
-      if (projectile.clusterCount) for (var child = 0; child < 3; child += 1) this.explodeBlast({x:projectile.x+Math.cos(child*TAU/3)*45,y:projectile.y+Math.sin(child*TAU/3)*45,damage:projectile.damage*.25},50,projectile.color,6,"missile");
-      this.explodeBlast(projectile, projectile.blastRadius || 74, "#ffd96a", 12, "missile");
+    Game.prototype.explodeMissile = function (projectile, primaryImpact) {
+      var color = projectile.coldPayload ? MODULES.cryo.color : "#ffd96a";
+      if (projectile.clusterCount) {
+        for (var child = 0; child < 3; child += 1) {
+          this.explodeBlast({
+            x: projectile.x + Math.cos(child * TAU / 3) * 45,
+            y: projectile.y + Math.sin(child * TAU / 3) * 45,
+            damage: projectile.damage * .25,
+            coldPayload: projectile.coldPayload
+          }, 50, projectile.coldPayload ? color : projectile.color, 6, "missile");
+        }
+      }
+      this.explodeBlast(primaryImpact || projectile, projectile.blastRadius || 74, color, 12, "missile");
     };
 
     Game.prototype.findNearestHostileProjectile = function (origin, range) {
@@ -2725,7 +2971,7 @@
       return nearest;
     };
 
-    Game.prototype.fireFlakAirburst = function (origin, target, def, damageMultiplier) {
+    Game.prototype.fireFlakAirburst = function (origin, target, def, damageMultiplier, visualStart, incendiary) {
       var impactX = target.x;
       var impactY = target.y;
       var damage = def.damage * damageMultiplier;
@@ -2737,6 +2983,7 @@
         if (enemyDistanceSquared > def.blastRadius * def.blastRadius) continue;
         var falloff = 1 - Math.sqrt(enemyDistanceSquared) / def.blastRadius * .4;
         this.damageEnemy(enemy, damage * falloff);
+        if (incendiary) this.applyEmberComboBurn(enemy);
       }
       for (var p = 0; p < this.projectiles.length; p += 1) {
         var projectile = this.projectiles[p];
@@ -2745,19 +2992,50 @@
           projectile.life = 0;
         }
       }
-      var flakBeam = this.spawnEffect("beam", origin.x, origin.y, .07, def.color);
+      var flakStart = visualStart || origin;
+      var flakColor = incendiary ? MODULES.ember.color : def.color;
+      var flakBeam = this.spawnEffect("beam", flakStart.x, flakStart.y, .07, flakColor);
       flakBeam.x2 = impactX;
       flakBeam.y2 = impactY;
       flakBeam.width = 2;
-      var flakRing = this.spawnEffect("ring", impactX, impactY, .24, def.color);
+      var flakRing = this.spawnEffect("ring", impactX, impactY, .24, flakColor);
       flakRing.radius = 5;
       flakRing.maxRadius = def.blastRadius;
       flakRing.weaponType = "flak";
-      this.burst(impactX, impactY, def.color, 12, 150);
+      flakRing.incendiary = Boolean(incendiary);
+      this.burst(impactX, impactY, flakColor, 12, 150);
     };
 
-    Game.prototype.fireWeaponVolley = function (origin, nx, ny, def, kind, speed, radius, life, damageMultiplier, targetId) {
+    Game.prototype.weaponMuzzle = function (tile, origin, nx, ny, port, firingDef) {
+      var facing = window.DriftWeaponMuzzles.hullFixed(tile.type) ? this.ship.angle - Math.PI / 2 : Math.atan2(ny, nx);
+      var recoil = firingDef ? window.DriftWeaponFeedback.shotOffset(tile, firingDef) : window.DriftWeaponFeedback.offset(tile);
+      return window.DriftWeaponMuzzles.point(tile.type, origin, facing, TILE_SIZE, recoil, port);
+    };
+
+    function projectileLaunchHit(enemy, projectile, x, y) {
+      // Sweep only the launch segment so an overhanging barrel has no blind spot.
+      var dx = projectile.x - x, dy = projectile.y - y;
+      var lengthSquared = dx * dx + dy * dy;
+      var t = lengthSquared ? clamp(((enemy.x - x) * dx + (enemy.y - y) * dy) / lengthSquared, 0, 1) : 0;
+      return enemyIntersectsCircle(enemy, x + dx * t, y + dy * t, projectile.radius) ? t : -1;
+    }
+
+    Game.prototype.flashWeaponMuzzle = function (tile, muzzle, nx, ny, port) {
+      if (this.attackVfx) this.attackVfx.shoot(tile.type, muzzle, nx, ny, {
+        game: this, tile: tile, port: port || 0,
+        incendiary: (tile.type === "cannon" || tile.type === "scatter") && this.hasActiveEmberNeighbor(tile),
+        shatter: tile.type === "rail" && this.hasCryoNeighbor(tile),
+        coldPayload: tile.type === "missile" && this.hasCryoNeighbor(tile)
+      });
+    };
+
+    Game.prototype.fireWeaponVolley = function (origin, nx, ny, def, kind, speed, radius, life, damageMultiplier, targetId, sourceTile) {
       var shots = def.shots || 1;
+      var fired = 0;
+      var tile = sourceTile || { type: def.id, muzzleCycle: 0 };
+      var incendiary = tile.type === "cannon" && this.hasActiveEmberNeighbor(tile);
+      var coldPayload = kind === "missile" && this.hasCryoNeighbor(tile);
+      var flashed = [];
       var direction = Math.atan2(ny, nx);
       for (var shot = 0; shot < shots; shot += 1) {
         var offset = shot - (shots - 1) / 2;
@@ -2768,137 +3046,182 @@
         if (kind === "cryo") angle = direction + (shot === 0 ? 0 : Math.ceil(shot / 2) * (shot % 2 ? -1 : 1) * .14);
         var vx = Math.cos(angle);
         var vy = Math.sin(angle);
-        var muzzleOffset = cannonVolley ? offset * 6 : 0;
+        var port = kind === "missile" ? (tile.muzzleCycle || 0) % window.DriftWeaponMuzzles.count(tile.type) : 0;
+        var muzzle = this.weaponMuzzle(tile, origin, nx, ny, port, def);
         if (def.distributeTargets) {
           var targets = this.enemies.filter(function(enemy) { return !enemy.dead && distanceSquared(origin.x,origin.y,enemy.x,enemy.y) <= def.range * def.range; });
           if (targets.length) targetId = targets[shot % targets.length].id;
         }
-        var projectile = this.spawnProjectile(true, kind, origin.x + vx * 18 - ny * muzzleOffset, origin.y + vy * 18 + nx * muzzleOffset,
-          vx * speed, vy * speed, def.damage * damageMultiplier, radius, life, def.color,
+        var projectile = this.spawnProjectile(true, kind, muzzle.x, muzzle.y,
+          vx * speed, vy * speed, def.damage * damageMultiplier, radius, life,
+          coldPayload ? MODULES.cryo.color : incendiary ? MODULES.ember.color : def.color,
           targetId, def.slowFactor, def.slowDuration, 0, def.blastRadius);
         if (projectile) {
+          fired += 1;
+          projectile.launchX = origin.x; projectile.launchY = origin.y;
+          projectile.incendiary = incendiary;
+          projectile.coldPayload = coldPayload;
+          if (!flashed[port]) { this.flashWeaponMuzzle(tile, muzzle, nx, ny, port); flashed[port] = true; }
+          if (kind === "missile") tile.muzzleCycle = (port + 1) % window.DriftWeaponMuzzles.count(tile.type);
           projectile.penetration = def.penetration || 0; projectile.secondHitScale = def.secondHitScale || 1;
           projectile.freezeHits = def.freezeHits || 0; projectile.clusterCount = def.clusterCount || 0;
           if (projectile.penetration && !projectile.hitIds) projectile.hitIds = new Set();
         }
       }
+      return fired;
     };
 
     Game.prototype.updateWeapons = function (dt) {
       var damageMultiplier = 1 + this.coreBonus("damage");
+      this.weaponFeedback.begin(dt, this.shipMass());
+      // Resolve actual Ember discharges first so simultaneous combos ignore placement order.
       this.ship.tiles.forEach(function (tile) {
-        if (!isWeaponType(tile.type)) return;
-        tile.cooldown -= dt * this.weaponCooldownRate(tile);
-        if (tile.activeBeam) {
-          var beam = tile.activeBeam, beamStep = Math.min(dt, beam.remaining);
-          beam.remaining -= beamStep;
-          for (var ray = 0; ray < (beam.def.beamCount || 1); ray += 1) {
-            var rayAngle = Math.atan2(beam.ny, beam.nx) + ((beam.def.beamCount || 1) > 1 ? (ray ? .12 : -.12) : 0);
-            this.firePiercingBeam(beam.origin, Math.cos(rayAngle), Math.sin(rayAngle), beam.def.range, beam.def.damage * beam.multiplier * beamStep / beam.duration, beam.def.color, beam.def.beamWidth || 11, Math.max(.04, beamStep));
-          }
-          if (beam.remaining <= 0) tile.activeBeam = null;
-          return;
-        }
-        if (tile.pendingBurst) {
-          var burst = tile.pendingBurst; burst.clock -= dt;
-          if (burst.clock <= 0) {
-            var burstDef = burst.def.secondWave ? Object.assign({}, burst.def, { damage:burst.def.damage * .7, knockback:burst.def.knockback * .5 }) : burst.def;
-            this.fireAttack(tile, this.gridToWorld(tile.x,tile.y), burst.nx,burst.ny,burstDef,burst.target,burst.multiplier);
-            burst.remaining -= 1; burst.clock += burst.interval;
-            if (!burst.remaining) tile.pendingBurst = null;
-          }
-          return;
-        }
-        var readyToFire = !(tile.cooldown > 0);
-        if (tile.type === "pulse" && !readyToFire) return;
-        var def = this.weaponDefinitions ? this.weaponDefinitions[tile.type] : MODULES[tile.type];
-        var origin = this.gridToWorld(tile.x, tile.y);
-        var target = tile.type === "flak" ? this.findNearestHostileProjectile(origin, def.range) : null;
-        if (!target && !readyToFire && tile.aimTargetId) {
-          target = this.enemyById.get(tile.aimTargetId);
-          if (target && (target.dead || distanceSquared(origin.x, origin.y, target.x, target.y) >= def.range * def.range)) target = null;
-        }
-        if (!target) target = this.findTarget(tile, def.range);
-        tile.aimTargetId = target && target.id || 0;
-        if (tile.type !== "pulse") {
-          // Hull-relative aim follows ship turns while idle; firing still uses the target vector below.
-          var desiredAim = target ? Math.atan2(target.y - origin.y, target.x - origin.x) - this.ship.angle : -Math.PI / 2;
-          var aimDelta = Math.atan2(Math.sin(desiredAim - tile.aim), Math.cos(desiredAim - tile.aim));
-          tile.aim += aimDelta * (target ? 1 : 1 - Math.exp(-10 * dt));
-          tile.aim = Math.atan2(Math.sin(tile.aim), Math.cos(tile.aim));
-        }
-        if (!readyToFire || !target) return;
-        if (tile.type === "gravity" && this.gravityFields.some(function(field) { return field.sourceTile === tile && field.life > 0; })) return;
-        var dx = target.x - origin.x;
-        var dy = target.y - origin.y;
-        var distance = Math.max(1, Math.sqrt(dx * dx + dy * dy));
-        var nx = dx / distance;
-        var ny = dy / distance;
-        tile.cooldown = def.cooldown;
-        this.fireAttack(tile, origin, nx, ny, def, target, damageMultiplier);
-        if (def.burstCount > 1) tile.pendingBurst = { remaining: def.burstCount - 1, clock: def.burstInterval, interval: def.burstInterval, nx:nx, ny:ny, def:def, target:target, multiplier:damageMultiplier };
-
+        if (tile.type !== "ember") return;
+        tile.emberActiveTime = Math.max(0, (tile.emberActiveTime || 0) - dt);
+        this.updateWeapon(tile, dt, damageMultiplier);
       }, this);
+      this.ship.tiles.forEach(function (tile) {
+        if (tile.type !== "ember") this.updateWeapon(tile, dt, damageMultiplier);
+      }, this);
+      this.weaponFeedback.flush(this.ship);
+    };
+
+    Game.prototype.updateWeapon = function (tile, dt, damageMultiplier) {
+      if (!isWeaponType(tile.type)) return;
+      window.DriftWeaponFeedback.settle(tile, dt);
+      tile.cooldown -= dt * this.weaponCooldownRate(tile);
+      if (tile.activeBeam) {
+        var beam = tile.activeBeam, beamStep = Math.min(dt, beam.remaining);
+        tile.aim = Math.atan2(beam.ny, beam.nx) - this.ship.angle;
+        var beamMuzzle = this.weaponMuzzle(tile, this.gridToWorld(tile.x, tile.y), beam.nx, beam.ny, 0);
+        beam.remaining -= beamStep;
+        for (var ray = 0; ray < (beam.def.beamCount || 1); ray += 1) {
+          var rayAngle = Math.atan2(beam.ny, beam.nx) + ((beam.def.beamCount || 1) > 1 ? (ray ? .12 : -.12) : 0);
+          this.firePiercingBeam(beam.origin, Math.cos(rayAngle), Math.sin(rayAngle), beam.def.range, beam.def.damage * beam.multiplier * beamStep / beam.duration, beam.def.color, beam.def.beamWidth || 11, Math.max(.04, beamStep), beamMuzzle);
+        }
+        if (beam.remaining <= 0) tile.activeBeam = null;
+        return;
+      }
+      if (tile.pendingBurst) {
+        var burst = tile.pendingBurst; burst.clock -= dt;
+        if (burst.clock <= 0) {
+          var burstDef = burst.def.secondWave ? Object.assign({}, burst.def, { damage:burst.def.damage * .7, knockback:burst.def.knockback * .5 }) : burst.def;
+          this.fireAttack(tile, this.gridToWorld(tile.x,tile.y), burst.nx,burst.ny,burstDef,burst.target,burst.multiplier);
+          burst.remaining -= 1; burst.clock += burst.interval;
+          if (!burst.remaining) tile.pendingBurst = null;
+        }
+        return;
+      }
+      var readyToFire = !(tile.cooldown > 0);
+      if (tile.type === "pulse" && !readyToFire) return;
+      var def = this.weaponDefinitions ? this.weaponDefinitions[tile.type] : MODULES[tile.type];
+      var origin = this.gridToWorld(tile.x, tile.y);
+      var target = tile.type === "flak" ? this.findNearestHostileProjectile(origin, def.range) : null;
+      if (!target && !readyToFire && tile.aimTargetId) {
+        target = this.enemyById.get(tile.aimTargetId);
+        if (target && (target.dead || distanceSquared(origin.x, origin.y, target.x, target.y) >= def.range * def.range)) target = null;
+      }
+      if (!target) target = this.findTarget(tile, def.range);
+      tile.aimTargetId = target && target.id || 0;
+      if (tile.type !== "pulse") {
+        // Hull-relative aim follows ship turns while idle; firing still uses the target vector below.
+        var desiredAim = target ? Math.atan2(target.y - origin.y, target.x - origin.x) - this.ship.angle : -Math.PI / 2;
+        var aimDelta = Math.atan2(Math.sin(desiredAim - tile.aim), Math.cos(desiredAim - tile.aim));
+        tile.aim += aimDelta * (target ? 1 : 1 - Math.exp(-10 * dt));
+        tile.aim = Math.atan2(Math.sin(tile.aim), Math.cos(tile.aim));
+      }
+      if (!readyToFire || !target) return;
+      if (tile.type === "gravity" && this.gravityFields.some(function(field) { return field.sourceTile === tile && field.life > 0; })) return;
+      var dx = target.x - origin.x;
+      var dy = target.y - origin.y;
+      var distance = Math.max(1, Math.sqrt(dx * dx + dy * dy));
+      var nx = dx / distance;
+      var ny = dy / distance;
+      tile.cooldown = def.cooldown;
+      this.fireAttack(tile, origin, nx, ny, def, target, damageMultiplier);
+      if (def.burstCount > 1) tile.pendingBurst = { remaining: def.burstCount - 1, clock: def.burstInterval, interval: def.burstInterval, nx:nx, ny:ny, def:def, target:target, multiplier:damageMultiplier };
     };
 
     Game.prototype.fireAttack = function(tile, origin, nx, ny, def, target, damageMultiplier) {
+        // Bursts keep their world firing vector while the hull turns underneath.
+        if (!window.DriftWeaponMuzzles.hullFixed(tile.type) && tile.type !== "pulse" && tile.type !== "gravity") tile.aim = Math.atan2(ny, nx) - this.ship.angle;
+        var muzzle = this.weaponMuzzle(tile, origin, nx, ny, 0, def);
         if (tile.type === "cannon") {
-          this.fireWeaponVolley(origin, nx, ny, def, def.projectileKind || "cannon", 560, 3, 1.4, damageMultiplier);
-          this.burst(origin.x + nx * 18, origin.y + ny * 18, def.color, 2, 35);
+          var cannonFired = this.fireWeaponVolley(origin, nx, ny, def, def.projectileKind || "cannon", 560, 3, 1.4, damageMultiplier, undefined, tile);
+          if (cannonFired) this.weaponFeedback.fire(tile, def, nx, ny);
+          this.burst(muzzle.x, muzzle.y, def.color, 2, 35);
           audio.tone(250, .035, .018, "square", -35);
         } else if (tile.type === "laser") {
           if (def.beamDuration) tile.activeBeam = { origin: origin, nx: nx, ny: ny, remaining: def.beamDuration, duration: def.beamDuration, def: def, multiplier: damageMultiplier };
-          else this.firePiercingBeam(origin, nx, ny, def.range, def.damage * damageMultiplier, def.color, def.beamWidth || 11, .13);
+          else this.firePiercingBeam(origin, nx, ny, def.range, def.damage * damageMultiplier, def.color, def.beamWidth || 11, .13, muzzle);
           audio.tone(520, .1, .024, "sawtooth", 210);
         } else if (tile.type === "missile") {
-          this.fireWeaponVolley(origin, nx, ny, def, "missile", 180, 5, 3.4, damageMultiplier, target.id);
+          var missilesFired = this.fireWeaponVolley(origin, nx, ny, def, "missile", 180, 5, 3.4, damageMultiplier, target.id, tile);
           audio.tone(170, .08, .02, "triangle", 45);
+          if (missilesFired && this.weaponFeedback.fire(tile, def, nx, ny)) audio.heavyShot("missile");
         } else if (tile.type === "scatter") {
+          var pelletsFired = 0;
+          var incendiary = this.hasActiveEmberNeighbor(tile);
           for (var pellet = 0; pellet < def.pellets; pellet += 1) {
             var pelletAngle = Math.atan2(ny, nx) + (pellet - (def.pellets - 1) / 2) * def.spread / (def.pellets - 1);
             var pelletX = Math.cos(pelletAngle);
             var pelletY = Math.sin(pelletAngle);
-            this.spawnProjectile(true, "scatter", origin.x + pelletX * 18, origin.y + pelletY * 18, pelletX * 520, pelletY * 520, def.damage * damageMultiplier, 2.5, def.range / 520, def.color);
+            var pelletShot = this.spawnProjectile(true, "scatter", muzzle.x, muzzle.y, pelletX * 520, pelletY * 520, def.damage * damageMultiplier, 2.5, def.range / 520, incendiary ? MODULES.ember.color : def.color);
+            if (pelletShot) { pelletsFired += 1; pelletShot.launchX = origin.x; pelletShot.launchY = origin.y; pelletShot.incendiary = incendiary; }
           }
-          this.burst(origin.x + nx * 18, origin.y + ny * 18, def.color, 5, 65);
+          if (pelletsFired) this.flashWeaponMuzzle(tile, muzzle, nx, ny, 0);
+          this.burst(muzzle.x, muzzle.y, def.color, 5, 65);
           audio.tone(150, .07, .025, "square", -45);
+          if (pelletsFired && this.weaponFeedback.fire(tile, def, nx, ny)) audio.heavyShot("scatter");
         } else if (tile.type === "arc") {
-          this.fireArc(origin, target, def, damageMultiplier);
+          this.fireArc(muzzle, target, def, damageMultiplier);
           audio.tone(430, .12, .025, "sawtooth", 390);
         } else if (tile.type === "rail") {
-          var rail = this.spawnProjectile(true, "rail", origin.x + nx * 22, origin.y + ny * 22, nx * 900, ny * 900, def.damage * damageMultiplier, 4, def.range / 900, def.color);
-          if (rail) rail.knockback = def.knockback || 125;
-          this.burst(origin.x + nx * 20, origin.y + ny * 20, def.color, 6, 95);
+          var shatter = this.hasCryoNeighbor(tile);
+          var railColor = shatter ? MODULES.cryo.color : def.color;
+          var rail = this.spawnProjectile(true, "rail", muzzle.x, muzzle.y, nx * 900, ny * 900, def.damage * damageMultiplier, 4, def.range / 900, railColor);
+          if (rail) { rail.knockback = def.knockback || 125; rail.launchX = origin.x; rail.launchY = origin.y; rail.shatter = shatter; }
+          this.burst(muzzle.x, muzzle.y, railColor, 6, 95);
           audio.tone(110, .16, .04, "square", 470);
+          if (rail) {
+            this.flashWeaponMuzzle(tile, muzzle, nx, ny, 0);
+            this.weaponFeedback.fire(tile, def, nx, ny);
+            audio.heavyShot("rail");
+          }
         } else if (tile.type === "flak") {
-          this.fireFlakAirburst(origin, target, def, damageMultiplier);
+          var flakPort = (tile.muzzleCycle || 0) % window.DriftWeaponMuzzles.count(tile.type);
+          muzzle = this.weaponMuzzle(tile, origin, nx, ny, flakPort, def);
+          this.fireFlakAirburst(origin, target, def, damageMultiplier, muzzle, this.hasActiveEmberNeighbor(tile));
+          this.flashWeaponMuzzle(tile, muzzle, nx, ny, flakPort);
+          tile.muzzleCycle = (flakPort + 1) % window.DriftWeaponMuzzles.count(tile.type);
+          this.weaponFeedback.fire(tile, def, nx, ny);
           if (def.cloudDuration) this.placeWeaponArea(tile, "cloud", target.x,target.y,def.blastRadius,def.cloudDuration,0,def.color);
           audio.tone(205, .07, .022, "square", -60);
         } else if (tile.type === "pulse") {
           this.firePulse(origin, def, damageMultiplier);
           audio.tone(145, .18, .035, "sine", 380);
         } else if (tile.type === "cryo") {
-          this.fireWeaponVolley(origin, nx, ny, def, "cryo", 500, 4, def.range / 500, damageMultiplier);
+          this.fireWeaponVolley(origin, nx, ny, def, "cryo", 500, 4, def.range / 500, damageMultiplier, undefined, tile);
           audio.tone(360, .09, .02, "triangle", -120);
         } else if (tile.type === "mine") {
           for (var mineIndex = 0; mineIndex < (def.shots || 1); mineIndex += 1) {
             var mineAngle = Math.atan2(ny, nx) + (mineIndex - ((def.shots || 1) - 1) / 2) * .3;
-            var mine = this.spawnProjectile(true, "mine", origin.x + nx * 18, origin.y + ny * 18, Math.cos(mineAngle) * 220, Math.sin(mineAngle) * 220, def.damage * damageMultiplier, 6, 6, def.color, 0, 1, 0, 64, def.blastRadius, .35);
+            var mine = this.spawnProjectile(true, "mine", muzzle.x, muzzle.y, Math.cos(mineAngle) * 220, Math.sin(mineAngle) * 220, def.damage * damageMultiplier, 6, 6, def.color, 0, 1, 0, 64, def.blastRadius, .35);
             if (mine) { mine.sourceTile = tile; mine.chainMine = !!def.chainMine; mine.mineFragments = !!def.mineFragments; }
           }
           audio.tone(190, .06, .018, "triangle", 45);
         } else if (tile.type === "ember") {
-          this.fireEmberCone(origin, nx, ny, def, damageMultiplier);
+          this.fireEmberCone(origin, nx, ny, def, damageMultiplier, muzzle);
+          tile.emberActiveTime = EMBER_BURST_DURATION;
           if (def.fireTrail) this.placeWeaponArea(tile,"fire",origin.x+nx*def.range*.6,origin.y+ny*def.range*.6,65,2,def.damage*damageMultiplier*.5,def.color);
           audio.tone(95, .13, .02, "sawtooth", 45);
         } else if (tile.type === "gravity") {
           this.placeGravityField(tile, origin, target, def, damageMultiplier);
           audio.tone(220, .18, .022, "sine", -100);
         }
-        if (this.attackVfx) this.attackVfx.shoot(tile.type, origin, nx, ny);
     };
 
-    Game.prototype.fireEmberCone = function (origin, nx, ny, def, damageMultiplier) {
+    Game.prototype.fireEmberCone = function (origin, nx, ny, def, damageMultiplier, visualStart) {
       var facing = Math.atan2(ny, nx);
       var candidates = this.radiusCandidates(origin.x, origin.y, def.range);
       for (var i = 0; i < candidates.length; i += 1) {
@@ -2917,10 +3240,13 @@
         enemy.burnDamage = Math.max(enemy.burnTimer > 0 ? enemy.burnDamage : 0, def.burnDamage * damageMultiplier);
         enemy.burnTimer = Math.max(enemy.burnTimer || 0, def.burnDuration);
       }
-      var flame = this.spawnEffect("flameCone", origin.x, origin.y, .2, def.color);
+      var flame = this.spawnEffect("flameCone", origin.x, origin.y, EMBER_BURST_DURATION, def.color);
+      flame.value = this.backgroundPulse;
       flame.angle = facing;
       flame.width = def.coneAngle;
       flame.radius = def.range;
+      flame.muzzleX = (visualStart || origin).x;
+      flame.muzzleY = (visualStart || origin).y;
     };
 
     Game.prototype.placeGravityField = function (tile, origin, target, def, damageMultiplier) {
@@ -3058,7 +3384,7 @@
       if (hitCount > 0) this.burst(origin.x, origin.y, def.color, Math.min(18, 4 + hitCount), 120);
     };
 
-    Game.prototype.firePiercingBeam = function (origin, nx, ny, range, damage, color, width, life) {
+    Game.prototype.firePiercingBeam = function (origin, nx, ny, range, damage, color, width, life, visualStart) {
       for (var i = 0; i < this.enemies.length; i += 1) {
         var enemy = this.enemies[i];
         if (enemy.dead) continue;
@@ -3069,7 +3395,8 @@
         var perpendicular = Math.abs(rx * ny - ry * nx);
         if (perpendicular <= enemyDirectionalExtent(enemy, -ny, nx) + width) this.damageEnemy(enemy, damage);
       }
-      var beamEffect = this.spawnEffect("beam", origin.x, origin.y, life, color);
+      var beamStart = visualStart || origin;
+      var beamEffect = this.spawnEffect("beam", beamStart.x, beamStart.y, life, color);
       beamEffect.x2 = origin.x + nx * range;
       beamEffect.y2 = origin.y + ny * range;
       beamEffect.width = width;
@@ -3208,15 +3535,27 @@
       audio.tone(180 + Math.random() * 70, .045, .012, "sine", 80);
     };
 
+    Game.prototype.applyProjectileDamageToTile = function (targetKey, amount) {
+      this.lastShieldAbsorbed = 0;
+      this.shieldBuffer.length = 0;
+      var target = this.ship.tiles.get(targetKey);
+      if (!target || this.finished || !Number.isFinite(amount) || amount <= 0 ||
+          this.elapsed < target.placementProtectedUntil || this.elapsed < target.projectileHitProtectedUntil) return;
+      this.applyDamageToTile(targetKey, amount);
+      // Ignored hits never extend this window; every other module remains vulnerable.
+      target.projectileHitProtectedUntil = this.elapsed + MODULE_PROJECTILE_GRACE;
+    };
+
     Game.prototype.applyDamageToTile = function (targetKey, amount) {
       var shieldDef = this.weaponDefinitions ? this.weaponDefinitions.shield : MODULES.shield, repairDef = this.weaponDefinitions ? this.weaponDefinitions.repair : MODULES.repair;
       var target = this.ship.tiles.get(targetKey);
-      if (!target || this.finished || !Number.isFinite(amount) || amount <= 0) return;
+      this.lastShieldAbsorbed = 0;
+      this.shieldBuffer.length = 0;
+      if (!target || this.finished || !Number.isFinite(amount) || amount <= 0 ||
+          this.elapsed < target.placementProtectedUntil) return;
       var remaining = amount;
       var shieldAbsorbed = 0;
-      this.lastShieldAbsorbed = 0;
       var shields = this.shieldBuffer;
-      shields.length = 0;
       this.ship.tiles.forEach(function (tile) {
         if (tile.type !== "shield") return;
         var dx = tile.x - target.x;
@@ -3317,19 +3656,24 @@
       this.ship.tiles.forEach(function (tile, key) {
         if (!reachable.has(key)) detached.push(key);
       });
-      for (var d = 0; d < detached.length; d += 1) this.detachTile(detached[d], true);
+      var groupedDebris = shipDebris ? shipDebris.spawn(this, detached, target, TILE_SIZE, MODULES, currentQualityTier()) : null;
+      for (var d = 0; d < detached.length; d += 1) {
+        this.detachTile(detached[d], true, groupedDebris && groupedDebris.has(detached[d]));
+      }
       audio.tone(95, .18, .045, "sawtooth", -40);
     };
 
-    Game.prototype.detachTile = function (key, branch) {
+    Game.prototype.detachTile = function (key, branch, groupedDebris) {
       var tile = this.ship.tiles.get(key);
       if (!tile) return;
       var pos = this.gridToWorld(tile.x, tile.y);
       this.ship.tiles.delete(key);
       this.modulesLost += 1;
       if (playtestTelemetry) playtestTelemetry.recordModuleLost(tile.type, branch);
-      this.burst(pos.x, pos.y, branch ? "#a987ff" : "#65e8ff", branch ? 12 : 8, branch ? 150 : 100);
-      this.spawnTileDebris(tile, pos);
+      if (!groupedDebris) {
+        this.burst(pos.x, pos.y, branch ? "#a987ff" : "#65e8ff", branch ? 12 : 8, branch ? 150 : 100);
+        this.spawnTileDebris(tile, pos);
+      }
     };
 
     Game.prototype.spawnTileDebris = function (tile, pos) {
@@ -3397,6 +3741,7 @@
         var effect = this.effects[e];
         effect.life -= dt;
         combatFeedback.update(effect, dt);
+        if (shipDebris) shipDebris.update(effect, dt);
         if (effect.type === "ring") effect.radius = lerp(effect.radius, effect.maxRadius, ringExpansion);
         if (effect.type === "damageText" || effect.type === "shipDamageText") effect.y -= 30 * dt;
         if (effect.type === "debris") {
@@ -3409,6 +3754,7 @@
         if (effect.life > 0) this.effects[effectWrite++] = effect;
         else {
           effect.points = null;
+          if (shipDebris) shipDebris.release(effect);
           if (this.effectPool.length < 240) this.effectPool.push(effect);
         }
       }
@@ -3417,6 +3763,7 @@
         var effectStart = effectWrite - maxEffects;
         for (var droppedEffect = 0; droppedEffect < effectStart; droppedEffect += 1) {
           this.effects[droppedEffect].points = null;
+          if (shipDebris) shipDebris.release(this.effects[droppedEffect]);
           if (this.effectPool.length < 240) this.effectPool.push(this.effects[droppedEffect]);
         }
         for (var effectIndex = 0; effectIndex < maxEffects; effectIndex += 1) {
@@ -3770,6 +4117,7 @@
       var tile = makeTile(type, x, y, false, game.coreDef.moduleHpMultiplier, game.training);
       game.applyFamilyTileStats(tile, true);
       tile.paidMatter = price;
+      tile.placementProtectedUntil = game.elapsed + MODULE_PLACEMENT_GRACE;
       game.ship.tiles.set(keyOf(x, y), tile);
       if (isWeaponType(type)) game.upgradeFleetSizes[type] = Math.max(game.upgradeFleetSizes[type] || 0, installedModuleCopies(type));
       trainingEvent("module_placed", { type: type, x: x, y: y, paid: price, copies: installedModuleCopies(type), coversCore: type === "shield" && x * x + y * y <= MODULES.shield.shieldRadius * MODULES.shield.shieldRadius });
@@ -3805,6 +4153,15 @@
       var name = tile.type === "core" ? "Core" : MODULES[tile.type].name;
       details.innerHTML = '<div class="installed-module-heading"><span class="module-role">Installed</span><strong>' + name + '</strong></div><span> Hull ' + Math.ceil(tile.hp) + '/' + Math.ceil(tile.maxHp) + '</span>';
       if (tile.type === "shield") details.innerHTML += '<p class="build-shield-stats">' + shieldBuildDescription(tile) + '</p>';
+      if (receivesEmberCombo(tile.type) && game.countAdjacentType(tile, "ember")) details.innerHTML += '<p>Ember combo · 3 burn/s for 1.5s during adjacent flame bursts.</p>';
+      if (tile.type === "rail") details.innerHTML += game.hasCryoNeighbor(tile) ?
+        '<p>Shatter linked · +25% Rail damage to chilled/frozen enemies · extra Cryos do not stack.</p>' :
+        '<p>Shatter unlinked · place Cryo on an edge for +25% damage to chilled/frozen enemies.</p>';
+      if (tile.type === "missile") details.innerHTML += game.hasCryoNeighbor(tile) ?
+        '<p>Cold payload linked · blasts slow survivors by 25% for 1s · extra Cryos do not stack.</p>' :
+        '<p>Cold payload unlinked · place Cryo on an edge for 25% blast slow for 1s.</p>';
+      if (tile.type === "cryo" && game.countAdjacentType(tile, "rail")) details.innerHTML += '<p>Enables Shatter in edge-adjacent Rail Lances.</p>';
+      if (tile.type === "cryo" && game.countAdjacentType(tile, "missile")) details.innerHTML += '<p>Enables cold payloads in edge-adjacent Missile Pods: 25% blast slow for 1s.</p>';
       if (tile.type === "core") { details.innerHTML += '<p>The core stays at the center.</p>'; return; }
       var blockReason = moduleSaleBlockReason(buildInteraction.selectedKey);
       var canSell = !blockReason;
@@ -3825,6 +4182,86 @@
       details.appendChild(note);
     }
 
+    function hasSupportPreview(type) {
+      return type === "shield" || type === "repair" || type === "reactor" || type === "bulkhead" || type === "collector" || type === "ember" || type === "cryo";
+    }
+
+    function supportCoversCell(origin, x, y, target) {
+      var dx = x - origin.x, dy = y - origin.y;
+      if (origin.type === "ember") return Math.abs(dx) + Math.abs(dy) === 1 && Boolean(target && receivesEmberCombo(target.type));
+      if (origin.type === "cryo") return Math.abs(dx) + Math.abs(dy) === 1 && Boolean(target && receivesCryoCombo(target.type));
+      if (origin.type === "reactor") return Math.abs(dx) <= 1 && Math.abs(dy) <= 1 && Boolean(dx || dy) && (!target || isWeaponType(target.type));
+      if (origin.type === "bulkhead") return Math.abs(dx) <= 1 && Math.abs(dy) <= 1 && Boolean(dx || dy);
+      if (origin.type === "collector") return Boolean(target && isWeaponType(target.type));
+      var def = game.weaponDefinitions[origin.type];
+      var radius = origin.type === "shield" ? def.shieldRadius : def.repairRadius;
+      return dx * dx + dy * dy <= radius * radius;
+    }
+
+    function supportPreviewDescription(origin, count) {
+      var def = game.weaponDefinitions[origin.type];
+      var modules = count + (count === 1 ? " module" : " modules");
+      if (origin.type === "ember") return "Flame-burst combo · " + count + " Cannon/Scatter/Flak · 3 burn/s for 1.5s · edge neighbors only";
+      if (origin.type === "cryo") {
+        var rails = 0, missiles = 0;
+        game.ship.tiles.forEach(function (tile) {
+          if (!supportCoversCell(origin, tile.x, tile.y, tile)) return;
+          if (tile.type === "rail") rails += 1;
+          if (tile.type === "missile") missiles += 1;
+        });
+        if (rails && !missiles) return "Shatter · " + count + (count === 1 ? " Rail" : " Rails") + " · +25% damage to chilled/frozen enemies · edge neighbors only";
+        if (!count) return "Cryo links · place Rail or Missile on an edge · bonuses do not stack";
+        return "Cryo links · " + rails + " Rail (+25% vs chilled/frozen) · " + missiles + " Missile (25% slow, 1s) · edge neighbors only";
+      }
+      if (origin.type === "shield") return "Protects " + modules + " · " + shieldBuildDescription(origin.tile);
+      if (origin.type === "repair") return "Repairs " + modules + " · +" + def.repairAmount + " HP every " + def.repairInterval + "s after " + def.repairDelay + "s without hull damage";
+      if (origin.type === "reactor") return "Boosts " + count + (count === 1 ? " weapon" : " weapons") + " · +" + Math.round(def.cooldownBonus * 100) + "% fire rate · surrounding 3×3";
+      if (origin.type === "bulkhead") return "Protects " + modules + " · " + Math.round(def.damageReduction * 100) + "% less hull damage · surrounding 3×3";
+      return "Ship-wide Matter bonus · placement has no range limit";
+    }
+
+    function receivedSupportBenefits(x, y, target, supports) {
+      if (!target) return [];
+      var counts = Object.create(null);
+      supports.forEach(function (support) {
+        if (supportCoversCell(support, x, y, target)) counts[support.type] = (counts[support.type] || 0) + 1;
+      });
+      return ["shield", "repair", "bulkhead", "reactor", "collector", "ember", "cryo"].filter(function (type) {
+        return counts[type];
+      }).map(function (type) {
+        var offline = type === "shield" && shieldVfx.coverageAt(x, y) === 1;
+        if (type === "ember") return { type:type, count:1, offline:false, label:"Ember combo (during flame bursts; does not stack)" };
+        if (type === "cryo") return { type:type, count:1, offline:false, label:cryoBenefitLabel(target.type, false) };
+        return { type: type, count: counts[type], offline: offline,
+          label: MODULES[type].name + (counts[type] > 1 ? " ×" + counts[type] : "") + (offline ? " (recharging)" : "") };
+      });
+    }
+
+    function cryoBenefitLabel(type, preview) {
+      return (type === "missile" ? "Cold payload (25% blast slow for 1s" : "Shatter (+25% Rail damage to chilled/frozen enemies") +
+        (preview ? "; includes placement preview)" : "; does not stack)");
+    }
+
+    function renderBuildSupportBenefits(cell, benefits) {
+      var signature = benefits.map(function (benefit) { return benefit.type + ":" + benefit.count + ":" + benefit.offline + (benefit.preview ? ":preview" : ""); }).join(" ");
+      cell.classList.toggle("has-support-benefits", Boolean(benefits.length));
+      if (cell.dataset.supportBenefits !== signature) {
+        if (cell.supportBenefits && cell.supportBenefits.parentNode === cell) cell.removeChild(cell.supportBenefits);
+        cell.supportBenefits = null;
+        if (benefits.length) {
+          cell.supportBenefits = document.createElement("span");
+          cell.supportBenefits.className = "cell-support-benefits";
+          cell.supportBenefits.setAttribute("aria-hidden", "true");
+          cell.supportBenefits.innerHTML = benefits.map(function (benefit) {
+            return '<span class="support-benefit' + (benefit.offline ? ' is-offline' : '') + (benefit.preview ? ' is-preview' : '') + '" data-support-type="' + benefit.type + '" title="' + benefit.label + '"></span>';
+          }).join("");
+        }
+        cell.dataset.supportBenefits = signature;
+      }
+      // Hover ghosts replace the cell artwork, so reattach its existing badges afterward.
+      if (cell.supportBenefits && cell.supportBenefits.parentNode !== cell) cell.appendChild(cell.supportBenefits);
+    }
+
     function updateBuildPreview(x, y) {
       if (!game || game.state !== "building") return;
       var drag = buildInteraction.drag;
@@ -3832,39 +4269,91 @@
       var selected = selectedBuildTile();
       var origin = null;
       if (drag && drag.active) {
-        if (drag.type === "shield" && Number.isInteger(x) && Number.isInteger(y)) origin = { x: x, y: y };
-      } else if (hovered && hovered.type === "shield") origin = { x: hovered.x, y: hovered.y, tile: hovered };
-      else if (selected && selected.type === "shield") origin = { x: selected.x, y: selected.y, tile: selected };
-      else if (!selected && !hovered && Number.isInteger(x) && Number.isInteger(y) && selectedBuildModule === "shield") {
-        origin = { x: x, y: y };
+        if (hasSupportPreview(drag.type) && Number.isInteger(x) && Number.isInteger(y)) origin = { x: x, y: y, type: drag.type };
+      } else if (hovered && hasSupportPreview(hovered.type)) origin = { x: hovered.x, y: hovered.y, tile: hovered, type: hovered.type };
+      else if (selected && hasSupportPreview(selected.type)) origin = { x: selected.x, y: selected.y, tile: selected, type: selected.type };
+      else if (!selected && !hovered && Number.isInteger(x) && Number.isInteger(y) && hasSupportPreview(selectedBuildModule)) {
+        origin = { x: x, y: y, type: selectedBuildModule };
       }
       buildInteraction.preview = origin;
+      shieldVfx.update(game.ship.tiles, game.weaponDefinitions.shield);
+      var supports = [];
+      game.ship.tiles.forEach(function (tile) { if (hasSupportPreview(tile.type)) supports.push(tile); });
+      ui.buildGrid.classList.toggle("support-focus", Boolean(origin));
       var protectedCount = 0;
-      var radiusSquared = game.weaponDefinitions.shield.shieldRadius * game.weaponDefinitions.shield.shieldRadius;
+      var installedCoverage = 0;
+      var cryoReceiverPreviewText = "";
       Array.prototype.forEach.call(ui.buildGrid.children, function (cell) {
         var gx = Number(cell.dataset.x);
         var gy = Number(cell.dataset.y);
         var key = keyOf(gx, gy);
         var ghost = !selected && !game.ship.tiles.has(key) && gx === x && gy === y && validPlacement(gx, gy, selectedBuildModule) && game.matter >= modulePrice(selectedBuildModule);
-        var inRadius = origin && (gx - origin.x) * (gx - origin.x) + (gy - origin.y) * (gy - origin.y) <= radiusSquared;
-        var occupied = game.ship.tiles.has(key);
-        cell.classList.toggle("shield-range", Boolean(inRadius));
-        cell.classList.toggle("shield-covered", Boolean(inRadius && occupied));
+        var target = game.ship.tiles.get(key);
+        var benefits = receivedSupportBenefits(gx, gy, target || (ghost ? { type: selectedBuildModule } : null), supports);
+        if (ghost && selectedBuildModule === "rail") {
+          cryoReceiverPreviewText = benefits.some(function (benefit) { return benefit.type === "cryo"; }) ?
+            "Shatter linked · +25% vs chilled/frozen · edge neighbor" :
+            "Shatter unlinked · add an edge-adjacent Cryo for +25% vs chilled/frozen";
+        }
+        if (ghost && selectedBuildModule === "missile") {
+          cryoReceiverPreviewText = benefits.some(function (benefit) { return benefit.type === "cryo"; }) ?
+            "Cold payload linked · 25% blast slow for 1s · edge neighbor" :
+            "Cold payload unlinked · add an edge-adjacent Cryo for 25% blast slow for 1s";
+        }
+        var inRadius = origin && supportCoversCell(origin, gx, gy, target);
+        if (inRadius && !origin.tile && (target || ghost)) {
+          var previewBenefit = benefits.find(function (benefit) { return benefit.type === origin.type; });
+          if (!previewBenefit) {
+            previewBenefit = { type: origin.type, count: 0 };
+            benefits.push(previewBenefit);
+          }
+          previewBenefit.count = origin.type === "ember" || origin.type === "cryo" ? 1 : previewBenefit.count + 1;
+          previewBenefit.preview = true;
+          previewBenefit.offline = false;
+          previewBenefit.label = origin.type === "ember" ? "Ember combo (during flame bursts; includes placement preview)" :
+            origin.type === "cryo" ? cryoBenefitLabel(target.type, true) :
+            MODULES[origin.type].name + (previewBenefit.count > 1 ? " ×" + previewBenefit.count : "") + " (includes placement preview)";
+        }
+        var shieldPreview = inRadius && origin.type === "shield";
+        var occupied = Boolean(target);
+        var coverage = shieldVfx.coverageAt(gx, gy);
+        var covered = Boolean(coverage || shieldPreview);
+        cell.classList.toggle("shield-range", covered);
+        cell.classList.toggle("shield-covered", Boolean(covered && occupied));
+        cell.classList.toggle("shield-installed-coverage", Boolean(coverage));
+        cell.classList.toggle("shield-preview-new", Boolean(shieldPreview && !coverage));
+        cell.classList.toggle("shield-offline", coverage === 1);
+        cell.classList.toggle("support-range", Boolean(inRadius));
+        cell.classList.toggle("support-preview", Boolean(inRadius && !origin.tile));
+        cell.dataset.supportType = origin ? origin.type : "";
+        cell.dataset.shieldCoverage = coverage ? (coverage === 2 ? "active" : "recharging") : (shieldPreview ? "preview" : "none");
+        if (!cell.dataset.baseLabel) cell.dataset.baseLabel = cell.getAttribute("aria-label");
+        var coverageLabel = coverage ? (coverage === 2 ? "Shield coverage" : "Shield coverage, recharging") : (shieldPreview ? "New shield coverage preview" : "No shield coverage");
+        if (inRadius && origin.type !== "shield") coverageLabel += " · " + MODULES[origin.type].name + (origin.tile ? " support" : " preview");
+        if (benefits.length) coverageLabel += " · Receives: " + benefits.map(function (benefit) { return benefit.label; }).join(", ");
+        cell.setAttribute("aria-label", cell.dataset.baseLabel + " · " + coverageLabel);
+        cell.title = (cell.classList.contains("upgrade-available") ? "Upgrade available · " : "") + coverageLabel;
         cell.classList.toggle("preview-origin", Boolean(ghost || (origin && gx === origin.x && gy === origin.y) || buildInteraction.pendingCellKey === key));
         if (!occupied && !(drag && drag.active)) {
-          if (ghost) { cell.innerHTML = '<span class="pc-placement-ghost">' + (moduleArt ? moduleArt.iconHtml(selectedBuildModule, true) : moduleIconHtml(selectedBuildModule)) + '</span>'; cell.dataset.pcGhost = "1"; }
+          if (ghost) { cell.innerHTML = '<span class="pc-placement-ghost">' + ((moduleArt && moduleArt.iconHtml(selectedBuildModule, true)) || moduleIconHtml(selectedBuildModule)) + '</span>'; cell.dataset.pcGhost = "1"; }
           else if (cell.dataset.pcGhost) { cell.innerHTML = "<span>" + (cell.classList.contains("valid") ? "+" : "·") + "</span>"; delete cell.dataset.pcGhost; }
         }
+        renderBuildSupportBenefits(cell, benefits);
         if (inRadius && occupied) protectedCount += 1;
+        if (coverage && occupied) installedCoverage += 1;
       });
       var status = document.getElementById("buildPreviewStatus");
       if (!status) return;
-      status.textContent = origin ? "Protects " + protectedCount + " " + (protectedCount === 1 ? "module" : "modules") + " · " + shieldBuildDescription(origin.tile) :
-        (selectedBuildModule === "shield" && !selected ? "Hover a cell or drag the shield to preview its coverage." : "");
-      if (origin && selected && selected.type === "shield" && origin.tile === selected) {
+      status.textContent = origin ? supportPreviewDescription(origin, protectedCount) :
+        (installedCoverage ? "Shield coverage: " + installedCoverage + " modules" :
+          (hasSupportPreview(selectedBuildModule) && !selected ? "Hover a cell or drag the module to preview its support." : ""));
+      if (origin && !origin.tile) status.textContent = "Preview · " + status.textContent + (origin.type === "shield" ? " · Gold marks new coverage" : "");
+      if (origin && origin.type === "shield" && selected && origin.tile === selected) {
         status.textContent = "Protects " + protectedCount + " modules · " + game.weaponDefinitions.shield.shieldRadius + "-cell radius";
       }
-      if (buildInteraction.pendingCellKey) status.textContent = "Tap again to attach" + (origin ? " · Protects " + protectedCount + " modules · Shield " + game.weaponDefinitions.shield.shield : " the module.");
+      if (cryoReceiverPreviewText) status.textContent = "Preview · " + cryoReceiverPreviewText;
+      if (buildInteraction.pendingCellKey) status.textContent = "Tap again to attach" +
+        (cryoReceiverPreviewText ? " · " + cryoReceiverPreviewText : origin ? " · " + supportPreviewDescription(origin, protectedCount) : " the module.");
       status.classList.toggle("is-empty", !status.textContent);
     }
 
@@ -4025,13 +4514,16 @@
       var readyFamilies = Object.create(null);
       game.ship.tiles.forEach(function (tile) {
         if (!isWeaponType(tile.type) || Object.prototype.hasOwnProperty.call(readyFamilies, tile.type)) return;
-        readyFamilies[tile.type] = runUpgrades.options(tile.type, game.upgrades[tile.type], upgradePricingCopies(tile.type), effectiveBranchLicenses()).some(function (option) { return !option.locked && option.cost <= game.matter; });
+        readyFamilies[tile.type] = runUpgrades.options(tile.type, game.upgrades[tile.type], upgradePricingCopies(tile.type), effectiveBranchLicenses()).some(function (option) { return !option.locked && (game.testRange || option.cost <= game.matter); });
       });
       var selected = MODULES[selectedBuildModule];
       var selectedPrice = modulePrice(selectedBuildModule);
       var canAffordSelected = game.matter >= selectedPrice;
       var missingMatter = Math.ceil(selectedPrice - game.matter);
-      ui.buildSelection.innerHTML = moduleGlyphHtml(selectedBuildModule) + '<div><span class="module-role">Buy one copy</span><strong>' + selected.name + '</strong><p>' + selected.summary + '</p></div><div class="selection-price' + (canAffordSelected ? '' : ' short') + '">' + selectedPrice + ' MATTER<small>' + (canAffordSelected ? 'READY TO ATTACH' : 'Available: ' + Math.floor(game.matter) + ' Matter') + '</small></div>';
+      var inheritedUpgradeCost = game.testRange ? 0 : runUpgrades.investment(selectedBuildModule, game.upgrades[selectedBuildModule]);
+      var copyPriceBreakdown = inheritedUpgradeCost > 0 ? '<small class="copy-price-breakdown">' +
+        (selectedPrice - inheritedUpgradeCost) + ' base + ' + inheritedUpgradeCost + ' upgrades</small>' : '';
+      ui.buildSelection.innerHTML = moduleGlyphHtml(selectedBuildModule) + '<div><span class="module-role">Buy one copy</span><strong>' + selected.name + '</strong><p>' + selected.summary + '</p></div><div class="selection-price' + (canAffordSelected ? '' : ' short') + '">' + selectedPrice + ' MATTER' + copyPriceBreakdown + '<small>' + (canAffordSelected ? 'READY TO ATTACH' : 'Available: ' + Math.floor(game.matter) + ' Matter') + '</small></div>';
       ui.buildSelection.title = selected.description;
       var minX = 0;
       var maxX = 0;
@@ -4062,8 +4554,7 @@
             button.classList.add("occupied");
             if (tile.type === "core") button.classList.add("core");
             var artType = tileArtType(tile);
-            var upgradeLevel = game.upgrades[tile.type] ? game.upgrades[tile.type].level : 0;
-            var cellArt = moduleArt && moduleArt.iconHtml(artType, true, { angle: tile.aim, level: upgradeLevel });
+            var cellArt = moduleArt && moduleArt.iconHtml(artType, true, { angle: tile.aim });
             var glyph = cellArt || (tile.type === "core" ? "▲" : moduleIconHtml(tile.type));
             if (cellArt) button.classList.add("has-module-art");
             button.setAttribute("aria-label", tile.type === "core" ? "Core" : MODULES[tile.type].name);
@@ -4838,6 +5329,47 @@
       ctx.restore();
     }
 
+    function drawColdIndicators() {
+      var zoom = Math.max(.35, game.camera.zoom || 1);
+      var detailBudget = save.settings.reducedFlash ? 0 : COLD_DETAIL_BUDGETS[currentQualityTier()];
+      for (var i = 0; i < game.enemies.length; i += 1) {
+        var enemy = game.enemies[i];
+        var frozen = enemy.type !== "boss" && game.elapsed < (enemy.freezeUntil || 0);
+        if (enemy.dead || (!(enemy.slowTimer > 0 && enemy.slowFactor < 1) && !frozen)) continue;
+        var pos = worldToScreen(enemy.x, enemy.y);
+        if (!isScreenVisibleAtZoom(pos, enemy.type === "boss" ? 420 : 120)) continue;
+        var cached = enemySpriteCache[enemy.type];
+        var visualRadius = enemyArt && enemyArt.available(enemy.type)
+          ? enemyArt.displaySize(enemy.type, enemy.radius) * .5
+          : (cached ? cached.half : enemyCollisionRadius(enemy));
+        coldVfx.draw(ctx, enemy, pos, visualRadius, enemyVisualFacing(enemy),
+          game.backgroundPulse, game.elapsed, zoom, detailBudget > 0, save.settings.reducedFlash, cached);
+        if (detailBudget > 0) detailBudget -= 1;
+      }
+    }
+
+    function drawBurnIndicators() {
+      var zoom = Math.max(.35, game.camera.zoom || 1);
+      var detailBudget = save.settings.reducedFlash ? 0 : BURN_FLAME_DETAIL_BUDGETS[currentQualityTier()];
+      ctx.save();
+      ctx.globalCompositeOperation = "source-over";
+      ctx.globalAlpha = 1;
+      for (var i = 0; i < game.enemies.length; i += 1) {
+        var enemy = game.enemies[i];
+        if (enemy.dead || !(enemy.burnTimer > 0)) continue;
+        var pos = worldToScreen(enemy.x, enemy.y);
+        if (!isScreenVisibleAtZoom(pos, enemy.type === "boss" ? 420 : 120)) continue;
+        var cached = enemySpriteCache[enemy.type];
+        var visualRadius = enemyArt && enemyArt.available(enemy.type)
+          ? enemyArt.displaySize(enemy.type, enemy.radius) * .5
+          : (cached ? cached.half : enemyCollisionRadius(enemy));
+        fireVfx.burn(ctx, enemy, pos, visualRadius, enemyVisualFacing(enemy),
+          game.backgroundPulse, zoom, detailBudget > 0, save.settings.reducedFlash);
+        if (detailBudget > 0) detailBudget -= 1;
+      }
+      ctx.restore();
+    }
+
     function drawEnemies() {
       if (!game) return;
       var qualityTier = currentQualityTier();
@@ -4851,18 +5383,6 @@
         ctx.globalAlpha = 1;
         ctx.lineWidth = 1;
         ctx.shadowBlur = 0;
-        if (enemy.burnTimer > 0) {
-          ctx.strokeStyle = MODULES.ember.color;
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          for (var spark = -1; spark <= 1; spark += 1) {
-            var sparkX = pos.x + spark * 6;
-            var sparkY = pos.y - enemy.radius - 5;
-            ctx.moveTo(sparkX - 2, sparkY);
-            ctx.lineTo(sparkX, sparkY - 5 - Math.sin(game.elapsed * 12 + spark) * 2);
-          }
-          ctx.stroke();
-        }
         if (enemy.attackCharge > 0 && enemy.attackChargeMax > 0) {
           var chargeProgress = 1 - enemy.attackCharge / enemy.attackChargeMax;
           ctx.globalAlpha = .25 + chargeProgress * .65;
@@ -4908,14 +5428,6 @@
               ctx.lineWidth = 2;
               ctx.beginPath();
               ctx.arc(pos.x, pos.y, enemy.radius + 7, 0, TAU);
-              ctx.stroke();
-            }
-            if (enemy.slowFactor < 1) {
-              ctx.strokeStyle = "#8ac7ff";
-              ctx.globalAlpha = .7;
-              ctx.lineWidth = 1.5;
-              ctx.beginPath();
-              ctx.arc(pos.x, pos.y, enemy.radius + 5, -Math.PI * .5, Math.PI * .85);
               ctx.stroke();
             }
             continue;
@@ -5039,15 +5551,6 @@
           ctx.stroke();
           ctx.globalAlpha = 1;
         }
-        if (enemy.slowFactor < 1) {
-          ctx.strokeStyle = "#8ac7ff";
-          ctx.globalAlpha = .7;
-          ctx.lineWidth = 1.5;
-          ctx.beginPath();
-          ctx.arc(pos.x, pos.y, enemy.radius + 5, -Math.PI * .5, Math.PI * .85);
-          ctx.stroke();
-          ctx.globalAlpha = 1;
-        }
         ctx.shadowBlur = 0;
         if (enemy.type === "boss") {
           var width = 100;
@@ -5060,6 +5563,8 @@
       ctx.globalAlpha = 1;
       ctx.lineWidth = 1;
       ctx.shadowBlur = 0;
+      drawColdIndicators();
+      drawBurnIndicators();
     }
 
     function tileArtType(tile) {
@@ -5068,6 +5573,11 @@
 
     function drawModuleGlyph(tile, x, y, targetContext, size) {
       var glyphContext = targetContext || ctx;
+      var kick = window.DriftWeaponFeedback.offset(tile) * (size || TILE_SIZE);
+      if (kick) {
+        x -= Math.cos(tile.aim) * kick;
+        y -= Math.sin(tile.aim) * kick;
+      }
       if (moduleArt && moduleArt.drawEquipment(glyphContext, tileArtType(tile), x, y, size || TILE_SIZE, tile.aim)) return;
       if (tile.type === "core") {
         glyphContext.save();
@@ -5234,23 +5744,8 @@
       ctx.save();
       ctx.translate(shipScreen.x, shipScreen.y);
       ctx.rotate(game.ship.angle);
-      game.ship.tiles.forEach(function (tile) {
-        if (tile.type !== "shield") return;
-        var offline = tile.shield <= 0;
-        ctx.setLineDash(offline ? [5, 6] : []);
-        var alpha = .05 + tile.shield / tile.maxShield * .08;
-        ctx.strokeStyle = "rgba(112,255,194," + (.32 + alpha) + ")";
-        ctx.fillStyle = "rgba(112,255,194," + alpha + ")";
-        ctx.lineWidth = 1.5;
-        ctx.shadowBlur = 0;
-        ctx.shadowColor = "#70ffc2";
-        ctx.beginPath();
-        ctx.arc(tile.x * TILE_SIZE, tile.y * TILE_SIZE, game.weaponDefinitions.shield.shieldRadius * TILE_SIZE, 0, TAU);
-        if (!offline) ctx.fill();
-        ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.shadowBlur = 0;
-      });
+      shieldVfx.update(game.ship.tiles, game.weaponDefinitions.shield);
+      shieldVfx.drawFields(ctx, TILE_SIZE);
       // Lay down every hull tile before any turret, so neighbors cannot hide barrels.
       game.ship.tiles.forEach(function (tile) {
         if (moduleArt) moduleArt.drawBase(ctx, tileArtType(tile), tile.x * TILE_SIZE, tile.y * TILE_SIZE, TILE_SIZE);
@@ -5284,10 +5779,10 @@
           // Keep charge inside its own tile so adjacent hull and field fills cannot cover it.
           ctx.fillStyle = "#11252e";
           ctx.fillRect(x - 16, y + 9, 32, 5);
-          ctx.strokeStyle = tile.shield <= 0 ? "#ffb15c" : "#70ffc2";
+          ctx.strokeStyle = tile.shield <= 0 ? "#cf9b67" : "#65e8ff";
           ctx.lineWidth = 1;
           ctx.strokeRect(x - 16, y + 9, 32, 5);
-          ctx.fillStyle = "#70ffc2";
+          ctx.fillStyle = "#65e8ff";
           ctx.fillRect(x - 15, y + 10, 30 * clamp(tile.shield / tile.maxShield, 0, 1), 3);
         }
         if (tile.hp < tile.maxHp) {
@@ -5296,9 +5791,30 @@
           ctx.fillStyle = tile.hp / tile.maxHp < .35 ? "#ff637c" : "#70ffc2";
           ctx.fillRect(x - 15, y + 15, 30 * clamp(tile.hp / tile.maxHp, 0, 1), 2);
         }
-        var upgrade = game.upgrades[tile.type];
-        if (moduleArt && upgrade && moduleArt.available(tileArtType(tile))) moduleArt.drawUpgradeBadge(ctx, x, y, TILE_SIZE, upgrade.level);
       });
+      shieldVfx.drawSurface(ctx, TILE_SIZE, game.elapsed, save.settings.reducedFlash);
+      var zoom = Math.max(.35, game.camera.zoom || 1);
+      ctx.save();
+      ctx.globalCompositeOperation = "source-over";
+      ctx.shadowBlur = 0;
+      ctx.globalAlpha = save.settings.reducedFlash ? .75 : 1;
+      game.ship.tiles.forEach(function (tile) {
+        var placementGrace = Math.max(0, (tile.placementProtectedUntil - game.elapsed) / MODULE_PLACEMENT_GRACE);
+        var hitGrace = Math.max(0, (tile.projectileHitProtectedUntil - game.elapsed) / MODULE_PROJECTILE_GRACE);
+        if (placementGrace > 0 || hitGrace > 0) {
+          ctx.save();
+          ctx.globalAlpha = (save.settings.reducedFlash ? .45 : .85) * Math.max(placementGrace, hitGrace);
+          ctx.strokeStyle = placementGrace > 0 ? "#c1f3ff" : "#fff1cf";
+          ctx.lineWidth = 1.5 / zoom;
+          ctx.strokeRect(tile.x * TILE_SIZE - 20, tile.y * TILE_SIZE - 20, 40, 40);
+          ctx.restore();
+        }
+        if (tile.type !== "flak") return;
+        if (!game.hasActiveEmberNeighbor(tile)) return;
+        fireVfx.ignition(ctx, tile.x * TILE_SIZE, tile.y * TILE_SIZE, zoom,
+          game.backgroundPulse, save.settings.reducedFlash);
+      });
+      ctx.restore();
       ctx.restore();
     }
 
@@ -5387,6 +5903,9 @@
         }
         if (projectile.kind === "cannon" || projectile.kind === "scatter") {
           if (simpleProjectilesQueued < simpleProjectileBudget) {
+            if (projectile.incendiary) {
+              fireVfx.pellet(ctx, projectile, pos, game.backgroundPulse, save.settings.reducedFlash);
+            }
             if (!game.attackVfx || !game.attackVfx.projectile(ctx, projectile, pos, game.backgroundPulse, currentQualityTier(), save.settings.reducedFlash)) {
               queueProjectileCircle(projectile.color, pos.x, pos.y, projectile.radius);
             }
@@ -5464,6 +5983,12 @@
         var effect = game.effects[e];
         var alpha = clamp(effect.life / effect.maxLife, 0, 1);
         var effectPos = worldToScreen(effect.x, effect.y);
+        if (effect.type === "shipChunk" && shipDebris) {
+          if (isScreenVisibleAtZoom(effectPos, effect.radius)) {
+            shipDebris.draw(ctx, effect, effectPos.x, effectPos.y, moduleArt, save.settings.reducedFlash);
+          }
+          continue;
+        }
         if (effect.type === "directionWarning") {
           var edgeDistance = Math.min(viewWidth, viewHeight) * .39;
           var warningScale = game.camera.zoom || 1;
@@ -5488,24 +6013,20 @@
         ctx.shadowBlur = simplifiedEffects ? 0 : 14;
         ctx.shadowColor = effect.color;
         if (combatFeedback.draw(ctx, effect, effectPos.x, effectPos.y, alpha, save.settings.reducedFlash, enemyArt)) continue;
-        if (game.attackVfx && game.attackVfx.effect(ctx, effect, effectPos, save.settings.reducedFlash)) continue;
         if (effect.type === "flameCone") {
-          ctx.globalAlpha = alpha * .12;
-          ctx.beginPath();
-          ctx.moveTo(effectPos.x, effectPos.y);
-          ctx.arc(effectPos.x, effectPos.y, effect.radius, effect.angle - effect.width, effect.angle + effect.width);
-          ctx.closePath();
-          ctx.fill();
-          ctx.globalAlpha = alpha * .75;
-          ctx.lineWidth = 2;
-          for (var flameRay = -1; flameRay <= 1; flameRay += 1) {
-            var flameAngle = effect.angle + flameRay * effect.width * .7;
-            ctx.beginPath();
-            ctx.moveTo(effectPos.x + Math.cos(flameAngle) * 16, effectPos.y + Math.sin(flameAngle) * 16);
-            ctx.lineTo(effectPos.x + Math.cos(flameAngle) * effect.radius * .9, effectPos.y + Math.sin(flameAngle) * effect.radius * .9);
-            ctx.stroke();
-          }
-        } else if (effect.type === "ring") {
+          fireVfx.cone(ctx, effect, effectPos, save.settings.reducedFlash, currentQualityTier());
+          continue;
+        }
+        if (effect.type === "cryoShatter") {
+          coldVfx.shatter(ctx, effect, effectPos, save.settings.reducedFlash, currentQualityTier());
+          continue;
+        }
+        if (effect.type === "ring" && effect.coldPayload) {
+          coldVfx.blast(ctx, effect, effectPos, save.settings.reducedFlash, currentQualityTier());
+          continue;
+        }
+        if (game.attackVfx && game.attackVfx.effect(ctx, effect, effectPos, save.settings.reducedFlash)) continue;
+        if (effect.type === "ring") {
           ctx.lineWidth = 2;
           ctx.beginPath();
           ctx.arc(effectPos.x, effectPos.y, effect.radius, 0, TAU);

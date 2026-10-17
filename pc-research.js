@@ -184,13 +184,24 @@
         effects.append(row);
       });
       detail.append(effects);
+      if (!options.free && entry.status !== "excluded") {
+        var inheritedCost = upgrades.investment(type,entry.status === "owned" ? options.state : entry.before);
+        if (entry.status !== "owned") inheritedCost += entry.choice.unitCost;
+        var pricing = node("p","research-cost",entry.status === "owned" ? "" :
+          entry.choice.unitCost + " × " + options.copies + (options.copies === 1 ? " copy" : " copies") + " = " + entry.choice.cost + " Matter");
+        if (entry.status !== "owned") pricing.append(node("br"));
+        pricing.append(node("span","research-state",entry.status === "owned"
+          ? "Future copies: +" + inheritedCost + " Matter in upgrades"
+          : "After upgrade: copies +" + inheritedCost + " Matter"));
+        detail.append(pricing);
+      }
       // Only genuine purchase actions use a button. Locked data stays plain text.
       if (entry.available && !entry.available.locked) {
         var purchase = options.createChoice(entry.available);
         purchase.replaceChildren(document.createTextNode(options.free ? "Apply upgrade" : "Upgrade · " + entry.available.cost + " Matter"));
         purchase.classList.add("research-purchase");
         detail.append(purchase);
-      } else if (entry.status !== "owned") detail.append(node("p","research-cost",entry.cost + " · " + options.copies + (options.copies === 1 ? " copy" : " copies")));
+      } else if (entry.status !== "owned" && (options.free || entry.status === "excluded")) detail.append(node("p","research-cost",entry.cost + " · " + options.copies + (options.copies === 1 ? " copy" : " copies")));
     },selectedRun[type]);
   };
 })();

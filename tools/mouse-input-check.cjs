@@ -10,7 +10,7 @@ const html = fs.readFileSync(file, 'utf8');
 const movement = html.match(/Game.prototype.updateMovement = function \(dt\) \{[\s\S]*?\n    \};/)[0];
 function simulate({ fps = 60, zoom = 1, offset = 200, initialVelocity = 0, seconds = 1, mode = 'mouse', mass = 4, drive = 1, angle = Math.PI / 2, keys = {} } = {}) {
   const env = {
-    Game: function () {}, Math,
+    Game: function () {}, Math, shipHandling: require('../ship-handling'),
     clamp: (v, a, b) => Math.max(a, Math.min(b, v)), lerp: (a, b, t) => a + (b - a) * t,
     mobileInput: { active: mode === 'touch', x: 1, y: 0, magnitude: 1 }, mouseInput: { active: mode === 'mouse', x: 640 + offset, y: 400 },
     viewWidth: 1280, viewHeight: 800, keys, currentQualityTier: () => 2
@@ -18,7 +18,7 @@ function simulate({ fps = 60, zoom = 1, offset = 200, initialVelocity = 0, secon
   vm.runInNewContext(movement, env);
   const game = new env.Game();
   Object.assign(game, {
-    ship: { x: 0, y: 0, vx: initialVelocity, vy: 0, angle, angularVelocity: 0 },
+    ship: { x: 0, y: 0, vx: initialVelocity, vy: 0, angle, angularVelocity: 0, tiles: new Map([['0,0',{x:0,y:0,mass}]]) },
     camera: { x: 0, y: 0, zoom }, shipMass: () => mass, driveMultiplier: () => drive,
     emitDriveParticles() {}, updateCameraFraming() { this.camera.x = this.ship.x; this.camera.y = this.ship.y; }
   });

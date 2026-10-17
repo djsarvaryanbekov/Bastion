@@ -9,11 +9,12 @@ When the user says we are renewing/updating the visuals, start in this folder. R
 - `modules/`: weapons, support, armor, Core, original generations, earlier versions, technical previews, audit files and review helpers. Detailed design history and browser chat URLs: [modules/README.md](modules/README.md).
 - `platforms/`: original square platform PNG/SVG, earlier version and checks. See [platforms/README.md](platforms/README.md).
 - `enemies/`: current enemy source art, technical exports and integration audit. See [enemies/README.md](enemies/README.md).
+- `bosses/`: versioned boss concepts and separate motion studies. Start with [Pursuer](bosses/pursuer/BRIEF.md).
 - `CURRENT_ASSETS.md`: explicit current design entry points. Use raw image files listed here, not `review`, `mounted-preview`, `32px`, `64px` or grayscale derivatives as source artwork.
 
 ## Continuing the work
 
-Use the `chrome-chatgpt-imagegen` skill: generate/edit in ChatGPT through the Google Chrome extension. One chat per asset, revisions in that same chat, actual selected best image attached to every revision. Preserve raw outputs and previous versions. Add new numbered versions here and update the index. Do not equate highest version number with best version or user approval.
+Use the `chatgpt-imagegen` skill: generate/edit in ChatGPT through Codex's built-in browser by default. Chrome and its extension are not required. One chat per asset, revisions in that same chat, actual selected best image attached to every revision. Preserve raw outputs and previous versions. Add new numbered versions here and update the index. Do not equate highest version number with best version or user approval.
 
 Keep strict overhead orthographic geometry, large readable forms, coherent mounts, quiet flat materials and restrained functional accents. Avoid cloudy textures, random greebles and perspective. Non-barrel equipment fits the cell; weapon barrels may extend outside it. Respect per-asset exceptions: Armor Tile is the whole armored platform, without equipment or an empty mount. Reactor Link was explicitly skipped; do not restart it simply because old game code still contains it.
 

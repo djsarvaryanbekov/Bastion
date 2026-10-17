@@ -5,6 +5,7 @@
   var MAX_MUZZLES = 64;
   var TRAIL_SAMPLES = 10;
   var projectileTypes = ["cannon", "scatter", "missile", "cryo"];
+  var muzzleTypes = projectileTypes.concat(["rail", "flak"]);
   var sheets = Object.create(null);
   var ready = Promise.all((root.ATTACK_VFX_SHEETS || []).map(function (spec) {
     var image = new root.Image();
@@ -47,11 +48,14 @@
     this.enabled = true;
   }
 
-  AttackVfx.prototype.shoot = function (type, origin, nx, ny) {
-    if (projectileTypes.indexOf(type) < 0) return;
+  AttackVfx.prototype.shoot = function (type, origin, nx, ny, source) {
+    if (muzzleTypes.indexOf(type) < 0) return;
     if (this.muzzleFlashes.length >= MAX_MUZZLES) this.muzzleFlashes.shift();
     this.muzzleFlashes.push({
-      type: type, x: origin.x + nx * 20, y: origin.y + ny * 20,
+      type: type, x: origin.x, y: origin.y, source: source || null,
+      incendiary: (type === "cannon" || type === "scatter") && Boolean(source && source.incendiary),
+      shatter: type === "rail" && Boolean(source && source.shatter),
+      coldPayload: type === "missile" && Boolean(source && source.coldPayload),
       angle: Math.atan2(ny, nx), life: .09, maxLife: .09
     });
   };
@@ -61,6 +65,13 @@
     for (var i = 0; i < this.muzzleFlashes.length; i += 1) {
       var muzzle = this.muzzleFlashes[i];
       muzzle.life -= dt;
+      var source = muzzle.source;
+      if (source && source.game.ship.tiles.get(source.tile.x + "," + source.tile.y) === source.tile) {
+        var angle = source.tile.aim + source.game.ship.angle;
+        var origin = source.game.gridToWorld(source.tile.x, source.tile.y);
+        var point = source.game.weaponMuzzle(source.tile, origin, Math.cos(angle), Math.sin(angle), source.port);
+        muzzle.x = point.x; muzzle.y = point.y; muzzle.angle = angle;
+      } else muzzle.source = null;
       if (muzzle.life > 0) this.muzzleFlashes[write++] = muzzle;
     }
     this.muzzleFlashes.length = write;
@@ -103,7 +114,7 @@
           var freshness = 1 - i / TRAIL_SAMPLES;
           var next = (index + 1) % TRAIL_SAMPLES;
           ctx.globalAlpha = freshness * .22;
-          ctx.strokeStyle = "#b1a69b";
+          ctx.strokeStyle = projectile.coldPayload ? "#8ac7ff" : "#b1a69b";
           ctx.lineWidth = 2 + (1 - freshness) * 3;
           ctx.lineCap = "round";
           ctx.beginPath();
@@ -114,10 +125,32 @@
       }
       ctx.globalAlpha = reducedFlash ? .78 : 1;
       stamp(ctx, "missile", frame, pos.x, pos.y, 18, 27, angle);
+      if (projectile.coldPayload) {
+        ctx.save(); ctx.translate(pos.x, pos.y); ctx.rotate(angle);
+        ctx.fillStyle = "#dcfaff";
+        ctx.beginPath();
+        ctx.moveTo(8, 0); ctx.lineTo(3, -2.5);
+        ctx.lineTo(0, 0); ctx.lineTo(3, 2.5);
+        ctx.closePath(); ctx.fill(); ctx.restore();
+      }
     } else if (projectile.kind === "cryo") {
       stamp(ctx, "cryo", frame, pos.x, pos.y, 23, 23, angle);
     } else if (projectile.kind === "scatter") {
       stamp(ctx, "scatter", frame, pos.x, pos.y, 12, 12, angle);
+    } else if (projectile.incendiary) {
+      ctx.translate(pos.x, pos.y);
+      ctx.rotate(angle);
+      ctx.lineCap = "round";
+      ctx.strokeStyle = "#ef7430";
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(-8, 0); ctx.lineTo(3, 0);
+      ctx.stroke();
+      ctx.strokeStyle = "#ffdd55";
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.moveTo(-2, 0); ctx.lineTo(4, 0);
+      ctx.stroke();
     } else {
       stamp(ctx, "cannon", frame, pos.x, pos.y, 18, 18, angle);
     }
@@ -126,28 +159,16 @@
   };
 
   AttackVfx.prototype.effect = function (ctx, effect, pos, reducedFlash) {
-    if (!this.enabled || (effect.type !== "flameCone" && effect.type !== "ring")) return false;
-    var type = effect.type === "flameCone" ? "ember" : effect.weaponType;
-    if (["ember", "pulse", "flak", "missile"].indexOf(type) < 0 || !available(type === "missile" ? "flak" : type)) return false;
+    if (!this.enabled || effect.type !== "ring") return false;
+    var type = effect.weaponType;
+    if (["pulse", "flak", "missile"].indexOf(type) < 0 || !available(type === "missile" ? "flak" : type)) return false;
     var alpha = clamp(effect.life / effect.maxLife);
     var age = 1 - alpha;
     ctx.save();
     ctx.shadowBlur = 0;
     ctx.globalCompositeOperation = "source-over";
     ctx.globalAlpha = alpha * (reducedFlash ? .65 : 1);
-    if (type === "ember") {
-      ctx.globalCompositeOperation = "lighter";
-      ctx.globalAlpha = clamp(effect.life / (effect.maxLife * .35)) * (reducedFlash ? .6 : 1);
-      // The texture cannot imply damage outside the actual flame cone.
-      ctx.beginPath();
-      ctx.moveTo(pos.x, pos.y);
-      ctx.arc(pos.x, pos.y, effect.radius, effect.angle - effect.width, effect.angle + effect.width);
-      ctx.closePath();
-      ctx.clip();
-      var reach = effect.radius * (.5 + .5 * Math.min(1, age * 5));
-      stamp(ctx, "ember", Math.min(7, Math.floor(age * 8)), pos.x, pos.y,
-        reach * 2 * Math.sin(effect.width), reach * 128 / 116, effect.angle);
-    } else if (type === "pulse") {
+    if (type === "pulse") {
       var radius = Math.max(5, effect.radius);
       var scale = radius * 256 / 104;
       radialStamp(ctx, "pulse", age * 6, pos.x, pos.y, scale);
@@ -155,6 +176,7 @@
       radialStamp(ctx, "pulse", age * 6, pos.x, pos.y, scale * .88);
     } else if (type === "flak") {
       radialStamp(ctx, "flak", age * 8, pos.x, pos.y, Math.min(150, effect.maxRadius * 1.2));
+      if (effect.incendiary && root.DriftFireVfx) root.DriftFireVfx.airburst(ctx, effect, pos, reducedFlash);
     } else {
       var blastRadius = Math.max(5, effect.radius);
       radialStamp(ctx, "flak", age * 8, pos.x, pos.y, Math.min(effect.maxRadius * 2, blastRadius * 2.3));
@@ -213,7 +235,21 @@
       ctx.translate(pos.x, pos.y);
       ctx.rotate(muzzle.angle);
       ctx.globalAlpha = alpha * (reducedFlash ? .5 : .9);
-      ctx.fillStyle = muzzle.type === "cryo" ? "#d8f6ff" : muzzle.type === "cannon" ? "#d4faff" : "#ffe1b3";
+      if (muzzle.incendiary) {
+        var age = 1 - alpha;
+        var count = reducedFlash ? 1 : muzzle.type === "cannon" ? 3 : 5;
+        for (var ember = 0; ember < count; ember += 1) {
+          var spread = count === 1 ? 0 : (ember / (count - 1) * 2 - 1) * (muzzle.type === "cannon" ? .5 : 1);
+          var forward = 3 + age * 10 + (1 - Math.abs(spread)) * 3;
+          ctx.fillStyle = age < .35 ? "#ffdd55" : "#ef7430";
+          ctx.beginPath();
+          ctx.arc(forward, spread * (2 + age * 5), (3.2 - age * 1.8) * (1 - Math.abs(spread) * .25), 0, TAU);
+          ctx.fill();
+        }
+        ctx.restore();
+        continue;
+      }
+      ctx.fillStyle = muzzle.type === "cryo" || muzzle.shatter || muzzle.coldPayload ? "#d8f6ff" : muzzle.type === "cannon" ? "#d4faff" : muzzle.type === "rail" ? "#ffb5ed" : "#ffe1b3";
       ctx.beginPath();
       ctx.ellipse(2, 0, muzzle.type === "scatter" ? 11 : 7, muzzle.type === "scatter" ? 5 : 2.7, 0, 0, TAU);
       ctx.fill();

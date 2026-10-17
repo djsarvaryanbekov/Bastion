@@ -3,7 +3,7 @@
 
   var STORAGE_KEY = "drift-bastion-playtest-v1";
   var SCHEMA_VERSION = 2;
-  var GAME_BUILD = "2026.10.10-attack-vfx-27";
+  var GAME_BUILD = "2026.10.17-cryo-missile-49";
   var SAMPLE_INTERVAL = 5;
   var MAX_RUNS = 30;
   var MAX_STORAGE_BYTES = 1500000;

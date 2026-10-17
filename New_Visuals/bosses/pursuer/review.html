@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Pursuer — visual study</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; overflow: hidden; background: #060d1e; color: #f4efdf;
+      font: 15px system-ui, sans-serif; }
+    canvas { display: block; width: 100vw; height: 100vh; }
+    header { position: fixed; top: 30px; left: 36px; pointer-events: none; }
+    h1 { margin: 0 0 5px; font-size: 25px; letter-spacing: .16em; }
+    header p { margin: 0; color: #acb8c3; }
+    nav { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%);
+      display: flex; gap: 8px; padding: 10px; background: #111c28; border: 1px solid #3b4956; border-radius: 12px; }
+    button { border: 1px solid #3b4956; border-radius: 7px; padding: 10px 16px;
+      background: #192633; color: #f4efdf; font: inherit; white-space: nowrap; cursor: pointer; }
+    button[aria-pressed="true"] { color: #ffb674; border-color: #ff9b55; }
+    button:focus-visible { outline: 2px solid #e7be67; outline-offset: 3px; }
+    #state { position: fixed; bottom: 104px; width: 100%; text-align: center; color: #acb8c3; }
+  </style>
+</head>
+<body>
+  <header><h1>PURSUER</h1><p>Hull & motion study</p></header>
+  <canvas id="stage" aria-label="Pursuer visual preview"></canvas>
+  <output id="state" aria-live="polite">Loading hull…</output>
+  <nav aria-label="Preview controls">
+    <button data-mode="idle" aria-pressed="true">Idle</button>
+    <button data-mode="dash" aria-pressed="false">Dash</button>
+    <button data-mode="volley" aria-pressed="false">Volley</button>
+    <button id="phase" aria-pressed="false">Phase 2</button>
+    <button id="size" aria-pressed="false">Gameplay size</button>
+    <button id="pause" aria-pressed="false">Pause</button>
+  </nav>
+  <script src="technical/preview-data.js"></script>
+  <script src="review.js"></script>
+</body>
+</html>

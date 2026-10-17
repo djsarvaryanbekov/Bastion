@@ -1,6 +1,6 @@
 # Drift Bastion: Survival и прогрессия
 
-Текущая версия: `2026.10.10-attack-vfx-27`. Игра использует непрерывный Endless без завершения на 10:00: первый босс на 3:00, следующие через 210 секунд после победы. У каждого обычного типа противников постоянные HP, щиты и урон: они не усиливаются со временем. Первые волны сохранены; дополнительное давление через размер групп, частоту появления и стрелков начинается с 8:00 перед третьим боссом. Ёмкость щитов и задержка восстановления сохранены, скорость перезарядки снижена. Боссы могут иметь разные HP в зависимости от встречи. Первые две копии каждого семейства и первое улучшение сохраняют базовую стоимость; последующие копии дорожают быстрее, а второе и дальнейшие улучшения стоят примерно на 50% больше Matter. Цены Hangar в Fragments не изменены. Подробности текущей правки и ограничения проверки — в `BALANCE_FEEDBACK_2026-10-08.md`. Описанный ниже десятиминутный рубеж относится к историческому дизайну 9 сентября, а не к текущему игровому маршруту.
+Текущая версия: `2026.10.14-burn-indicators-38`. В Build значки поддержки остаются на установленных модулях и показывают получаемые эффекты на призраке перед покупкой. Aegis Bulkhead защищает восемь соседних клеток, включая диагональные (3×3 без самой опоры); снижение урона сохранено: 12% за опору, максимум 48%. Игра использует непрерывный Endless без завершения на 10:00: первый босс на 3:00, следующие через 210 секунд после победы. У каждого обычного типа противников постоянные HP, щиты и урон: они не усиливаются со временем. Первые волны сохранены; дополнительное давление через размер групп, частоту появления и стрелков начинается с 8:00 перед третьим боссом. Ёмкость щитов и задержка восстановления сохранены, скорость перезарядки снижена. Боссы могут иметь разные HP в зависимости от встречи. Первые две копии каждого семейства и первое улучшение сохраняют базовую стоимость; последующие копии дорожают быстрее, а второе и дальнейшие улучшения стоят примерно на 50% больше Matter. Цены Hangar в Fragments не изменены. Подробности текущей правки и ограничения проверки — в `BALANCE_FEEDBACK_2026-10-08.md`. Описанный ниже десятиминутный рубеж относится к историческому дизайну 9 сентября, а не к текущему игровому маршруту.
 
 Актуальная схема на 9 сентября 2026: один непрерывный Survival примерно на 10 минут, затем возможность продолжить с тем же кораблём. Контракты и обязательные требования к сборке убраны из игрового маршрута. Каталог сохранён: 19 модулей, включая 12 оружий с 24 специализациями, и четыре ядра. Новых модулей в этой правке нет.
 
@@ -198,3 +198,63 @@ Fragments покупают постоянные лицензии, ядра и р
 
 
 Build 2026.09.09-bastion-16: стартовое оружие имеет ×1,5 прочности вместо ×2,5. Подсказка щита занимает постоянное место и больше не сдвигает сборку при наведении. Профиль, покупки и валюта сохранены.
+
+
+## Structural breakaway — 2026-10-14
+
+Disconnected cardinal groups of two or more modules remain one visual wreck for three seconds. The cached hull preserves platforms, equipment, turret aim and relative positions; its motion inherits ship translation and rotation. Sparks appear at the broken connection. Wreckage has no collision or salvage reward. Destruction, telemetry, family upgrades and Matter/Fragments rules are unchanged. Individual module debris remains available, and quality budgets bound chunk counts and cached texture sizes.
+
+
+## Heavy weapon feedback - 2026-10-14
+
+Rail Lance, Heavy/Cluster Warhead missiles and Scatter Double blast receive a 0.24s equipment kick and small mass-scaled ship recoil. Fixed bases and mounts retain their positions. Recoil sums opposing fire before applying a fleet cap of 8 velocity units, refilling at 6 units per simulation second. Each real discharge receives one impulse; pellet counts and missile salvos do not multiply it. Existing sounds gain a two-voice heavy layer, throttled to one per 90ms and subject to the 18-voice budget and existing settings. Weapon statistics, upgrade routes and currencies are unchanged.
+
+
+## Visible weapon kick - 2026-10-14
+
+Base Auto Cannon, missile, Scatter and Flak now animate on every real discharge. Kicks are stronger and hold for 0.04 seconds before returning over the remaining 0.26 seconds. Rail and heavy missile/Scatter variants have a larger travel distance. Ordinary gun feedback is cosmetic: physical recoil remains limited to the heavy profiles and retains its mass scaling and shared caps. Fixed platforms, weapon statistics, economy and audio settings are preserved.
+
+
+## Muzzle alignment - 2026-10-14
+
+Ten weapon emitters now use shared forward/lateral anchors measured from their current source art and imported pivots. Projectile births, muzzle flashes and firing particles use those anchors, including the current firing recoil. Missile launches cycle through four tubes and Flak through two barrels. Delayed bursts compensate hull turns; sustained beam visuals follow the current emitter. Laser, Arc and Ember visuals start at their actual emitters without moving existing area/beam damage bounds. A one-time launch-segment collision check prevents close enemies from being skipped beneath overhanging barrels; regular flight collision behavior is retained. Damage values, projectile counts, reload, upgrade prices and persistent saves are unchanged.
+
+
+## Shape-based handling - 2026-10-14
+
+Build `2026.10.14-shape-handling-36` measures the mass-weighted polar moment about the Core every movement step. A compact square reference grows with module count, avoiding a second generic mass penalty. Excess spread reduces maximum turning by at most 28% and turn response by at most 45%. Pointer steering gain follows the response to preserve heading convergence. Purchases, dismantling and disconnected branch losses apply on the next movement step. The Core remains the pivot; linear thrust, drag, speed, Core bonuses, recoil and economy rules retain their existing values. Salvage zones and adaptive audio are not part of this change.
+
+
+## Ember activation adjacency combo - 2026-10-14
+
+Build `2026.10.14-ember-combo-37` adds a fixed minor burn to Scatter and Flak fired during an edge-adjacent Ember discharge window (0.2s). Adjacency while Ember is idle gives no damage bonus. Actual Ember firing is resolved before other weapons so simultaneous shots do not depend on insertion order. Each discharge, including delayed Double blast shots, checks current adjacency and activation; existing cooldowns are retained. Burning pellets snapshot the effect at launch. Hits apply one refreshable 3 DPS burn for 1.5s, with no multiplication from pellets, extra sources or Ember upgrades, and no spread-on-death or trail inheritance. A weaker combo does not modify stronger active burns. Flak interception and area bounds are retained. Build uses the existing support badge/preview system and conditional inspector text. No save schema, currency or progression changes.
+
+
+## Burn state indicators - 2026-10-14
+
+Build `2026.10.14-burn-indicators-38` draws burn icons after all enemy artwork, replacing the earlier covered sparks. Marker anchors use artwork/cache bounds; icon size compensates for fleet camera zoom. Animated hull flame details have quality caps of 32/16/0 enemies and are disabled by Reduced flashes; status badges remain visible. Scatter/Flak receive an orange rim and flame light only while an adjacent Ember ignition window is active. Indicators clear on expiry, death or source loss. Rendering reads existing status values and does not change combat, economy or progression.
+
+## Auto Cannon joins Ember combo - 2026-10-16
+
+Build `2026.10.16-cannon-ember-44` adds Auto Cannon to the existing edge-adjacent
+0.2-second Ember firing window. Each launched round snapshots ignition and
+applies the same one refreshable 3 DPS burn for 1.5 seconds on a direct hit.
+Piercing variants burn each directly hit enemy within the unchanged hit cap;
+Twin/Triple/Fan/Focus retain their shot counts, angles and direct damage. Extra
+rounds and Embers cannot stack the burn or extend a stronger Ember burn.
+Warm narrow tracers and restrained muzzle puffs mark an ignited Cannon shot;
+there are no floating module readiness sparks. Build previews and descriptions
+include Cannon. Existing weapon cooldowns, currencies, saves and upgrade paths
+are retained. The build43 enemy-burning renderer is unchanged. Cryo is the next
+requested area and is not changed in this pass.
+
+## Cryo enemy status visuals - 2026-10-16
+
+Build `2026.10.16-cryo-status-45` replaces the fixed blue partial arc with hull
+frost and small cyan particles. Frost overlays are clipped to imported enemy
+artwork; vector enemies and bosses use compact fallback facets. Actual Freeze
+uses heavier frost, then thaws toward the chilled appearance. Effects fade
+near expiry, freeze on pause, and retain steady cues in Low quality and Reduced
+flashes. The new post-enemy pass precedes burning. Cryo projectiles, damage,
+slow, freeze, boss resistance, upgrades, saves and elemental rules are retained.
+No Cryo combos are introduced.

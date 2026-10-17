@@ -9,7 +9,7 @@ const { chromium } = require("playwright");
 
 const file = path.resolve(process.argv[2] || "outputs/Drift_Bastion_Playtest.html");
 const baseline = process.argv[3] && path.resolve(process.argv[3]);
-const output = path.resolve("outputs/experiments/2026-10-10-attack-vfx-import/qa");
+const output = path.resolve(process.argv[4] || "outputs/experiments/2026-10-10-attack-vfx-import/qa");
 const renderer = fs.readFileSync("attack-vfx.js", "utf8");
 fs.mkdirSync(output, { recursive: true });
 
@@ -85,12 +85,14 @@ function installFixture() {
     render() {
       const ctx = bridge.ctx, draw = ctx.drawImage, sheets = window.ATTACK_VFX_SHEETS || [];
       const drawn = [];
+      const fire = window.DriftFireVfx, cone = fire && fire.cone;
+      if (fire) fire.cone = function (...args) { drawn.push("ember"); return cone.apply(this, args); };
       ctx.drawImage = function (image, ...args) {
         const sheet = sheets.find(sheet => sheet.data === image.src);
         if (sheet) drawn.push(sheet.module);
         return draw.call(this, image, ...args);
       };
-      try { bridge.render(performance.now()); } finally { ctx.drawImage = draw; }
+      try { bridge.render(performance.now()); } finally { ctx.drawImage = draw; if (fire) fire.cone = cone; }
       return drawn;
     }
   };
@@ -102,7 +104,7 @@ function installFixture() {
   for (const script of html.matchAll(/<script>([\s\S]*?)<\/script>/g)) new vm.Script(script[1]);
   assert.ok(html.includes(renderer.replace(/\r\n?/g, "\n")), "HTML must contain the current production renderer");
   assert.ok(!html.includes("AttackVfxLab"), "Review controls must not enter the game");
-  const browser = await chromium.launch({ headless: true });
+  const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH, headless: true });
   const errors = [];
   const report = { file, viewport: "1920x1080 at normal scale", sheets: [], attacks: [], checks: {} };
   async function open(target) {
@@ -111,10 +113,10 @@ function installFixture() {
     page.on("pageerror", error => errors.push(error.message));
     await page.addInitScript(() => localStorage.setItem("drift-bastion-save-v2", JSON.stringify({ version:9,
       settings:{ muted:true, autoPause:false }, training:{ completed:true } })));
-    await page.clock.install();
+    await page.clock.install({time: new Date("2026-10-16T12:00:00Z")});
+    await page.clock.pauseAt(new Date("2026-10-16T12:00:00.100Z"));
     await page.goto(pathToFileURL(target).href);
-    await page.evaluate(() => Promise.all([window.DriftModuleArt.ready, window.DriftEnemyArt.ready, window.DriftAttackVfx?.ready]));
-    await page.clock.pauseAt(new Date(Date.now() + 100));
+    await page.evaluate(() => Promise.all([window.DriftModuleArt.ready, window.DriftEnemyArt.ready, window.DriftAttackVfx?.ready, window.DriftFireVfx?.ready]));
     await page.evaluate(installFixture);
     return page;
   }
@@ -131,7 +133,7 @@ function installFixture() {
       await page.evaluate(seconds => window.__vfxFixture.step(seconds), seconds);
       const before = await page.evaluate(() => window.__vfxFixture.snapshot());
       const drawn = await page.evaluate(() => window.__vfxFixture.render());
-      assert.ok(drawn.includes(type), `${type} must draw its approved sheet through the real game renderer`);
+      assert.ok(drawn.includes(type), `${type} must draw through the real game renderer`);
       assert.deepEqual(await page.evaluate(() => window.__vfxFixture.snapshot()), before, "Rendering must not mutate combat");
       if (type === "ember") assert.ok(before.enemies.some(enemy => enemy[6] > 0));
       await page.screenshot({ path: path.join(output, `${type}-1920x1080.png`) });

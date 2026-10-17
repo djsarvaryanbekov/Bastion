@@ -37,6 +37,7 @@ function fire(probe, kind = "sniperShot", damage = 24, speed = 400) {
   const shot = probe.game.projectiles[probe.game.projectiles.length - 1];
   let frames = 0;
   while (probe.game.projectiles.length && frames < 180) {
+    probe.game.elapsed += 1 / 30;
     probe.game.updateProjectiles(1 / 30);
     assert.ok(Number.isFinite(shot.damage) && shot.damage >= 0);
     assert.ok(Number.isFinite(shot.x) && Number.isFinite(shot.y) && Number.isFinite(shot.life));

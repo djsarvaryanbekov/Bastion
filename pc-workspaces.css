@@ -95,8 +95,25 @@
 .pc-tree-hint>strong { display:block; font-size:1.5rem; }.pc-tree-hint p { line-height:1.7; max-width:520px; }.pc-tree-hint button { padding:14px 22px; }
 @media(max-width:1400px),(max-height:800px) { .pc-build-guide { margin:14px 16px 0; padding:12px 14px; gap:10px; }.pc-build-guide p { font-size:.72rem; }.pc-build-guide strong { font-size:.9rem; }.pc-family-card { flex-wrap:wrap; }.pc-family-art,.pc-family-art .module-icon { width:42px; height:42px; } }
 .pc-build-guide, .pc-tree-hint { font-family:"Segoe UI",Arial,sans-serif; }
+/* Keep construction space for the ship; guidance remains in the inspector and footer. */
+.pc-game .build-panel:not(.pc-tree-open) .build-content { grid-template-columns:clamp(240px,16%,310px) minmax(0,1fr) clamp(260px,17%,330px); }
+.pc-game .pc-build-guide { margin:12px 16px 0; padding:8px 12px; gap:12px; flex-wrap:nowrap; border:0; border-bottom:1px solid var(--line); background:none; }
+.pc-game .pc-build-guide>div:first-child { min-width:0; }
+.pc-game .pc-build-guide .eyebrow,.pc-game .pc-build-guide p { display:none; }
+.pc-game .pc-build-guide strong { margin:0; font-size:.85rem; }
+.pc-game .pc-build-guide .pc-build-zoom { display:flex; flex:0 0 auto; align-items:center; gap:5px; min-width:0; }
+.pc-game .pc-build-zoom button { min-height:32px; padding:5px 10px; font-size:.72rem; white-space:nowrap; }
+.pc-game .pc-build-zoom-label { min-width:40px; font-size:.68rem; color:var(--muted); text-align:center; font-variant-numeric:tabular-nums; }
+.pc-game .pc-build-zoom button[aria-pressed="true"] { border-color:var(--cyan); color:var(--cyan); }
+.pc-game .build-grid-wrap { padding:16px; }
+.pc-game .build-grid { padding:10px; }
+.pc-game .build-grid .support-benefit { --badge-size:clamp(5px,calc(var(--pc-cell) * .15),13px); flex-basis:var(--badge-size); width:var(--badge-size); height:calc(var(--badge-size) * 1.23); }
+.pc-game .build-grid .cell-support-benefits { padding:1px; top:3px; right:3px; gap:1px; }
+.pc-game .build-inspector { padding:18px; gap:12px; }
+.pc-game .pc-inspector-art { height:clamp(90px,14vh,160px); min-height:90px; flex-shrink:0; }
 .research-stat-list { clear:both; margin:20px 0; border-top:1px solid var(--line); }
 .research-stat-row { display:flex; justify-content:space-between; flex-wrap:wrap; gap:6px 16px; padding:12px 0; border-bottom:1px solid var(--line); font-size:.78rem; line-height:1.5; color:var(--muted); }
 .research-stat-row strong { font-size:inherit; font-weight:500; color:var(--text); }
 .pc-game .research-detail .research-purchase { text-align:center; padding:14px 12px; font-size:.8rem; }
 .pc-game .research-detail .research-purchase:disabled { background:#172a34; color:#8397a3; border-color:var(--line); cursor:default; }
+.pc-game .selection-price .copy-price-breakdown { display:block; margin:6px 0 0; font-size:.72rem; line-height:1.5; white-space:normal; }

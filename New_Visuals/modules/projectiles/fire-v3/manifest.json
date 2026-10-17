@@ -1,0 +1,32 @@
+[
+  {
+    "type": "jet",
+    "width": 192,
+    "height": 128,
+    "frames": 24,
+    "anchor": [
+      0.035,
+      0.5
+    ]
+  },
+  {
+    "type": "patch",
+    "width": 80,
+    "height": 80,
+    "frames": 24,
+    "anchor": [
+      0.5,
+      0.5
+    ]
+  },
+  {
+    "type": "smoke",
+    "width": 80,
+    "height": 80,
+    "frames": 16,
+    "anchor": [
+      0.5,
+      0.5
+    ]
+  }
+]

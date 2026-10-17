@@ -1,0 +1,75 @@
+{
+  "chat": "https://chatgpt.com/c/6acf3000-b0d0-83eb-9fc5-b24788abbceb",
+  "candidates": {
+    "pursuer-v1.png": {
+      "sha256": "c61e66b9db2dc6cd028f7caf5e539dc34fae997d4c5abcc463b3b7cf2cd49b3c",
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "mode": "RGBA",
+      "alpha_range": [
+        0,
+        255
+      ],
+      "raw_alpha_bounds": [
+        23,
+        22,
+        1226,
+        1254
+      ],
+      "visible_alpha_bounds": [
+        99,
+        86,
+        1155,
+        1160
+      ],
+      "visible_threshold": 16,
+      "transparent_fraction": 0.6283179312642924
+    },
+    "pursuer-v2.png": {
+      "sha256": "13fbafba4e82fed4c44b179b45982d77ede393e14b44769a463ea0a80d9c902f",
+      "dimensions": [
+        1254,
+        1254
+      ],
+      "mode": "RGBA",
+      "alpha_range": [
+        0,
+        255
+      ],
+      "raw_alpha_bounds": [
+        0,
+        128,
+        1236,
+        1234
+      ],
+      "visible_alpha_bounds": [
+        103,
+        131,
+        1151,
+        1125
+      ],
+      "visible_threshold": 16,
+      "transparent_fraction": 0.5781467406372972
+    }
+  },
+  "technical_export": {
+    "source": "raw\\pursuer-v2.png",
+    "output": "technical/pursuer-v2-256.png",
+    "crop": [
+      103,
+      131,
+      1151,
+      1125
+    ],
+    "source_pivot": [
+      627.0,
+      628.0
+    ],
+    "source_radius": 554.1281440244666,
+    "square_size": 1142,
+    "output_size": 256,
+    "processing": "Crop exterior near-transparent specks, center by visible bounds, pad to contain the circular footprint, proportional Lanczos downsample. Raw sources unchanged."
+  }
+}

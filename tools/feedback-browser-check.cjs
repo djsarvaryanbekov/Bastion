@@ -57,13 +57,13 @@ const { chromium } = require("playwright");
     });
     assert.equal(icon.purchased, true);
     assert.equal(icon.matter, before.matter - 8, "The first weapon upgrade retains its price.");
-    assert.equal(icon.rank, "2");
+    assert.equal(icon.rank, undefined, "Family ranks are not repeated on installed module artwork");
     assert.equal(icon.sameSprite, true);
     const rotationDegrees = Number(icon.transform.match(/rotate\(([^)]+)\)/)[1]);
     assert.ok(Math.abs(rotationDegrees * Math.PI / 180 - icon.expectedRotation) < 1e-8);
     assert.ok(icon.rotations.some(angle => Math.abs(angle - icon.expectedRotation) < 1e-8));
-    assert.ok(icon.paints.some(paint => paint.value === "2" && paint.x === -.33 && paint.y === -.325),
-      "Combat and Build must show the same installed upgrade rank.");
+    assert.ok(!icon.paints.some(paint => paint.x === -.33 && paint.y === -.325),
+      "Combat must not paint a rank badge on every turret.");
     await page.clock.runFor(200);
     await page.screenshot({ path: path.join(output, "upgraded-build-1080.png") });
 
@@ -107,7 +107,7 @@ const { chromium } = require("playwright");
     assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem("drift-bastion-pc-uiux-save-v2")).fragments), 57);
     assert.deepEqual(errors, []);
     console.log(JSON.stringify({ passed: true, viewport: "1920x1080@100%", installedSpriteAndAimMatch: true,
-      upgradeRankMatches: true, forwardVelocity: forward.vy, verticalStarTravel: motion.forward[1] - motion.stationary[1],
+      repeatedUpgradeRanksRemoved: true, forwardVelocity: forward.vy, verticalStarTravel: motion.forward[1] - motion.stationary[1],
       permanentWalletPreserved: true, errors }));
   } finally { await browser.close(); }
 })().catch(error => { console.error(error); process.exitCode = 1; });

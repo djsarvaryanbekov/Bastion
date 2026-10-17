@@ -12,6 +12,7 @@
     this.activeVoices = 0;
     this.maxVoices = 18;
     this.nextImpactAt = 0;
+    this.nextHeavyShotAt = 0;
   }
 
   AudioEngine.prototype.ensure = function () {
@@ -71,6 +72,16 @@
     if (critical) this.tone(150, .08, .018, "square", -90);
   };
 
+  AudioEngine.prototype.heavyShot = function (kind) {
+    if (this.muted || !this.focused || this.volume <= 0 || performance.now() < this.nextHeavyShotAt) return;
+    this.ensure();
+    if (!this.context || this.activeVoices > this.maxVoices - 2) return;
+    this.nextHeavyShotAt = performance.now() + 90;
+    var rail = kind === "rail";
+    this.tone(rail ? 72 : 88, rail ? .18 : .13, .025, "sine", -35);
+    this.tone(rail ? 420 : 260, .045, .012, "triangle", -170);
+  };
+
   Object.defineProperty(AudioEngine.prototype, "muted", {
     get: function () { return this._muted; },
     set: function (value) {
@@ -82,6 +93,7 @@
   AudioEngine.prototype.stop = function () {
     this.sources.forEach(function (source) { try { source.stop(); } catch (_) {} });
     this.nextImpactAt = 0;
+    this.nextHeavyShotAt = 0;
   };
   AudioEngine.prototype.setFocused = function (focused) {
     this.focused = Boolean(focused);

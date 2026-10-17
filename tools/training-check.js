@@ -172,6 +172,7 @@ clearCombat(learning);
 const beforeGuidance = JSON.stringify(learning.snapshot());
 function guide(extra) { return training.presentation(learning.snapshot(), Object.assign({}, afford, extra)); }
 assert.equal(guide().highlightTarget, "placement");
+assert.equal(guide({ upgradeWorkspaceOpen: true }).highlightTarget, "layout-workspace");
 assert.match(guide().action, /Click a \+ cell/);
 assert.equal(guide({ selectedTileType: "cannon" }).highlightTarget, "catalog-cannon", "Inspecting an installed Cannon does not expose attachment cells");
 assert.equal(guide({ selectedTileType: "shield" }).highlightTarget, "catalog-cannon");
@@ -192,6 +193,9 @@ assert.match(guide().action, /Second Cannon installed/);
 destroy(learning, "construction", ["construction-1", "construction-2"]);
 learning.advance();
 assert.equal(guide().highlightTarget, "upgrade");
+assert.equal(guide({ upgradeWorkspaceOpen: false }).highlightTarget, "upgrade-workspace");
+assert.equal(guide({ upgradeWorkspaceOpen: true }).highlightTarget, "upgrade");
+assert.equal(guide({ upgradeWorkspaceOpen: true, selectedTileType: "shield" }).highlightTarget, "family-cannon");
 assert.equal(guide({ selectedTileType: "cannon" }).highlightTarget, "upgrade");
 assert.equal(guide({ selectedTileType: "shield" }).highlightTarget, "catalog-cannon", "An installed nonweapon inspector does not show a Cannon upgrade");
 assert.match(guide({ matter: 9 }).action, /23 more Matter/);

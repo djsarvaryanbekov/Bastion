@@ -28,6 +28,7 @@ function createElement(id) {
     classList: createClassList(),
     style: { setProperty(name, value) { this[name] = value; } },
     dataset: {},
+    attributes: {},
     value: "0",
     checked: false,
     disabled: false,
@@ -50,7 +51,8 @@ function createElement(id) {
     addEventListener(type, callback) { this.listeners[type] = callback; },
     getBoundingClientRect() { return { left: 0, top: 0, width: 116, height: 116 }; },
     setPointerCapture() {},
-    setAttribute() {},
+    setAttribute(name, value) { this.attributes[name] = String(value); },
+    getAttribute(name) { return Object.prototype.hasOwnProperty.call(this.attributes, name) ? this.attributes[name] : null; },
     getContext: id === "gameCanvas" || id === "canvas" ? () => context2d : undefined
   };
 }
@@ -58,6 +60,7 @@ function createElement(id) {
 const gradient = { addColorStop() {} };
 const context2d = new Proxy({
   createRadialGradient() { return gradient; },
+  createLinearGradient() { return gradient; },
   measureText(value) { return { width: String(value).length * 8 }; }
 }, {
   get(target, property) {
@@ -132,7 +135,14 @@ vm.runInNewContext(fs.readFileSync("campaign.js", "utf8"), sandbox, { filename: 
 vm.runInNewContext(fs.readFileSync("upgrade-tree-view.js", "utf8"), sandbox, { filename: "upgrade-tree-view.js" });
 vm.runInNewContext(fs.readFileSync("test-range.js", "utf8"), sandbox, { filename: "test-range.js" });
 vm.runInNewContext(fs.readFileSync("combat-audio.js", "utf8"), sandbox, { filename: "combat-audio.js" });
+vm.runInNewContext(fs.readFileSync("weapon-feedback.js", "utf8"), sandbox, { filename: "weapon-feedback.js" });
+vm.runInNewContext(fs.readFileSync("weapon-muzzles.js", "utf8"), sandbox, { filename: "weapon-muzzles.js" });
+vm.runInNewContext(fs.readFileSync("ship-handling.js", "utf8"), sandbox, { filename: "ship-handling.js" });
 vm.runInNewContext(fs.readFileSync("combat-feedback.js", "utf8"), sandbox, { filename: "combat-feedback.js" });
+vm.runInNewContext(fs.readFileSync("ship-debris.js", "utf8"), sandbox, { filename: "ship-debris.js" });
+vm.runInNewContext(fs.readFileSync("shield-vfx.js", "utf8"), sandbox, { filename: "shield-vfx.js" });
+vm.runInNewContext(fs.readFileSync("fire-vfx.js", "utf8"), sandbox, { filename: "fire-vfx.js" });
+vm.runInNewContext(fs.readFileSync("cold-vfx.js", "utf8"), sandbox, { filename: "cold-vfx.js" });
 vm.runInNewContext(fs.readFileSync("game.js", "utf8"), sandbox, { filename: "game.js" });
 if (!sandbox.window.__driftBastion || typeof sandbox.frameCallback !== "function") {
   throw new Error("Game did not initialize its public state and animation loop.");
