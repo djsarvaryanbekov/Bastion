@@ -85,6 +85,21 @@
     }
 
     #pauseOverlay { z-index: 40; }
+    .crash-overlay { z-index: 100; }
+
+    .crash-details {
+      max-height: 180px;
+      margin: 16px 0;
+      padding: 12px;
+      overflow: auto;
+      text-align: left;
+      white-space: pre-wrap;
+      font-size: .75rem;
+      color: #afc9d5;
+      background: rgba(255, 255, 255, .04);
+      border: 1px solid rgba(175, 201, 213, .18);
+      user-select: text;
+    }
 
     .panel {
       width: min(1080px, 96vw);

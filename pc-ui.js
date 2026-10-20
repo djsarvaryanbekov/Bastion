@@ -17,10 +17,10 @@
     }
     if (performance.now() - coreHudLastActiveAt >= 5000) root.classList.remove("pc-core-hud-faded");
   }
-  var brand = '<span class="pc-brand">DRIFT <b>BASTION</b></span><span class="pc-tagline">MODULAR SPACE SURVIVAL</span>';
+  var brand = '<span class="pc-brand"><b>BASTION</b></span><span class="pc-tagline">MODULAR SPACE SURVIVAL</span>';
   var menu = document.querySelector(".start-screen");
   var title = menu.querySelector(".start-title");
-  title.innerHTML = '<p class="eyebrow">SALVAGE / BUILD / ENDURE</p><h1>DRIFT<br><span>BASTION</span></h1><p class="pc-menu-copy">Build your bastion.<br>Survive the next arrival.</p>';
+  title.innerHTML = '<p class="eyebrow">SALVAGE / BUILD / ENDURE</p><h1><span>BASTION</span></h1><p class="pc-menu-copy">Build your bastion.<br>Survive the next arrival.</p>';
   var hero = element("div", "pc-hero", '<div class="pc-orbit orbit-a"></div><div class="pc-orbit orbit-b"></div><canvas id="pcHeroCanvas" width="800" height="800" aria-label="Selected starting ship"></canvas><div class="pc-hero-caption"><span>01 / FLIGHT READY</span><strong id="pcHeroLoadout"></strong><small>YOUR NEXT BASTION</small></div>');
   menu.prepend(hero);
   var menuMark = element("div", "pc-menu-mark", brand); menu.appendChild(menuMark);

@@ -328,6 +328,11 @@
       resultExportTelemetry: document.getElementById("resultExportTelemetry"),
       hangarButton: document.getElementById("hangarButton"),
       damageVignette: document.getElementById("damageVignette"),
+      crashOverlay: document.getElementById("crashOverlay"),
+      crashSubtitle: document.getElementById("crashSubtitle"),
+      crashDetails: document.getElementById("crashDetails"),
+      crashCopyButton: document.getElementById("crashCopyButton"),
+      crashReloadButton: document.getElementById("crashReloadButton"),
       dangerBanner: document.getElementById("dangerBanner"),
       toast: document.getElementById("toast"),
       debugBar: document.getElementById("debugBar"),
@@ -6187,8 +6192,63 @@
       return true;
     }
 
+    var crashed = false;
+
+    // An exception inside the loop would otherwise repeat every frame and freeze the game silently.
     function frame(now) {
+      if (crashed) return;
       requestAnimationFrame(frame);
+      try {
+        stepFrame(now);
+      } catch (error) {
+        handleCrash(error);
+      }
+    }
+
+    function crashReport(error) {
+      var message = error && error.stack ? String(error.stack) : String(error);
+      var lines = message.split("\n").slice(0, 8);
+      if (window.PlaytestTelemetry) lines.push("Build: " + window.PlaytestTelemetry.gameBuild);
+      lines.push("Run time: " + (game ? formatTime(game.elapsed) : "no run"));
+      lines.push("Browser: " + navigator.userAgent);
+      return lines.join("\n");
+    }
+
+    function handleCrash(error) {
+      if (crashed) return;
+      crashed = true;
+      console.error("Bastion stopped after an unexpected error.", error);
+      var saved = false;
+      try {
+        bankActiveRun();
+        saved = storeSave() !== false;
+      } catch (saveError) {
+        console.error("Run could not be banked after the crash.", saveError);
+      }
+      try { if (playtestTelemetry) playtestTelemetry.flush(); } catch (telemetryError) { /* Crash screen matters more. */ }
+      audio.stop();
+      ui.crashSubtitle.textContent = saved ? "Your Fragments are saved." : "Progress could not be saved.";
+      ui.crashDetails.textContent = crashReport(error);
+      ui.crashOverlay.classList.remove("hidden");
+      ui.crashReloadButton.focus();
+    }
+
+    function copyCrashReport() {
+      var text = ui.crashDetails.textContent;
+      var selectReport = function () {
+        var range = document.createRange();
+        range.selectNodeContents(ui.crashDetails);
+        var selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+      };
+      if (!navigator.clipboard) { selectReport(); return; }
+      navigator.clipboard.writeText(text).then(function () {
+        ui.crashCopyButton.textContent = "Copied";
+      }, selectReport);
+    }
+
+    function stepFrame(now) {
       var rafDelta = Math.max(1, now - previousRaf);
       previousRaf = now;
       smoothedFps = lerp(smoothedFps, 1000 / rafDelta, .08);
@@ -6514,6 +6574,8 @@
     ui.restartButton.addEventListener("click", requestRestart);
     ui.pauseHangarButton.addEventListener("click", exitToHangar);
     ui.hangarButton.addEventListener("click", exitToHangar);
+    ui.crashCopyButton.addEventListener("click", copyCrashReport);
+    ui.crashReloadButton.addEventListener("click", function () { window.location.reload(); });
     ui.exportTelemetryButton.addEventListener("click", exportTelemetry);
     ui.resultExportTelemetry.addEventListener("click", exportTelemetry);
     ui.clearTelemetryButton.addEventListener("click", clearTelemetry);
@@ -6734,7 +6796,21 @@
       else audio.setFocused(true);
     });
 
+    // Closing the window mid-run banks it like "End run" instead of discarding its Fragments.
+    function bankActiveRun() {
+      if (!game || game.finished || game.training || game.testRange) return;
+      var fragmentsBefore = save.fragments;
+      var carryBefore = save.fragmentCarryUnits;
+      game.finishRun(game.state === "milestone", true);
+      // A corrupted run must never overwrite the banked balance with NaN.
+      if (!Number.isFinite(save.fragments) || !Number.isFinite(save.fragmentCarryUnits)) {
+        save.fragments = fragmentsBefore;
+        save.fragmentCarryUnits = carryBefore;
+      }
+    }
+
     window.addEventListener("pagehide", function () {
+      bankActiveRun();
       storeSave();
       if (playtestTelemetry) playtestTelemetry.flush();
     });

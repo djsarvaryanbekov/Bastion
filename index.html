@@ -11,7 +11,7 @@
   <link rel="icon" href="./icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="./icon-192.png">
 
-  <title>Drift Bastion — PC UI/UX</title>
+  <title>Bastion</title>
   <link rel="icon" href="data:,">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="training.css">
@@ -297,6 +297,19 @@
         <button id="hangarButton" class="primary">Return to Hangar</button>
       </div>
       <button id="resultExportTelemetry" class="telemetry-result-button">Export Playtest Log</button>
+    </main>
+  </div>
+
+  <div id="crashOverlay" class="overlay crash-overlay hidden" role="alertdialog" aria-modal="true" aria-labelledby="crashTitle">
+    <main class="panel result-panel">
+      <p class="eyebrow">UNEXPECTED ERROR</p>
+      <h2 id="crashTitle" class="result-title">BASTION STOPPED</h2>
+      <p id="crashSubtitle" class="subtitle" style="margin-inline:auto"></p>
+      <pre id="crashDetails" class="crash-details"></pre>
+      <div class="button-row">
+        <button id="crashCopyButton" class="secondary">Copy error</button>
+        <button id="crashReloadButton" class="primary">Reload</button>
+      </div>
     </main>
   </div>
 

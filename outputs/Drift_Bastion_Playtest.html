@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
-  <title>Drift Bastion — PC UI/UX</title>
+  <title>Bastion</title>
   <link rel="icon" href="data:,">
   <style>
     :root {
@@ -98,6 +98,21 @@
     }
 
     #pauseOverlay { z-index: 40; }
+    .crash-overlay { z-index: 100; }
+
+    .crash-details {
+      max-height: 180px;
+      margin: 16px 0;
+      padding: 12px;
+      overflow: auto;
+      text-align: left;
+      white-space: pre-wrap;
+      font-size: .75rem;
+      color: #afc9d5;
+      background: rgba(255, 255, 255, .04);
+      border: 1px solid rgba(175, 201, 213, .18);
+      user-select: text;
+    }
 
     .panel {
       width: min(1080px, 96vw);
@@ -2965,6 +2980,19 @@ body.pc-game.pc-ui-pending #pcViewport { visibility:hidden; }
     </main>
   </div>
 
+  <div id="crashOverlay" class="overlay crash-overlay hidden" role="alertdialog" aria-modal="true" aria-labelledby="crashTitle">
+    <main class="panel result-panel">
+      <p class="eyebrow">UNEXPECTED ERROR</p>
+      <h2 id="crashTitle" class="result-title">BASTION STOPPED</h2>
+      <p id="crashSubtitle" class="subtitle" style="margin-inline:auto"></p>
+      <pre id="crashDetails" class="crash-details"></pre>
+      <div class="button-row">
+        <button id="crashCopyButton" class="secondary">Copy error</button>
+        <button id="crashReloadButton" class="primary">Reload</button>
+      </div>
+    </main>
+  </div>
+
   <div id="damageVignette"></div>
   <section id="trainingHUD" class="training-hud hidden" aria-label="Training sector">
     <div class="training-main-row"><p id="trainingAction" class="training-action"></p><button id="trainingPauseButton" class="training-button">Pause</button><button id="trainingExitButton" class="training-button">Exit</button></div>
@@ -3002,7 +3030,7 @@ body.pc-game.pc-ui-pending #pcViewport { visibility:hidden; }
 
   var STORAGE_KEY = "drift-bastion-playtest-v1";
   var SCHEMA_VERSION = 2;
-  var GAME_BUILD = "2026.10.17-cryo-missile-49";
+  var GAME_BUILD = "2026.10.20-bank-run-50";
   var SAMPLE_INTERVAL = 5;
   var MAX_RUNS = 30;
   var MAX_STORAGE_BYTES = 1500000;
@@ -3571,6 +3599,7 @@ body.pc-game.pc-ui-pending #pcViewport { visibility:hidden; }
   }
 
   window.PlaytestTelemetry = {
+    gameBuild: GAME_BUILD,
     beginRun: beginRun,
     shouldSample: shouldSample,
     sample: sample,
@@ -7258,6 +7287,11 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
       resultExportTelemetry: document.getElementById("resultExportTelemetry"),
       hangarButton: document.getElementById("hangarButton"),
       damageVignette: document.getElementById("damageVignette"),
+      crashOverlay: document.getElementById("crashOverlay"),
+      crashSubtitle: document.getElementById("crashSubtitle"),
+      crashDetails: document.getElementById("crashDetails"),
+      crashCopyButton: document.getElementById("crashCopyButton"),
+      crashReloadButton: document.getElementById("crashReloadButton"),
       dangerBanner: document.getElementById("dangerBanner"),
       toast: document.getElementById("toast"),
       debugBar: document.getElementById("debugBar"),
@@ -13117,8 +13151,63 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
       return true;
     }
 
+    var crashed = false;
+
+    // An exception inside the loop would otherwise repeat every frame and freeze the game silently.
     function frame(now) {
+      if (crashed) return;
       requestAnimationFrame(frame);
+      try {
+        stepFrame(now);
+      } catch (error) {
+        handleCrash(error);
+      }
+    }
+
+    function crashReport(error) {
+      var message = error && error.stack ? String(error.stack) : String(error);
+      var lines = message.split("\n").slice(0, 8);
+      if (window.PlaytestTelemetry) lines.push("Build: " + window.PlaytestTelemetry.gameBuild);
+      lines.push("Run time: " + (game ? formatTime(game.elapsed) : "no run"));
+      lines.push("Browser: " + navigator.userAgent);
+      return lines.join("\n");
+    }
+
+    function handleCrash(error) {
+      if (crashed) return;
+      crashed = true;
+      console.error("Bastion stopped after an unexpected error.", error);
+      var saved = false;
+      try {
+        bankActiveRun();
+        saved = storeSave() !== false;
+      } catch (saveError) {
+        console.error("Run could not be banked after the crash.", saveError);
+      }
+      try { if (playtestTelemetry) playtestTelemetry.flush(); } catch (telemetryError) { /* Crash screen matters more. */ }
+      audio.stop();
+      ui.crashSubtitle.textContent = saved ? "Your Fragments are saved." : "Progress could not be saved.";
+      ui.crashDetails.textContent = crashReport(error);
+      ui.crashOverlay.classList.remove("hidden");
+      ui.crashReloadButton.focus();
+    }
+
+    function copyCrashReport() {
+      var text = ui.crashDetails.textContent;
+      var selectReport = function () {
+        var range = document.createRange();
+        range.selectNodeContents(ui.crashDetails);
+        var selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+      };
+      if (!navigator.clipboard) { selectReport(); return; }
+      navigator.clipboard.writeText(text).then(function () {
+        ui.crashCopyButton.textContent = "Copied";
+      }, selectReport);
+    }
+
+    function stepFrame(now) {
       var rafDelta = Math.max(1, now - previousRaf);
       previousRaf = now;
       smoothedFps = lerp(smoothedFps, 1000 / rafDelta, .08);
@@ -13444,6 +13533,8 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
     ui.restartButton.addEventListener("click", requestRestart);
     ui.pauseHangarButton.addEventListener("click", exitToHangar);
     ui.hangarButton.addEventListener("click", exitToHangar);
+    ui.crashCopyButton.addEventListener("click", copyCrashReport);
+    ui.crashReloadButton.addEventListener("click", function () { window.location.reload(); });
     ui.exportTelemetryButton.addEventListener("click", exportTelemetry);
     ui.resultExportTelemetry.addEventListener("click", exportTelemetry);
     ui.clearTelemetryButton.addEventListener("click", clearTelemetry);
@@ -13664,7 +13755,21 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
       else audio.setFocused(true);
     });
 
+    // Closing the window mid-run banks it like "End run" instead of discarding its Fragments.
+    function bankActiveRun() {
+      if (!game || game.finished || game.training || game.testRange) return;
+      var fragmentsBefore = save.fragments;
+      var carryBefore = save.fragmentCarryUnits;
+      game.finishRun(game.state === "milestone", true);
+      // A corrupted run must never overwrite the banked balance with NaN.
+      if (!Number.isFinite(save.fragments) || !Number.isFinite(save.fragmentCarryUnits)) {
+        save.fragments = fragmentsBefore;
+        save.fragmentCarryUnits = carryBefore;
+      }
+    }
+
     window.addEventListener("pagehide", function () {
+      bankActiveRun();
       storeSave();
       if (playtestTelemetry) playtestTelemetry.flush();
     });
@@ -14104,10 +14209,10 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
     }
     if (performance.now() - coreHudLastActiveAt >= 5000) root.classList.remove("pc-core-hud-faded");
   }
-  var brand = '<span class="pc-brand">DRIFT <b>BASTION</b></span><span class="pc-tagline">MODULAR SPACE SURVIVAL</span>';
+  var brand = '<span class="pc-brand"><b>BASTION</b></span><span class="pc-tagline">MODULAR SPACE SURVIVAL</span>';
   var menu = document.querySelector(".start-screen");
   var title = menu.querySelector(".start-title");
-  title.innerHTML = '<p class="eyebrow">SALVAGE / BUILD / ENDURE</p><h1>DRIFT<br><span>BASTION</span></h1><p class="pc-menu-copy">Build your bastion.<br>Survive the next arrival.</p>';
+  title.innerHTML = '<p class="eyebrow">SALVAGE / BUILD / ENDURE</p><h1><span>BASTION</span></h1><p class="pc-menu-copy">Build your bastion.<br>Survive the next arrival.</p>';
   var hero = element("div", "pc-hero", '<div class="pc-orbit orbit-a"></div><div class="pc-orbit orbit-b"></div><canvas id="pcHeroCanvas" width="800" height="800" aria-label="Selected starting ship"></canvas><div class="pc-hero-caption"><span>01 / FLIGHT READY</span><strong id="pcHeroLoadout"></strong><small>YOUR NEXT BASTION</small></div>');
   menu.prepend(hero);
   var menuMark = element("div", "pc-menu-mark", brand); menu.appendChild(menuMark);

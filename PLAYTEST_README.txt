@@ -1,4 +1,4 @@
-Drift Bastion — PC playtest
+Bastion — PC playtest
 
 Open Drift_Bastion_Playtest.html in a modern desktop browser. It is self-contained
 and works offline. Use Fullscreen in the menu or Settings. This is the PC
@@ -8,6 +8,13 @@ CONTROLS
 W/S: thrust. A/D: turn. Hold left mouse on the battlefield to follow the cursor;
 release to coast. Weapons fire automatically.
 B: open/resume Build. P or Escape: pause. Escape closes the current layer first.
+
+RUN SAFETY — 2026.10.20-bank-run-50
+Closing the window mid-run banks the run like End run: Fragments and their
+progress are kept. An unexpected error now stops the game on a crash screen
+instead of freezing silently; the current run is banked first. Copy error
+gives a report for bug reports. The game is named Bastion in the window
+title and menu.
 
 CRYO MISSILES — 2026.10.17-cryo-missile-49
 An edge-adjacent Cryo gives Missile Pods a cold payload at each discharge.
