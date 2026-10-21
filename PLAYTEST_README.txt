@@ -9,6 +9,14 @@ W/S: thrust. A/D: turn. Hold left mouse on the battlefield to follow the cursor;
 release to coast. Weapons fire automatically.
 B: open/resume Build. P or Escape: pause. Escape closes the current layer first.
 
+LANGUAGES — 2026.10.20-languages-51
+Bastion is playable in 16 languages: English, French, Italian, German,
+Spanish (Spain), Spanish (Latin America), Simplified Chinese, Traditional
+Chinese, Japanese, Korean, Polish, Portuguese (Brazil), Russian, Thai, Turkish
+and Uzbek. The system language is used on first launch; Settings > Language
+changes it (after the current run if one is active). Translations are drafts
+awaiting native-speaker review.
+
 RUN SAFETY — 2026.10.20-bank-run-50
 Closing the window mid-run banks the run like End run: Fragments and their
 progress are kept. An unexpected error now stops the game on a crash screen

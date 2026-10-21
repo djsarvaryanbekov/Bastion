@@ -1,5 +1,6 @@
 (function () {
   "use strict";
+  var tr = (typeof window !== "undefined" && window.tr) || function (text, vars) { return vars ? text.replace(/{(w+)}/g, function (match, name) { return name in vars ? String(vars[name]) : match; }) : text; };
   function element(tag, className, text) {
     var node = document.createElement(tag);
     node.className = className || "";
@@ -12,11 +13,11 @@
     var heading = catalog.querySelector("h3");
     var families = element("nav", "pc-installed-families");
     families.id = "pcInstalledFamilies";
-    families.setAttribute("aria-label", "Installed module families");
+    families.setAttribute("aria-label", tr("Installed module families"));
     catalog.appendChild(families);
     var guide = element("section", "pc-build-guide");
     guide.id = "pcBuildGuide";
-    guide.setAttribute("aria-label", "Current build action");
+    guide.setAttribute("aria-label", tr("Current build action"));
     var copy = element("div");
     var mode = element("small", "eyebrow");
     var title = element("strong");
@@ -28,7 +29,7 @@
     var grid = document.getElementById("buildGrid");
     var zoomControls = element("div", "pc-build-zoom");
     zoomControls.setAttribute("role", "group");
-    zoomControls.setAttribute("aria-label", "Ship layout zoom");
+    zoomControls.setAttribute("aria-label", tr("Ship layout zoom"));
     var zoomLabel = element("output", "pc-build-zoom-label");
     zoomLabel.id = "pcBuildZoomLabel";
     var autoFit = true;
@@ -41,9 +42,9 @@
       control.addEventListener("click", action);
       return control;
     }
-    var zoomOut = zoomButton("pcBuildZoomOut", "Zoom out ship layout", "−", function () { changeZoom(-1); });
-    var zoomIn = zoomButton("pcBuildZoomIn", "Zoom in ship layout", "+", function () { changeZoom(1); });
-    var fit = zoomButton("pcBuildFit", "Fit entire ship and attachment cells", "Fit ship", function () { autoFit = true; fitLayout(); });
+    var zoomOut = zoomButton("pcBuildZoomOut", tr("Zoom out ship layout"), "−", function () { changeZoom(-1); });
+    var zoomIn = zoomButton("pcBuildZoomIn", tr("Zoom in ship layout"), "+", function () { changeZoom(1); });
+    var fit = zoomButton("pcBuildFit", tr("Fit entire ship and attachment cells"), tr("Fit ship"), function () { autoFit = true; fitLayout(); });
     zoomControls.append(zoomOut, zoomLabel, zoomIn, fit);
     guide.appendChild(zoomControls);
     function changeZoom(direction) {
@@ -91,14 +92,14 @@
     // Only grid structure changes refit; hovering a ghost must not move its destination.
     new MutationObserver(scheduleFit).observe(grid, { childList: true });
     new ResizeObserver(scheduleFit).observe(viewport);
-    var treeButton = element("button", "primary", "Upgrade this family →");
+    var treeButton = element("button", "primary", tr("Upgrade this family") + " →");
     treeButton.id = "pcOpenFamilyTree";
     treeButton.type = "button";
     treeButton.addEventListener("click", function () { setWorkspace(true); refresh(); });
     document.getElementById("buildModuleDetails").after(treeButton);
     var hint = document.querySelector(".pc-tree-hint");
-    hint.replaceChildren(element("strong", "", "No installed module families"), element("p", "", "Attach a module in Ship layout. Its family will appear here, ready to inspect and upgrade with Matter."));
-    var back = element("button", "primary", "Open ship layout");
+    hint.replaceChildren(element("strong", "", tr("No installed module families")), element("p", "", tr("Attach a module in Ship layout. Its family will appear here, ready to inspect and upgrade with Matter.")));
+    var back = element("button", "primary", tr("Open ship layout"));
     back.type = "button";
     back.addEventListener("click", function () { setWorkspace(false); refresh(); });
     hint.appendChild(back);
@@ -115,13 +116,13 @@
       var key = JSON.stringify(state) + tree;
       if (key === previous) return;
       previous = key;
-      heading.textContent = tree ? "INSTALLED SYSTEMS" : "MODULE LIBRARY";
+      heading.textContent = tree ? tr("INSTALLED SYSTEMS") : tr("MODULE LIBRARY");
       document.getElementById("buildHint").textContent = tree
-        ? "Choose an installed family on the left, then inspect a node. Return to Ship layout to add or remove modules."
-        : "Library: choose a new copy · Ship: inspect installed modules · Upgrades: improve an installed family";
+        ? tr("Choose an installed family on the left, then inspect a node. Return to Ship layout to add or remove modules.")
+        : tr("Library: choose a new copy · Ship: inspect installed modules · Upgrades: improve an installed family");
       var focusedType = families.contains(document.activeElement) ? document.activeElement.dataset.family : null;
       families.replaceChildren();
-      families.appendChild(element("p", "pc-family-help", "Select a family below. Upgrades affect every installed copy and future copies during this run."));
+      families.appendChild(element("p", "pc-family-help", tr("Select a family below. Upgrades affect every installed copy and future copies during this run.")));
       state.families.forEach(function (family) {
         var item = element("button", "pc-family-card" + (state.type === family.type ? " selected" : ""));
         item.type = "button";
@@ -130,19 +131,19 @@
         var art = element("span", "pc-family-art");
         art.innerHTML = api.icon(family.type);
         var label = element("span", "pc-family-label");
-        label.append(element("strong", "", api.modules[family.type].name), element("small", "", family.count + (family.count === 1 ? " installed copy" : " installed copies")), element("small", "", family.rank));
+        label.append(element("strong", "", api.modules[family.type].name), element("small", "", family.count === 1 ? tr("{count} installed copy", { count: family.count }) : tr("{count} installed copies", { count: family.count })), element("small", "", family.rank));
         item.append(art, label);
         item.addEventListener("click", function () { api.selectBuildFamily(family.type); refresh(); item = families.querySelector('[data-family="' + family.type + '"]'); if (item) item.focus({preventScroll:true}); });
         families.appendChild(item);
         if (focusedType === family.type) item.focus({preventScroll:true});
       });
       treeButton.hidden = !state.installed || state.type === "core";
-      var name = state.type === "core" ? "Core" : api.modules[state.type].name;
-      mode.textContent = state.installed ? "INSPECT INSTALLED MODULE" : "ADD A MODULE";
-      title.textContent = state.installed ? name + " selected" : "Place " + name;
+      var name = state.type === "core" ? tr("Core") : api.modules[state.type].name;
+      mode.textContent = state.installed ? tr("INSPECT INSTALLED MODULE") : tr("ADD A MODULE");
+      title.textContent = state.installed ? tr("{name} selected", { name: name }) : tr("Place {name}", { name: name });
       instruction.textContent = state.installed
-        ? (state.type === "core" ? "The core anchors your ship. Select another installed module to upgrade it, or choose a library item to add a copy." : "Upgrade this family from the inspector. Removing a module gives no refund and must keep the ship connected.")
-        : "Choose a + beside the ship to attach a copy, or drag it from the library. Click an installed module to inspect it.";
+        ? (state.type === "core" ? tr("The core anchors your ship. Select another installed module to upgrade it, or choose a library item to add a copy.") : tr("Upgrade this family from the inspector. Removing a module gives no refund and must keep the ship connected."))
+        : tr("Choose a + beside the ship to attach a copy, or drag it from the library. Click an installed module to inspect it.");
     }
     return { refresh: refresh };
   }

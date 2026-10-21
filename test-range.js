@@ -1,16 +1,17 @@
 (function (root) {
   "use strict";
+  var tr = (typeof window !== "undefined" && window.tr) || function (text, vars) { return vars ? text.replace(/\{(\w+)\}/g, function (match, name) { return name in vars ? String(vars[name]) : match; }) : text; };
   // A range owns only temporary arena state. Combat remains in Game.
   function create(options) {
     var scene = "stationary", refill = 0, pickups = [], earned = 0;
     var scenarios = [
-      { id: "stationary", name: "Stationary targets" },
-      { id: "moving", name: "Moving formation" },
-      { id: "enemy", name: "Enemy formation" },
-      { id: "incoming", name: "Incoming fire" },
-      { id: "boss", name: "Boss encounter" },
-      { id: "repair", name: "Damaged hull" },
-      { id: "salvage", name: "Resource collection" }
+      { id: "stationary", name: tr("Stationary targets") },
+      { id: "moving", name: tr("Moving formation") },
+      { id: "enemy", name: tr("Enemy formation") },
+      { id: "incoming", name: tr("Incoming fire") },
+      { id: "boss", name: tr("Boss encounter") },
+      { id: "repair", name: tr("Damaged hull") },
+      { id: "salvage", name: tr("Resource collection") }
     ];
     function clear(game) {
       game.enemies.length = 0; game.enemyById.clear(); game.enemyGrid.clear();

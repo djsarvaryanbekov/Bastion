@@ -1,6 +1,8 @@
 (function (root) {
   "use strict";
 
+  var tr = (typeof window !== "undefined" && window.tr) || function (text, vars) { return vars ? text.replace(/\{(\w+)\}/g, function (match, name) { return name in vars ? String(vars[name]) : match; }) : text; };
+
   function create(options) {
     options = options || {};
     var hud = document.getElementById("trainingHUD");
@@ -55,8 +57,8 @@
 
     function renderPanel(prefix, model) {
       var failed = model.status === "failed";
-      text(prefix + "Action", failed ? "Core lost. Try this fight again." : model.action);
-      text(prefix + "Progress", failed ? "Your saved progress is unchanged." : model.progressText);
+      text(prefix + "Action", failed ? tr("Core lost. Try this fight again.") : model.action);
+      text(prefix + "Progress", failed ? tr("Your saved progress is unchanged.") : model.progressText);
       text(prefix + "Matter", Math.floor(Number(model.matter) || 0));
     }
 
@@ -86,13 +88,13 @@
       visible(completion, finished && !paused);
       renderPanel("training", model);
       renderPanel("trainingBuild", model);
-      text("trainingOpenBuildButton", model.buildLabel || "Build");
+      text("trainingOpenBuildButton", model.buildLabel || tr("Build"));
       var buildButton = byId("trainingOpenBuildButton");
       if (buildButton) buildButton.classList.toggle("primary", Boolean(model.buildHighlighted));
       visible(byId("trainingOpenBuildButton"), Boolean(model.allowBuild && !model.inBuild && !failed && !finished));
       visible(byId("trainingPauseButton"), !failed && !finished);
       visible(byId("trainingFailureRetryButton"), failed);
-      text("trainingReturnButton", model.canReturnToRun ? "Return to previous run" : "Back to menu");
+      text("trainingReturnButton", model.canReturnToRun ? tr("Return to previous run") : tr("Back to menu"));
     }
 
     function destroy() {

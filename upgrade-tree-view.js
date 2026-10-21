@@ -1,5 +1,6 @@
 (function (root) {
   "use strict";
+  var tr = (typeof window !== "undefined" && window.tr) || function (text, vars) { return vars ? text.replace(/\{(\w+)\}/g, function (match, name) { return name in vars ? String(vars[name]) : match; }) : text; };
   function element(tag, className, text) {
     var node = document.createElement(tag);
     node.className = className || "";
@@ -45,7 +46,7 @@
     var upgrades = options.upgrades, type = options.type, tree = upgrades.trees[type];
     var selected = tree.branches.find(function (branch) { return branch.id === options.branch; }) || tree.branches[0];
     var toolbar = element("div", "branch-toolbar");
-    var label = element("label", "", "Weapon / support module");
+    var label = element("label", "", tr("Weapon / support module"));
     label.setAttribute("for", "branchWeaponSelect");
     var select = element("select", "branch-weapon-select");
     select.id = "branchWeaponSelect";
@@ -56,14 +57,14 @@
     select.value = type;
     select.addEventListener("change", function () { options.onType(select.value); });
     toolbar.appendChild(label); toolbar.appendChild(select);
-    toolbar.appendChild(element("strong", "branch-wallet", options.fragments + " Fragments"));
+    toolbar.appendChild(element("strong", "branch-wallet", tr("{count} Fragments", { count: options.fragments })));
     container.appendChild(toolbar);
     var layout = element("div", "branch-shop-layout");
     var viewport = element("div", "branch-tree-viewport");
-    viewport.setAttribute("aria-label", "Branch unlock tree; scroll horizontally to explore");
+    viewport.setAttribute("aria-label", tr("Branch unlock tree; scroll horizontally to explore"));
     viewport.setAttribute("tabindex", "0");
     var detail = element("section", "branch-inspect");
-    detail.setAttribute("aria-label", "Selected branch details");
+    detail.setAttribute("aria-label", tr("Selected branch details"));
     var buttons = [];
     function owned(branch) { return options.licenses.indexOf(type + ":" + branch.id) >= 0; }
     function parentOwned(branch) { return !branch.parent || options.licenses.indexOf(type + ":" + branch.parent) >= 0; }
@@ -75,19 +76,19 @@
         entry.node.setAttribute("aria-pressed", String(entry.branch.id === branch.id));
       });
       detail.innerHTML = "";
-      detail.appendChild(element("span", "tree-eyebrow", "PERMANENT BRANCH UNLOCK"));
+      detail.appendChild(element("span", "tree-eyebrow", tr("PERMANENT BRANCH UNLOCK")));
       detail.appendChild(element("h4", "", branch.name));
-      var status = owned(branch) ? "Owned · Available in every run" : !parentOwned(branch) ? "Requires " + tree.branches.find(function (entry) { return entry.id === branch.parent; }).name + " unlock" : options.activeRun ? "Finish your run before purchasing unlocks" : options.fragments < branch.fragmentCost ? "Need " + (branch.fragmentCost - options.fragments) + " more Fragments" : "Unlock once. Upgrade with Matter during a run.";
+      var status = owned(branch) ? tr("Owned · Available in every run") : !parentOwned(branch) ? tr("Requires {name} unlock", { name: tree.branches.find(function (entry) { return entry.id === branch.parent; }).name }) : options.activeRun ? tr("Finish your run before purchasing unlocks") : options.fragments < branch.fragmentCost ? tr("Need {count} more Fragments", { count: branch.fragmentCost - options.fragments }) : tr("Unlock once. Upgrade with Matter during a run.");
       detail.appendChild(element("p", "branch-state", status));
-      var buy = element("button", "primary branch-buy", owned(branch) ? "Owned" : "Unlock · " + branch.fragmentCost + " Fragments");
+      var buy = element("button", "primary branch-buy", owned(branch) ? tr("Owned") : tr("Unlock · {cost} Fragments", { cost: branch.fragmentCost }));
       buy.dataset.unlockBranch = type + ":" + branch.id;
       buy.disabled = owned(branch) || !parentOwned(branch) || options.fragments < branch.fragmentCost || options.activeRun;
       buy.addEventListener("click", function () { if (!buy.disabled) options.onBuy(branch.id); });
       detail.appendChild(buy);
-      detail.appendChild(element("p", "branch-step-label", "During a run · Matter per installed copy"));
+      detail.appendChild(element("p", "branch-step-label", tr("During a run · Matter per installed copy")));
       branchSteps(upgrades, type, branch, options.definitions[type]).forEach(function (step, index) {
         var row = element("div", "branch-step");
-        row.appendChild(element("strong", "", "Rank " + (index + 1) + " · " + step.cost + " Matter"));
+        row.appendChild(element("strong", "", tr("Rank {rank} · {cost} Matter", { rank: index + 1, cost: step.cost })));
         row.appendChild(element("p", "", step.description));
         detail.appendChild(row);
       });
@@ -97,8 +98,8 @@
       var node = element("button", "branch-node" + (owned(branch) ? " owned" : ""));
       node.dataset.branch = type + ":" + branch.id;
       node.appendChild(element("strong", "", branch.name));
-      node.appendChild(element("span", "", owned(branch) ? "✓ Owned" : branch.fragmentCost + " Fragments"));
-      node.appendChild(element("small", "", owned(branch) ? "Permanent" : parentOwned(branch) ? "Locked · Inspect" : "Requires parent unlock"));
+      node.appendChild(element("span", "", owned(branch) ? "✓ " + tr("Owned") : tr("{cost} Fragments", { cost: branch.fragmentCost })));
+      node.appendChild(element("small", "", owned(branch) ? tr("Permanent") : parentOwned(branch) ? tr("Locked · Inspect") : tr("Requires parent unlock")));
       node.addEventListener("click", function () { showDetails(branch); });
       buttons.push({ node: node, branch: branch }); row.appendChild(node);
       var children = tree.branches.filter(function (entry) { return entry.parent === branch.id; });
@@ -112,8 +113,8 @@
     var treeRoot = element("div", "tree-lane tree-origin");
     var base = element("div", "branch-node tree-base owned");
     base.appendChild(element("strong", "", options.definitions[type].name));
-    base.appendChild(element("span", "", "Base upgrades"));
-    base.appendChild(element("small", "", "Available with Matter"));
+    base.appendChild(element("span", "", tr("Base upgrades")));
+    base.appendChild(element("small", "", tr("Available with Matter")));
     treeRoot.appendChild(base);
     var roots = element("div", "tree-forks");
     tree.branches.filter(function (branch) { return !branch.parent; }).forEach(function (branch) { roots.appendChild(lane(branch)); });
@@ -125,10 +126,10 @@
 
   function renderHistory(container, upgrades, type, state) {
     var history = element("div", "upgrade-history");
-    var base = element("div", "run-path-node complete", "Base ✓"); history.appendChild(base);
+    var base = element("div", "run-path-node complete", tr("Base") + " ✓"); history.appendChild(base);
     routeSteps(upgrades, type, state).forEach(function (step) {
       var node = element("div", "run-path-node complete");
-      node.appendChild(element("small", "", "PURCHASED ✓"));
+      node.appendChild(element("small", "", tr("PURCHASED") + " ✓"));
       node.appendChild(element("strong", "", step.name.replace(/ [+-][\d.]+%$/, "")));
       history.appendChild(node);
     });
@@ -159,13 +160,13 @@
         if (available) node = options.createChoice(available);
         else {
           node = element("button", "branch-node run-tree-node" + (purchased ? " owned" : ""));
-          node.appendChild(element("small", "tree-eyebrow", purchased ? "PURCHASED ✓" : !matches ? "OTHER ROUTE" : "LATER UPGRADE"));
+          node.appendChild(element("small", "tree-eyebrow", purchased ? tr("PURCHASED") + " ✓" : !matches ? tr("OTHER ROUTE") : tr("LATER UPGRADE")));
           node.appendChild(element("strong", "", choice.name.replace(/ [+-][\d.]+%$/, "")));
           if (!purchased) {
-            node.appendChild(element("span", "", choice.cost + " Matter"));
+            node.appendChild(element("span", "", tr("{cost} Matter", { cost: choice.cost })));
             var locked = choice.license && options.licenses.indexOf(choice.license) < 0;
             var branch = locked && tree.branches.find(function (entry) { return type + ":" + entry.id === choice.license; });
-            node.appendChild(element("small", "", !matches ? "Not chosen this run" : "Requires " + parentName + (locked ? " · Hangar license: " + branch.fragmentCost + " Fragments" : "")));
+            node.appendChild(element("small", "", !matches ? tr("Not chosen this run") : locked ? tr("Requires {name} · Hangar license: {cost} Fragments", { name: parentName, cost: branch.fragmentCost }) : tr("Requires {name}", { name: parentName })));
           }
           node.type = "button";
           node.title = upgrades.describeChange(options.base, parentState, choice);
@@ -187,10 +188,10 @@
     }
     var root = element("div", "tree-lane tree-origin run-tree");
     var base = element("div", "branch-node tree-base owned");
-    base.appendChild(element("strong", "", "Base"));
-    base.appendChild(element("small", "", "Installed ✓"));
+    base.appendChild(element("strong", "", tr("Base")));
+    base.appendChild(element("small", "", tr("Installed") + " ✓"));
     root.appendChild(base);
-    var branches = children(null, [], "Base");
+    var branches = children(null, [], tr("Base"));
     if (branches) root.appendChild(branches);
     container.appendChild(root);
   }

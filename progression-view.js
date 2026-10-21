@@ -5,6 +5,7 @@
   if (root) root.DriftProgressionView = view;
 })(typeof window !== "undefined" ? window : null, function () {
   "use strict";
+  var tr = (typeof window !== "undefined" && window.tr) || function (text, vars) { return vars ? text.replace(/\{(\w+)\}/g, function (match, name) { return name in vars ? String(vars[name]) : match; }) : text; };
 
   function nonNegative(value) {
     if (typeof value !== "number" && typeof value !== "string") return 0;
@@ -39,7 +40,7 @@
       var target = nonNegative(objective.target);
       var current = Math.min(nonNegative(objective.current), target);
       if (target > 0 && (!nearest || current / target > nearest.value / nearest.max)) {
-        nearest = { type: definition.type, label: "More modules", text: objective.text, value: current, max: target };
+        nearest = { type: definition.type, label: tr("More modules"), text: objective.text, value: current, max: target };
       }
     });
 
@@ -52,8 +53,8 @@
       var cheapest = available.reduce(function (best, offer) { return offer.cost < best.cost ? offer : best; });
       goal = {
         type: cheapest.type,
-        label: "Save for a module",
-        text: moduleName(moduleDefinitions, cheapest.type) + " · " + displayNumber(cheapest.cost - wallet) + " more Fragments (" + displayNumber(cheapest.cost) + " total)",
+        label: tr("Save for a module"),
+        text: tr("{module} · {missing} more Fragments ({total} total)", { module: moduleName(moduleDefinitions, cheapest.type), missing: displayNumber(cheapest.cost - wallet), total: displayNumber(cheapest.cost) }),
         value: wallet,
         max: cheapest.cost
       };
@@ -91,7 +92,7 @@
       nextPercent: nextPercent,
       currentText: currentText,
       nextText: nextText,
-      text: maxed ? currentText + (rank > cap ? " · Retained" : " · Max") : "+" + displayNumber(currentPercent) + "% → " + nextText,
+      text: maxed ? (rank > cap ? tr("{value} · Retained", { value: currentText }) : tr("{value} · Max", { value: currentText })) : "+" + displayNumber(currentPercent) + "% → " + nextText,
       maxed: maxed
     };
   }

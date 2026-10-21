@@ -6,18 +6,19 @@
 })(typeof window !== "undefined" ? window : null, function () {
   "use strict";
 
+  var tr = (typeof window !== "undefined" && window.tr) || function (text, vars) { return vars ? text.replace(/\{(\w+)\}/g, function (match, name) { return name in vars ? String(vars[name]) : match; }) : text; };
   var MAIN_IDS = ["combat", "construction", "upgrades"];
   var DEFINITIONS = {
     combat: {
-      title: "Fight",
+      title: tr("Fight"),
       setup: { targets: [{ id: "combat-1", x: -130, y: -210, hp: 72 }, { id: "combat-2", x: 0, y: -260, hp: 72 }, { id: "combat-3", x: 150, y: -210, hp: 72 }], targetGroup: "combat", relativeToShip: true }
     },
     construction: {
-      title: "Add a Cannon",
+      title: tr("Add a Cannon"),
       setup: { targets: [{ id: "construction-1", x: -130, y: -230, hp: 72 }, { id: "construction-2", x: 130, y: -230, hp: 72 }], targetGroup: "construction", relativeToShip: true }
     },
     upgrades: {
-      title: "Upgrade both Cannons",
+      title: tr("Upgrade both Cannons"),
       setup: { targets: [{ id: "upgrades-1", x: -130, y: -230, hp: 72 }, { id: "upgrades-2", x: 130, y: -230, hp: 72 }], targetGroup: "upgrades", relativeToShip: true }
     }
   };
@@ -36,7 +37,7 @@
     var needsUpgrade = state.stageId === "upgrades" && !progress.upgraded;
     var result = {
       action: state.action || "", progressText: state.progressText || "", highlightTarget: null,
-      buildLabel: needsUpgrade && !needsCannon ? "Upgrade [B]" : "Build [B]",
+      buildLabel: needsUpgrade && !needsCannon ? tr("Upgrade [B]") : tr("Build [B]"),
       buildHighlighted: false
     };
     if (!state.active || state.completed || state.status === "complete" || state.status === "failed" || context.paused) return result;
@@ -52,42 +53,42 @@
     }
     function improved() {
       var damage = context.cannonDamageBonusPercent;
-      if (finite(damage) && damage > 0) return "All " + copies + " Cannons deal " + Math.round(damage) + "% more damage.";
+      if (finite(damage) && damage > 0) return tr("All {count} Cannons deal {percent}% more damage.", { count: copies, percent: Math.round(damage) });
       var rate = context.cannonRateBonusPercent;
-      return "All " + copies + " Cannons " + (finite(rate) && rate > 0 ? "fire " + Math.round(rate) + "% faster." : "share the upgrade.");
+      return finite(rate) && rate > 0 ? tr("All {count} Cannons fire {percent}% faster.", { count: copies, percent: Math.round(rate) }) : tr("All {count} Cannons share the upgrade.", { count: copies });
     }
 
     if (!context.inBuild) {
       if (state.stageId === "combat" && context.inputEngaged === false) {
-        return guide(context.touch ? "Drag empty space to fly. Your Cannon fires automatically." : "W/S thrust · A/D turn. Your Cannon fires automatically.", "controls");
+        return guide(context.touch ? tr("Drag empty space to fly. Your Cannon fires automatically.") : tr("W/S thrust · A/D turn. Your Cannon fires automatically."), "controls");
       }
       if (needsCannon || needsUpgrade) {
         var shortfall = missing(needsCannon ? context.cannonCost : context.cannonUpgradeCost);
-        return shortfall ? guide("Defeat enemies for " + shortfall + " more Matter.", null) : guide(result.action, "build");
+        return shortfall ? guide(tr("Defeat enemies for {count} more Matter.", { count: shortfall }), null) : guide(result.action, "build");
       }
-      if (state.stageId === "upgrades" && progress.upgraded) return guide(improved() + " Try them on the enemies.", null);
+      if (state.stageId === "upgrades" && progress.upgraded) return guide(tr("{result} Try them on the enemies.", { result: improved() }), null);
       return result;
     }
 
-    if (state.stageId === "combat") return guide("Resume to fly. Your Cannon fires automatically.", "resume");
+    if (state.stageId === "combat") return guide(tr("Resume to fly. Your Cannon fires automatically."), "resume");
     if (needsCannon) {
       var cannonShortfall = missing(context.cannonCost);
-      if (cannonShortfall) return guide("Resume and earn " + cannonShortfall + " more Matter for a Cannon.", "resume");
-      if (context.upgradeWorkspaceOpen === true) return guide("Open Ship layout to attach another Cannon.", "layout-workspace");
-      if (context.selectedTileType || context.selectedCatalogType !== "cannon") return guide("Select Cannon in Weapons to add another.", "catalog-cannon");
-      if (context.touch && context.pendingPlacement) return guide("Tap the highlighted + again to attach the Cannon.", "placement-pending");
-      return guide(context.touch ? "Tap a + cell beside the ship to place the Cannon." : "Click a + cell to attach the Cannon, or drag it there.", "placement");
+      if (cannonShortfall) return guide(tr("Resume and earn {count} more Matter for a Cannon.", { count: cannonShortfall }), "resume");
+      if (context.upgradeWorkspaceOpen === true) return guide(tr("Open Ship layout to attach another Cannon."), "layout-workspace");
+      if (context.selectedTileType || context.selectedCatalogType !== "cannon") return guide(tr("Select Cannon in Weapons to add another."), "catalog-cannon");
+      if (context.touch && context.pendingPlacement) return guide(tr("Tap the highlighted + again to attach the Cannon."), "placement-pending");
+      return guide(context.touch ? tr("Tap a + cell beside the ship to place the Cannon.") : tr("Click a + cell to attach the Cannon, or drag it there."), "placement");
     }
-    if (state.stageId === "construction") return guide("Second Cannon installed. Resume to try both.", "resume");
-    if (progress.upgraded) return guide(improved() + " Resume to try them.", "resume");
+    if (state.stageId === "construction") return guide(tr("Second Cannon installed. Resume to try both."), "resume");
+    if (progress.upgraded) return guide(tr("{result} Resume to try them.", { result: improved() }), "resume");
 
     var upgradeShortfall = missing(context.cannonUpgradeCost);
-    if (upgradeShortfall) return guide("Resume and earn " + upgradeShortfall + " more Matter for the shared upgrade.", "resume");
-    if (context.upgradeWorkspaceOpen === false) return guide("Open Upgrade tree to improve both Cannons.", "upgrade-workspace");
+    if (upgradeShortfall) return guide(tr("Resume and earn {count} more Matter for the shared upgrade.", { count: upgradeShortfall }), "resume");
+    if (context.upgradeWorkspaceOpen === false) return guide(tr("Open Upgrade tree to improve both Cannons."), "upgrade-workspace");
     var selectedType = context.selectedTileType || context.selectedCatalogType;
-    if (context.upgradeWorkspaceOpen === true && selectedType !== "cannon") return guide("Select Cannon in installed systems to upgrade both copies.", "family-cannon");
-    if (selectedType !== "cannon") return guide("Select Cannon in Weapons to see its shared upgrade.", "catalog-cannon");
-    return guide("Buy the Cannon upgrade. Every current and future Cannon improves.", "upgrade");
+    if (context.upgradeWorkspaceOpen === true && selectedType !== "cannon") return guide(tr("Select Cannon in installed systems to upgrade both copies."), "family-cannon");
+    if (selectedType !== "cannon") return guide(tr("Select Cannon in Weapons to see its shared upgrade."), "catalog-cannon");
+    return guide(tr("Buy the Cannon upgrade. Every current and future Cannon improves."), "upgrade");
   }
 
   function create(callbacks) {
@@ -130,23 +131,23 @@
     }
 
     function actionFor(id) {
-      if (completed) return "Training complete.";
-      if (id === "combat") return "Fly around the enemies. Your Cannon fires automatically.";
+      if (completed) return tr("Training complete.");
+      if (id === "combat") return tr("Fly around the enemies. Your Cannon fires automatically.");
       if (id === "construction") {
-        if (!ledger.boughtCannon) return "Open Build and attach a second Cannon.";
-        if (ledger.cannonCopies < 2) return "Replace the missing Cannon in Build.";
-        return "Try both Cannons against the next enemies.";
+        if (!ledger.boughtCannon) return tr("Open Build and attach a second Cannon.");
+        if (ledger.cannonCopies < 2) return tr("Replace the missing Cannon in Build.");
+        return tr("Try both Cannons against the next enemies.");
       }
-      if (ledger.cannonCopies < 2) return "Attach a second Cannon in Build.";
-      return upgraded() ? "Fight with your upgraded Cannons." : "Upgrade the Cannon in Build. Both copies improve.";
+      if (ledger.cannonCopies < 2) return tr("Attach a second Cannon in Build.");
+      return upgraded() ? tr("Fight with your upgraded Cannons.") : tr("Upgrade the Cannon in Build. Both copies improve.");
     }
 
     function progressText(id) {
-      var enemies = ledger[id].length + " / " + DEFINITIONS[id].setup.targets.length + " enemies";
+      var enemies = tr("{destroyed} / {required} enemies", { destroyed: ledger[id].length, required: DEFINITIONS[id].setup.targets.length });
       if (id === "combat") return enemies;
-      if (ledger.cannonCopies < 2) return ledger.cannonCopies + " / 2 Cannons";
-      if (id === "construction") return ledger.boughtCannon ? ledger.cannonCopies + " Cannons · " + enemies : "Buy a second Cannon";
-      return upgraded() ? "Both upgraded · " + enemies : "One upgrade · every Cannon";
+      if (ledger.cannonCopies < 2) return tr("{count} / 2 Cannons", { count: ledger.cannonCopies });
+      if (id === "construction") return ledger.boughtCannon ? tr("{count} Cannons · {enemies}", { count: ledger.cannonCopies, enemies: enemies }) : tr("Buy a second Cannon");
+      return upgraded() ? tr("Both upgraded · {enemies}", { enemies: enemies }) : tr("One upgrade · every Cannon");
     }
 
     function snapshot() {

@@ -1,6 +1,8 @@
 (function (root) {
   "use strict";
 
+  var tr = (typeof window !== "undefined" && window.tr) || function (text, vars) { return vars ? text.replace(/\{(\w+)\}/g, function (match, name) { return name in vars ? String(vars[name]) : match; }) : text; };
+
   function create(options) {
     var current = null;
 
@@ -74,7 +76,7 @@
       game.enemies.forEach(function (enemy) {
         if (!enemy.trainingTarget || enemy.dead) return;
         var point = screen(enemy.x, enemy.y);
-        context.fillText("+8 MATTER", point.x, point.y - enemy.radius - 14);
+        context.fillText(tr("+{amount} MATTER", { amount: 8 }), point.x, point.y - enemy.radius - 14);
       });
       context.restore();
     }

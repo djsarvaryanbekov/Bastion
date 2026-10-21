@@ -4,7 +4,8 @@ const U=require('../run-upgrades'),P=require('../progression'),C=require('../cam
 const fs=require('fs');
 const source=fs.readFileSync('game.js','utf8');
 const baseText=source.slice(source.indexOf('    var MODULES = ')+18,source.indexOf('\n    var WEAPON_TYPES'));
-const defs=Function('return '+baseText.replace(/;\s*$/,''))();
+// The MODULES slice calls tr() for localized names; English identity is enough for balance math.
+const defs=Function('tr','return '+baseText.replace(/;\s*$/,''))(text=>text);
 const licenses=Object.entries(U.trees).flatMap(([type,tree])=>tree.branches.map(b=>type+':'+b.id));
 let routes=0,states=0;
 for(const [type,tree] of Object.entries(U.trees)){

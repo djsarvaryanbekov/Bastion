@@ -1,5 +1,6 @@
 (function () {
   "use strict";
+  var tr = (typeof window !== "undefined" && window.tr) || function (text, vars) { return vars ? text.replace(/\{(\w+)\}/g, function (match, name) { return name in vars ? String(vars[name]) : match; }) : text; };
   var api = window.DriftPCGame;
   var root = document.getElementById("pcViewport");
   function el(id) { return document.getElementById(id); }
@@ -17,24 +18,24 @@
     }
     if (performance.now() - coreHudLastActiveAt >= 5000) root.classList.remove("pc-core-hud-faded");
   }
-  var brand = '<span class="pc-brand"><b>BASTION</b></span><span class="pc-tagline">MODULAR SPACE SURVIVAL</span>';
+  var brand = '<span class="pc-brand"><b>BASTION</b></span><span class="pc-tagline">' + tr("MODULAR SPACE SURVIVAL") + '</span>';
   var menu = document.querySelector(".start-screen");
   var title = menu.querySelector(".start-title");
-  title.innerHTML = '<p class="eyebrow">SALVAGE / BUILD / ENDURE</p><h1><span>BASTION</span></h1><p class="pc-menu-copy">Build your bastion.<br>Survive the next arrival.</p>';
-  var hero = element("div", "pc-hero", '<div class="pc-orbit orbit-a"></div><div class="pc-orbit orbit-b"></div><canvas id="pcHeroCanvas" width="800" height="800" aria-label="Selected starting ship"></canvas><div class="pc-hero-caption"><span>01 / FLIGHT READY</span><strong id="pcHeroLoadout"></strong><small>YOUR NEXT BASTION</small></div>');
+  title.innerHTML = '<p class="eyebrow">' + tr("SALVAGE / BUILD / ENDURE") + '</p><h1><span>BASTION</span></h1><p class="pc-menu-copy">' + tr("Build your bastion.") + '<br>' + tr("Survive the next arrival.") + '</p>';
+  var hero = element("div", "pc-hero", '<div class="pc-orbit orbit-a"></div><div class="pc-orbit orbit-b"></div><canvas id="pcHeroCanvas" width="800" height="800" aria-label="' + tr("Selected starting ship") + '"></canvas><div class="pc-hero-caption"><span>01 / ' + tr("FLIGHT READY") + '</span><strong id="pcHeroLoadout"></strong><small>' + tr("YOUR NEXT BASTION") + '</small></div>');
   menu.prepend(hero);
   var menuMark = element("div", "pc-menu-mark", brand); menu.appendChild(menuMark);
-  el("startButton").querySelector("strong").textContent = "Start run";
-  document.querySelector(".start-actions").appendChild(button("pcRangeMenu", "Test range <span>↗</span>", function () { api.startRange(); }));
-  el("startTrainingButton").textContent = "Training";
-  var full = button("pcFullscreen", "⛶ Fullscreen", function () {
+  el("startButton").querySelector("strong").textContent = tr("Start run");
+  document.querySelector(".start-actions").appendChild(button("pcRangeMenu", tr("Test range") + " <span>↗</span>", function () { api.startRange(); }));
+  el("startTrainingButton").textContent = tr("Training");
+  var full = button("pcFullscreen", "⛶ " + tr("Fullscreen"), function () {
     var result = document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen({ navigationUI: "hide" });
-    if (result && result.catch) result.catch(function () { full.textContent = "Use F11 for fullscreen"; });
+    if (result && result.catch) result.catch(function () { full.textContent = tr("Use F11 for fullscreen"); });
   }, "pc-fullscreen secondary");
   root.appendChild(full);
   el("advancedSettings").appendChild(el("debugBar"));
   var settings = el("settingsContent"), settingsScroll = element("div", "pc-settings-scroll"), settingsNav = element("nav", "pc-settings-nav");
-  settingsNav.setAttribute("aria-label", "Settings sections");
+  settingsNav.setAttribute("aria-label", tr("Settings sections"));
   Array.from(settings.children).forEach(function (child) { settingsScroll.appendChild(child); });
   settings.append(settingsNav, settingsScroll);
   var settingsGrid = settingsScroll.querySelector(".settings-grid"), settingsSection;
@@ -46,35 +47,35 @@
     }
     settingsSection.appendChild(child);
   });
-  settingsNav.appendChild(button("pcAdvancedSettings", "Advanced", function () { el("advancedSettings").open = true; el("advancedSettings").scrollIntoView({block:"start"}); }, "secondary"));
-  document.addEventListener("fullscreenchange", function () { full.textContent = document.fullscreenElement ? "⛶ Windowed" : "⛶ Fullscreen"; });
-  el("buildButton").innerHTML = '<kbd>B</kbd> Build'; el("pauseButton").innerHTML = '<kbd>Esc</kbd> Pause';
+  settingsNav.appendChild(button("pcAdvancedSettings", tr("Advanced"), function () { el("advancedSettings").open = true; el("advancedSettings").scrollIntoView({block:"start"}); }, "secondary"));
+  document.addEventListener("fullscreenchange", function () { full.textContent = "⛶ " + (document.fullscreenElement ? tr("Windowed") : tr("Fullscreen")); });
+  el("buildButton").innerHTML = '<kbd>B</kbd> ' + tr("Build"); el("pauseButton").innerHTML = '<kbd>Esc</kbd> ' + tr("Pause");
   var nav = document.querySelector(".hangar-tabs");
   var cores = element("section", "hangar-panel hidden"); cores.id = "pcCoresPanel";
-  cores.innerHTML = '<div class="pc-section-intro"><p class="eyebrow">CHOOSE YOUR FOUNDATION</p><h3>Starting core</h3><p>Each core has its own permanent ranks. Select one for your next run.</p></div>';
+  cores.innerHTML = '<div class="pc-section-intro"><p class="eyebrow">' + tr("CHOOSE YOUR FOUNDATION") + '</p><h3>' + tr("Starting core") + '</h3><p>' + tr("Each core has its own permanent ranks. Select one for your next run.") + '</p></div>';
   cores.appendChild(el("corePicker"));
   document.querySelector(".core-section-title").remove();
   el("hangarUpgradesPanel").after(cores);
-  el("hangarUpgradeTab").textContent = "Permanent upgrades";
-  nav.insertBefore(button("pcCoresTab", "Cores", function () { api.hangarTab("cores"); }, "hangar-tab"), el("hangarUpgradeTab"));
+  el("hangarUpgradeTab").textContent = tr("Permanent upgrades");
+  nav.insertBefore(button("pcCoresTab", tr("Cores"), function () { api.hangarTab("cores"); }, "hangar-tab"), el("hangarUpgradeTab"));
   var research = element("section", "hangar-panel hidden"); research.id = "pcResearchPanel";
   var branches = el("branchList");
   branches.previousElementSibling.remove(); branches.previousElementSibling.remove();
   research.appendChild(branches); cores.after(research);
-  nav.appendChild(button("pcResearchTab", "Research", function () { api.hangarTab("research"); }, "hangar-tab"));
-  [["hangarWeaponTab","01","Modules","Licenses & loadout"],["pcCoresTab","02","Cores","Choose your foundation"],["hangarUpgradeTab","03","Calibration","Permanent core ranks"],["pcResearchTab","04","Research","Weapon & support branches"]].forEach(function (item) {
+  nav.appendChild(button("pcResearchTab", tr("Research"), function () { api.hangarTab("research"); }, "hangar-tab"));
+  [["hangarWeaponTab","01",tr("Modules"),tr("Licenses & loadout")],["pcCoresTab","02",tr("Cores"),tr("Choose your foundation")],["hangarUpgradeTab","03",tr("Calibration"),tr("Permanent core ranks")],["pcResearchTab","04",tr("Research"),tr("Weapon & support branches")]].forEach(function (item) {
     el(item[0]).innerHTML = '<span class="hangar-nav-index">'+item[1]+'</span><strong>'+item[2]+'</strong><small>'+item[3]+'</small>';
   });
-  var contextBar = element("div", "pc-hangar-context", '<span>PERMANENT SYSTEMS</span><strong id="pcSelectedCore"></strong><small>FRAGMENTS PURCHASES PERSIST BETWEEN RUNS</small>');
+  var contextBar = element("div", "pc-hangar-context", '<span>' + tr("PERMANENT SYSTEMS") + '</span><strong id="pcSelectedCore"></strong><small>' + tr("FRAGMENTS PURCHASES PERSIST BETWEEN RUNS") + '</small>');
   document.querySelector(".permanent-upgrades").prepend(contextBar);
   var buildHeader = document.querySelector(".build-header");
-  var views = element("nav", "pc-build-tabs"); views.setAttribute("aria-label", "Build workspace");
-  views.appendChild(button("pcLayoutTab", "Ship layout", function () { setWorkspace(false); }, "selected"));
-  views.appendChild(button("pcUpgradesTab", "Upgrade tree", function () { setWorkspace(true); }));
+  var views = element("nav", "pc-build-tabs"); views.setAttribute("aria-label", tr("Build workspace"));
+  views.appendChild(button("pcLayoutTab", tr("Ship layout"), function () { setWorkspace(false); }, "selected"));
+  views.appendChild(button("pcUpgradesTab", tr("Upgrade tree"), function () { setWorkspace(true); }));
   buildHeader.appendChild(views);
   buildHeader.appendChild(el("closeBuild"));
-  document.querySelector(".catalog-wrap h3").textContent = "MODULE LIBRARY";
-  var search = element("input", "pc-catalog-search"); search.id = "pcCatalogSearch"; search.placeholder = "Find a module"; search.setAttribute("aria-label", "Find a module");
+  document.querySelector(".catalog-wrap h3").textContent = tr("MODULE LIBRARY");
+  var search = element("input", "pc-catalog-search"); search.id = "pcCatalogSearch"; search.placeholder = tr("Find a module"); search.setAttribute("aria-label", tr("Find a module"));
   document.querySelector(".catalog-wrap").insertBefore(search, el("catalog"));
   search.addEventListener("input", filterCatalog);
   function filterCatalog() {
@@ -82,7 +83,7 @@
     el("catalog").querySelectorAll(".catalog-card").forEach(function (card) { var match = !search.value || card.textContent.toLowerCase().includes(search.value.toLowerCase()); card.hidden = !match; if (match) count++; });
     el("pcCatalogEmpty").hidden = count > 0;
   }
-  var empty = element("p", "pc-empty", "No matching modules"); empty.id = "pcCatalogEmpty"; empty.hidden = true; document.querySelector(".catalog-wrap").appendChild(empty);
+  var empty = element("p", "pc-empty", tr("No matching modules")); empty.id = "pcCatalogEmpty"; empty.hidden = true; document.querySelector(".catalog-wrap").appendChild(empty);
   new MutationObserver(filterCatalog).observe(el("catalog"), { childList: true });
   var illustration = element("div", "pc-inspector-art"); illustration.id = "pcInspectorArt";
   document.querySelector(".build-inspector").prepend(illustration);
@@ -103,15 +104,15 @@
       if (track) track.scrollTop = Math.max(0, (track.scrollHeight - track.clientHeight) / 2);
     });
   }
-  var treeHint = element("section", "pc-tree-hint", "Select an installed module to inspect its upgrade tree.");
+  var treeHint = element("section", "pc-tree-hint", tr("Select an installed module to inspect its upgrade tree."));
   document.querySelector(".build-content").appendChild(treeHint);
   var buildWorkspace = window.DriftBuildWorkspace.mount(api, setWorkspace);
-  document.querySelector(".result-panel .button-row").appendChild(button("pcResultsMenu", "Main menu", api.menu));
+  document.querySelector(".result-panel .button-row").appendChild(button("pcResultsMenu", tr("Main menu"), api.menu));
   var resultPanel = document.querySelector(".result-panel"), resultActions = resultPanel.querySelector(".button-row"), resultScroll = element("div", "pc-results-scroll");
   Array.from(resultPanel.children).forEach(function (child) { if (child !== resultActions) resultScroll.appendChild(child); });
   resultPanel.prepend(resultScroll);
   el("resultExportTelemetry").classList.add("hidden");
-  var tools = element("aside", "pc-range-panel hidden", '<p class="eyebrow">LIVE TEST RANGE</p><h2>Systems lab</h2><p class="pc-range-note">Free construction · No progression rewards</p><label for="pcRangeModule">Module</label><select id="pcRangeModule"></select><label for="pcRangeUpgrade">Upgrade configuration</label><select id="pcRangeUpgrade"></select><label for="pcRangeScenario">Scenario</label><select id="pcRangeScenario"></select><div id="pcRangeArt"></div><p id="pcRangeDescription"></p><dl id="pcRangeStats"></dl><p id="pcRangeState" role="status"></p><div class="pc-range-actions"></div>'); tools.id = "pcRangePanel"; root.appendChild(tools);
+  var tools = element("aside", "pc-range-panel hidden", '<p class="eyebrow">' + tr("LIVE TEST RANGE") + '</p><h2>' + tr("Systems lab") + '</h2><p class="pc-range-note">' + tr("Free construction · No progression rewards") + '</p><label for="pcRangeModule">' + tr("Module") + '</label><select id="pcRangeModule"></select><label for="pcRangeUpgrade">' + tr("Upgrade configuration") + '</label><select id="pcRangeUpgrade"></select><label for="pcRangeScenario">' + tr("Scenario") + '</label><select id="pcRangeScenario"></select><div id="pcRangeArt"></div><p id="pcRangeDescription"></p><dl id="pcRangeStats"></dl><p id="pcRangeState" role="status"></p><div class="pc-range-actions"></div>'); tools.id = "pcRangePanel"; root.appendChild(tools);
   Object.keys(api.modules).forEach(function (type) { el("pcRangeModule").add(new Option(api.modules[type].name, type)); });
   api.rangeScenarios.forEach(function (scenario) { el("pcRangeScenario").add(new Option(scenario.name, scenario.id)); });
   var configs = [];
@@ -123,11 +124,11 @@
   el("pcRangeUpgrade").addEventListener("change", function () { api.rangeUpgrade(configs[Number(this.value)].state); });
   el("pcRangeScenario").addEventListener("change", function () { api.rangeScenario(this.value); });
   var actions = tools.querySelector(".pc-range-actions");
-  actions.appendChild(button("pcRangeBuild", "Build [B]", api.openBuild, "primary"));
-  actions.appendChild(button("pcRangePause", "Pause [P]", api.togglePause));
-  actions.appendChild(button("pcRangeReset", "Reset scenario", function () { api.rangeScenario(el("pcRangeScenario").value); }));
-  actions.appendChild(button("pcRangeLoadout", "Reset loadout", function () { api.rangeModule(el("pcRangeModule").value); configurations(el("pcRangeModule").value); }));
-  actions.appendChild(button("pcRangeExit", "← Return", api.leaveRange));
+  actions.appendChild(button("pcRangeBuild", tr("Build") + " [B]", api.openBuild, "primary"));
+  actions.appendChild(button("pcRangePause", tr("Pause") + " [P]", api.togglePause));
+  actions.appendChild(button("pcRangeReset", tr("Reset scenario"), function () { api.rangeScenario(el("pcRangeScenario").value); }));
+  actions.appendChild(button("pcRangeLoadout", tr("Reset loadout"), function () { api.rangeModule(el("pcRangeModule").value); configurations(el("pcRangeModule").value); }));
+  actions.appendChild(button("pcRangeExit", "← " + tr("Return"), api.leaveRange));
   var lastModule = "", lastHero = "", lastRange = "", lastConfig = "";
   function refresh() {
     var state = api.presentation();
@@ -149,7 +150,7 @@
       el("pcRangeScenario").value = range.scenario;
       el("pcRangeDescription").textContent = api.modules[range.type].description;
       el("pcRangeStats").innerHTML = api.statRows(range.type);
-      el("pcRangeState").textContent = range.scenario === "salvage" ? "Collected " + range.collected.toFixed(1) + " Matter · range supplies only" : "Targets return automatically. Reset to restore hull.";
+      el("pcRangeState").textContent = range.scenario === "salvage" ? tr("Collected {amount} Matter · range supplies only", { amount: range.collected.toFixed(1) }) : tr("Targets return automatically. Reset to restore hull.");
     } else { lastRange = ""; lastConfig = ""; }
   }
   window.addEventListener("keydown", function (event) {

@@ -27,6 +27,8 @@ See `CONTENT_PLAN.md` for gameplay decisions and `PLAYTEST_README.txt` for contr
 
 ## Current changes
 
+- Sixteen languages (English, the 15 Steam languages also used by Blind Shaman, and Uzbek). See `I18N.md` for how text is wrapped with `tr()`, extracted with `tools/extract-i18n.cjs`, validated with `tools/check-locales.cjs` and packed into `locales.js`.
+
 - Eight approved animated attack effects are integrated: Auto Cannon, Scatter Array, Missile Pod, Cryo, Ember, Gravity Well, Pulse Nova and Flak. Their SVG/PNG sources remain in `New_Visuals/modules/projectiles/v2`; `npm run build:attack-vfx` rebuilds the embedded sheets. `npm run test:attack-vfx` checks actual rendering, attack mechanics, pooled cosmetics and missing-art fallback at 1920×1080 with isolated storage.
 - Grouped swarm retains the previous formations, random group origins and overlapping arrivals.
 - Eighteen module families have shared run upgrades priced per living copy. New copies include the family's paid upgrade investment. The first two copies and first upgrade retain their base prices; extra copies grow more expensive and later upgrade stages cost about 50% more Matter.

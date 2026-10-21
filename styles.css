@@ -1324,7 +1324,7 @@
     .setting-row {
       min-height: 54px;
       display: grid;
-      grid-template-columns: minmax(150px, 1fr) minmax(180px, 1.2fr) 54px;
+      grid-template-columns: minmax(150px, 1fr) minmax(180px, 1.2fr) minmax(54px, auto);
       align-items: center;
       gap: 14px;
       padding: 10px 14px;
@@ -1580,7 +1580,7 @@
       .loadout-compose .loadout-grid { margin-inline: auto; }
       .build-content { grid-template-columns: 245px 1fr; }
       .catalog-filters { grid-template-columns: repeat(2, 1fr); }
-      .setting-row { grid-template-columns: 1fr 1fr 42px; }
+      .setting-row { grid-template-columns: 1fr 1fr minmax(42px, auto); }
     }
 
     @media (max-width: 620px) {

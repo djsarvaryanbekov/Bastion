@@ -7,6 +7,7 @@
 })(typeof window !== "undefined" ? window : null, function () {
   "use strict";
 
+  var tr = (typeof window !== "undefined" && window.tr) || function (text, vars) { return vars ? text.replace(/\{(\w+)\}/g, function (match, name) { return name in vars ? String(vars[name]) : match; }) : text; };
   var MAX_PROGRESS = 1000000000;
   // Whole credit units retain sub-Fragment rewards without save-time float drift.
   var REWARD_SCALE = 600000;
@@ -20,112 +21,112 @@
     "stat": "totalKills",
     "target": 0,
     "cost": 8,
-    "text": "Available for 8 Fragments"
+    "text": tr("Available for {cost} Fragments", { cost: 8 })
   },
   {
     "type": "shield",
     "stat": "totalKills",
     "target": 0,
     "cost": 16,
-    "text": "Available for 16 Fragments"
+    "text": tr("Available for {cost} Fragments", { cost: 16 })
   },
   {
     "type": "flak",
     "stat": "totalKills",
     "target": 0,
     "cost": 20,
-    "text": "Available for 20 Fragments"
+    "text": tr("Available for {cost} Fragments", { cost: 20 })
   },
   {
     "type": "missile",
     "stat": "totalKills",
     "target": 0,
     "cost": 24,
-    "text": "Available for 24 Fragments"
+    "text": tr("Available for {cost} Fragments", { cost: 24 })
   },
   {
     "type": "collector",
     "stat": "totalKills",
     "target": 0,
     "cost": 24,
-    "text": "Available for 24 Fragments"
+    "text": tr("Available for {cost} Fragments", { cost: 24 })
   },
   {
     "type": "repair",
     "stat": "totalKills",
     "target": 0,
     "cost": 24,
-    "text": "Available for 24 Fragments"
+    "text": tr("Available for {cost} Fragments", { cost: 24 })
   },
   {
     "type": "ember",
     "stat": "totalKills",
     "target": 0,
     "cost": 28,
-    "text": "Available for 28 Fragments"
+    "text": tr("Available for {cost} Fragments", { cost: 28 })
   },
   {
     "type": "bulkhead",
     "stat": "totalKills",
     "target": 0,
     "cost": 28,
-    "text": "Available for 28 Fragments"
+    "text": tr("Available for {cost} Fragments", { cost: 28 })
   },
   {
     "type": "laser",
     "stat": "totalKills",
     "target": 0,
     "cost": 32,
-    "text": "Available for 32 Fragments"
+    "text": tr("Available for {cost} Fragments", { cost: 32 })
   },
   {
     "type": "cryo",
     "stat": "totalKills",
     "target": 0,
     "cost": 32,
-    "text": "Available for 32 Fragments"
+    "text": tr("Available for {cost} Fragments", { cost: 32 })
   },
   {
     "type": "gravity",
     "stat": "totalKills",
     "target": 0,
     "cost": 36,
-    "text": "Available for 36 Fragments"
+    "text": tr("Available for {cost} Fragments", { cost: 36 })
   },
   {
     "type": "reactor",
     "stat": "totalKills",
     "target": 0,
     "cost": 36,
-    "text": "Available for 36 Fragments"
+    "text": tr("Available for {cost} Fragments", { cost: 36 })
   },
   {
     "type": "arc",
     "stat": "totalKills",
     "target": 0,
     "cost": 40,
-    "text": "Available for 40 Fragments"
+    "text": tr("Available for {cost} Fragments", { cost: 40 })
   },
   {
     "type": "pulse",
     "stat": "totalKills",
     "target": 0,
     "cost": 40,
-    "text": "Available for 40 Fragments"
+    "text": tr("Available for {cost} Fragments", { cost: 40 })
   },
   {
     "type": "rail",
     "stat": "totalKills",
     "target": 0,
     "cost": 44,
-    "text": "Available for 44 Fragments"
+    "text": tr("Available for {cost} Fragments", { cost: 44 })
   },
   {
     "type": "mine",
     "stat": "totalKills",
     "target": 0,
     "cost": 44,
-    "text": "Available for 44 Fragments"
+    "text": tr("Available for {cost} Fragments", { cost: 44 })
   }
 ];
   // Old gates are migration data only: earned access must survive the new pacing.

@@ -1,11 +1,13 @@
 "use strict";
 
-var CACHE_NAME = "drift-bastion-v56-cryo-missile";
+var CACHE_NAME = "drift-bastion-v57-i18n";
 var APP_SHELL = [
   "./",
   "./index.html",
   "./styles.css",
   "./training.css",
+  "./locales.js",
+  "./i18n.js",
   "./telemetry.js",
   "./progression.js",
   "./progression-view.js",

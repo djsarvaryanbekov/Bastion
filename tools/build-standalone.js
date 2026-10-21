@@ -37,6 +37,8 @@ html = html
   .replace(/^\s*<link rel="apple-touch-icon"[^>]*>\s*$/m, "");
 html = replaceExactly(html, '  <link rel="stylesheet" href="styles.css">', `  <style>\n${css}\n  </style>`);
 html = replaceExactly(html, '  <link rel="stylesheet" href="training.css">', `  <style>\n${read("training.css")}\n  </style>`);
+html = replaceExactly(html, '  <script src="locales.js"></script>', `  <script>\n${safeInlineScript(read("locales.js"))}\n  </script>`);
+html = replaceExactly(html, '  <script src="i18n.js"></script>', `  <script>\n${safeInlineScript(read("i18n.js"))}\n  </script>`);
 html = replaceExactly(html, '  <script src="telemetry.js"></script>', `  <script>\n${telemetry}\n  </script>`);
 html = replaceExactly(html, '  <script src="progression.js"></script>', `  <script>\n${progression}\n  </script>`);
 html = replaceExactly(html, '  <script src="run-upgrades.js"></script>', `  <script>\n${upgrades}\n  </script>`);

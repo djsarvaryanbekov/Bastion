@@ -1,5 +1,6 @@
 (function () {
   "use strict";
+  var tr = (typeof window !== "undefined" && window.tr) || function (text, vars) { return vars ? text.replace(/\{(\w+)\}/g, function (match, name) { return name in vars ? String(vars[name]) : match; }) : text; };
   var view = window.DriftUpgradeTreeView;
   var selectedRun = Object.create(null);
   window.DriftPCResearch = {
@@ -24,11 +25,11 @@
     var restoreFocus = container.contains(document.activeElement);
     container.replaceChildren(); container.classList.add("research-workspace");
     var head = node("header", "research-header");
-    var heading = node("div"); heading.append(node("span", "eyebrow", "SYSTEM DEVELOPMENT"), node("h3", "", title), node("p", "", subtitle));
+    var heading = node("div"); heading.append(node("span", "eyebrow", tr("SYSTEM DEVELOPMENT")), node("h3", "", title), node("p", "", subtitle));
     var controls = node("div", "research-controls"); head.append(heading, controls);
     var body = node("div", "research-body"), viewport = node("div", "research-viewport"), space = node("div", "research-space"), graph = node("div", "research-graph");
-    var detail = node("aside", "research-detail"); detail.setAttribute("aria-label", "Selected upgrade details");
-    viewport.tabIndex = 0; viewport.setAttribute("aria-label", "Upgrade map. Drag empty space to pan. Use zoom controls or Tab to inspect nodes.");
+    var detail = node("aside", "research-detail"); detail.setAttribute("aria-label", tr("Selected upgrade details"));
+    viewport.tabIndex = 0; viewport.setAttribute("aria-label", tr("Upgrade map. Drag empty space to pan. Use zoom controls or Tab to inspect nodes."));
     viewport.append(space); space.append(graph); body.append(viewport, detail); container.append(head, body);
     var byId = Object.create(null), leaves = 0, maxDepth = 0, scale = 1, selectedEntry;
     entries.forEach(function (entry) { byId[entry.id] = entry; entry.children = []; });
@@ -75,7 +76,7 @@
     }
     function fit() { zoom(Math.min(1, (viewport.clientWidth - 24) / width, (viewport.clientHeight - 24) / height)); viewport.scrollTop = Math.max(0, (height * scale - viewport.clientHeight) / 2); viewport.scrollLeft = 0; }
     var zoomLabel = node("span", "research-zoom", "100%");
-    controls.append(node("small", "research-pan-hint", "Drag map to pan"),button("−", function () { zoom(scale - .15); }), zoomLabel, button("+", function () { zoom(scale + .15); }), button("Fit tree", fit));
+    controls.append(node("small", "research-pan-hint", tr("Drag map to pan")),button("−", function () { zoom(scale - .15); }), zoomLabel, button("+", function () { zoom(scale + .15); }), button(tr("Fit tree"), fit));
     var drag = null;
     viewport.addEventListener("pointerdown", function (event) {
       if (event.button !== 0 || event.target.closest("button")) return;
@@ -111,22 +112,22 @@
     var type = options.type, tree = options.upgrades.trees[type], branches = tree.branches;
     function owned(branch) { return options.licenses.includes(type + ":" + branch.id); }
     function permitted(branch) { return !branch.parent || options.licenses.includes(type + ":" + branch.parent); }
-    var entries = [{id:"base",name:options.definitions[type].name,stage:"FOUNDATION",status:"owned",cost:"Base module"}];
-    branches.forEach(function (branch) { entries.push({id:branch.id,parent:branch.parent || "base",name:branch.name,stage:branch.parent ? "SPECIALIZATION" : "BRANCH LICENSE",status:owned(branch) ? "owned" : !permitted(branch) ? "locked" : options.fragments < branch.fragmentCost ? "unaffordable" : "ready",cost:owned(branch) ? "Licensed" : branch.fragmentCost + " Fragments",branch:branch}); });
-    workspace(container, options.definitions[type].name, "Permanent licenses · Spend Fragments here · Buy ranks with Matter during a run", entries, function (entry, detail) {
-      if (!entry.branch) { detailHeader(detail,type,"BASE SYSTEM",entry.name,"The foundation is available. Choose a connected branch to inspect its license and all rank effects."); return; }
+    var entries = [{id:"base",name:options.definitions[type].name,stage:tr("FOUNDATION"),status:"owned",cost:tr("Base module")}];
+    branches.forEach(function (branch) { entries.push({id:branch.id,parent:branch.parent || "base",name:branch.name,stage:branch.parent ? tr("SPECIALIZATION") : tr("BRANCH LICENSE"),status:owned(branch) ? "owned" : !permitted(branch) ? "locked" : options.fragments < branch.fragmentCost ? "unaffordable" : "ready",cost:owned(branch) ? tr("Licensed") : tr("{cost} Fragments", { cost: branch.fragmentCost }),branch:branch}); });
+    workspace(container, options.definitions[type].name, tr("Permanent licenses · Spend Fragments here · Buy ranks with Matter during a run"), entries, function (entry, detail) {
+      if (!entry.branch) { detailHeader(detail,type,tr("BASE SYSTEM"),entry.name,tr("The foundation is available. Choose a connected branch to inspect its license and all rank effects.")); return; }
       var branch = entry.branch; options.onSelect(branch.id);
-      var state = owned(branch) ? "Licensed for every future run." : !permitted(branch) ? "Requires " + branches.find(function (b) { return b.id === branch.parent; }).name + " license." : options.activeRun ? "Finish the active run to purchase licenses." : options.fragments < branch.fragmentCost ? "Need " + (branch.fragmentCost - options.fragments) + " more Fragments." : "Unlock this branch for every future run.";
-      detailHeader(detail,type,"PERMANENT LICENSE",branch.name,state);
-      var buy = button(owned(branch) ? "License owned" : "Unlock · " + branch.fragmentCost + " Fragments", function () { options.onBuy(branch.id); }, "primary branch-buy");
+      var state = owned(branch) ? tr("Licensed for every future run.") : !permitted(branch) ? tr("Requires {name} license.", { name: branches.find(function (b) { return b.id === branch.parent; }).name }) : options.activeRun ? tr("Finish the active run to purchase licenses.") : options.fragments < branch.fragmentCost ? tr("Need {count} more Fragments.", { count: branch.fragmentCost - options.fragments }) : tr("Unlock this branch for every future run.");
+      detailHeader(detail,type,tr("PERMANENT LICENSE"),branch.name,state);
+      var buy = button(owned(branch) ? tr("License owned") : tr("Unlock · {cost} Fragments", { cost: branch.fragmentCost }), function () { options.onBuy(branch.id); }, "primary branch-buy");
       buy.dataset.unlockBranch = type + ":" + branch.id;
       buy.disabled = owned(branch) || !permitted(branch) || options.activeRun || options.fragments < branch.fragmentCost;
-      detail.append(buy, node("h4", "", "RANK EFFECTS"));
+      detail.append(buy, node("h4", "", tr("RANK EFFECTS")));
       view.branchSteps(options.upgrades,type,branch,options.definitions[type]).forEach(function (step,index) {
-        var row = node("section", "research-effect"); row.append(node("strong","","Rank " + (index+1) + " / " + step.cost + " Matter per copy"),node("p","",step.description)); detail.append(row);
+        var row = node("section", "research-effect"); row.append(node("strong","",tr("Rank {rank} / {cost} Matter per copy", { rank: index+1, cost: step.cost })),node("p","",step.description)); detail.append(row);
       });
     }, options.branch);
-    var select = node("select"); select.id = "branchWeaponSelect"; select.setAttribute("aria-label", "Research module family");
+    var select = node("select"); select.id = "branchWeaponSelect"; select.setAttribute("aria-label", tr("Research module family"));
     options.types.forEach(function (id) { var option = node("option","",options.definitions[id].name); option.value=id; select.append(option); });
     select.value=type; select.addEventListener("change",function(){options.onType(select.value);});
     container.querySelector(".research-controls").prepend(select);
@@ -138,7 +139,7 @@
     (state && state.path || []).forEach(function(id){tree.branches.find(function(b){return b.id===id;}).steps.forEach(function(){paid.push(id);});});
     paid=paid.slice(0,state ? state.level : 0);
     var current=upgrades.options(type,state,options.copies,options.licenses);
-    var entries=[{id:"base",name:options.base.name,stage:"INSTALLED",status:"owned",cost:options.copies+" copies"}];
+    var entries=[{id:"base",name:options.base.name,stage:tr("INSTALLED"),status:"owned",cost:tr("{count} copies", { count: options.copies })}];
     function walk(parentState,path,parentId,parentName) {
       upgrades.options(type,parentState,options.copies,licenses).forEach(function(choice){
         var route=path.concat(choice.id), id=route.join("/")+":"+choice.rank;
@@ -146,32 +147,32 @@
         var owned=matches && route.length<=paid.length;
         var available=matches && path.length===paid.length && current.find(function(c){return c.id===choice.id && c.rank===choice.rank;});
         var status = owned ? "owned" : available && !available.locked ? !options.free && options.matter < choice.cost ? "unaffordable" : "ready" : !matches ? "excluded" : "locked";
-        var stage = "RANK " + route.length + (owned ? " · PURCHASED" : status === "excluded" ? " · ROUTE CLOSED" : status === "locked" ? " · LOCKED" : "");
-        entries.push({id:id,parent:parentId,name:choice.name.replace(/ [+-][\d.]+%$/,""),stage:stage,status:status,cost:owned?"Installed":options.free?"Free in range":choice.cost+" Matter",choice:choice,available:available,before:parentState,requires:parentName});
+        var stage = owned ? tr("RANK {rank} · PURCHASED", { rank: route.length }) : status === "excluded" ? tr("RANK {rank} · ROUTE CLOSED", { rank: route.length }) : status === "locked" ? tr("RANK {rank} · LOCKED", { rank: route.length }) : tr("RANK {rank}", { rank: route.length });
+        entries.push({id:id,parent:parentId,name:choice.name.replace(/ [+-][\d.]+%$/,""),stage:stage,status:status,cost:owned?tr("Installed"):options.free?tr("Free in range"):tr("{cost} Matter", { cost: choice.cost }),choice:choice,available:available,before:parentState,requires:parentName});
         walk(upgrades.nextState(type,parentState,choice),route,id,choice.name);
       });
     }
-    walk(null,[],"base","Base module");
-    workspace(container,options.base.name,"Run upgrades · " + options.copies + (options.copies === 1 ? " installed copy" : " installed copies") + " · Also applies to future copies",entries,function(entry,detail,selectNode){
+    walk(null,[],"base",tr("Base module"));
+    workspace(container,options.base.name,(options.copies === 1 ? tr("Run upgrades · {count} installed copy · Also applies to future copies", { count: options.copies }) : tr("Run upgrades · {count} installed copies · Also applies to future copies", { count: options.copies })),entries,function(entry,detail,selectNode){
       selectedRun[type] = entry.id;
       var missingLicense = entry.choice && entry.choice.license && !options.licenses.includes(entry.choice.license);
       var license = missingLicense ? tree.branches.find(function(branch){return type + ":" + branch.id === entry.choice.license;}) : null;
       var prerequisite = entry.choice && !entry.available && entry.status !== "owned" && entry.status !== "excluded";
       var reason = entry.status === "excluded"
-        ? "Unavailable · Different upgrade route chosen"
+        ? tr("Unavailable · Different upgrade route chosen")
         : entry.status === "owned"
-          ? (!current.length ? "Route complete" : entry.choice ? "Purchased" : "Installed")
-          : prerequisite ? "Requires " + entry.requires
-          : missingLicense ? "Locked · Hangar license required"
-          : entry.status === "unaffordable" ? "Insufficient Matter" : "Ready to upgrade";
-      if (license && !prerequisite && entry.status === "locked") reason = "Hangar → Research · " + license.fragmentCost + " Fragments · Between runs";
-      detailHeader(detail,type,entry.status === "locked" ? "LOCKED" : "THIS RUN",entry.name,reason);
-      if (prerequisite) detail.append(button("View prerequisite →", function(){selectNode(entry.parent);}, "secondary research-prerequisite"));
+          ? (!current.length ? tr("Route complete") : entry.choice ? tr("Purchased") : tr("Installed"))
+          : prerequisite ? tr("Requires {name}", { name: entry.requires })
+          : missingLicense ? tr("Locked · Hangar license required")
+          : entry.status === "unaffordable" ? tr("Insufficient Matter") : tr("Ready to upgrade");
+      if (license && !prerequisite && entry.status === "locked") reason = tr("Hangar → Research · {cost} Fragments · Between runs", { cost: license.fragmentCost });
+      detailHeader(detail,type,entry.status === "locked" ? tr("LOCKED") : tr("THIS RUN"),entry.name,reason);
+      if (prerequisite) detail.append(button(tr("View prerequisite") + " →", function(){selectNode(entry.parent);}, "secondary research-prerequisite"));
       if (license && entry.status !== "owned" && entry.status !== "excluded") {
-        var licenseHelp = prerequisite ? "Hangar license · " + license.fragmentCost + " Fragments · Between runs" : "";
+        var licenseHelp = prerequisite ? tr("Hangar license · {cost} Fragments · Between runs", { cost: license.fragmentCost }) : "";
         if (license.parent) {
           var parentLicense = tree.branches.find(function(branch){return branch.id === license.parent;});
-          if (!options.licenses.includes(type + ":" + license.parent)) licenseHelp += (licenseHelp ? " · " : "") + parentLicense.name + " license first";
+          if (!options.licenses.includes(type + ":" + license.parent)) licenseHelp += (licenseHelp ? " · " : "") + tr("{name} license first", { name: parentLicense.name });
         }
         if (licenseHelp) detail.append(node("p", "research-warning", licenseHelp));
       }
@@ -188,20 +189,20 @@
         var inheritedCost = upgrades.investment(type,entry.status === "owned" ? options.state : entry.before);
         if (entry.status !== "owned") inheritedCost += entry.choice.unitCost;
         var pricing = node("p","research-cost",entry.status === "owned" ? "" :
-          entry.choice.unitCost + " × " + options.copies + (options.copies === 1 ? " copy" : " copies") + " = " + entry.choice.cost + " Matter");
+          (options.copies === 1 ? tr("{unit} × {count} copy = {cost} Matter", { unit: entry.choice.unitCost, count: options.copies, cost: entry.choice.cost }) : tr("{unit} × {count} copies = {cost} Matter", { unit: entry.choice.unitCost, count: options.copies, cost: entry.choice.cost })));
         if (entry.status !== "owned") pricing.append(node("br"));
         pricing.append(node("span","research-state",entry.status === "owned"
-          ? "Future copies: +" + inheritedCost + " Matter in upgrades"
-          : "After upgrade: copies +" + inheritedCost + " Matter"));
+          ? tr("Future copies: +{cost} Matter in upgrades", { cost: inheritedCost })
+          : tr("After upgrade: copies +{cost} Matter", { cost: inheritedCost })));
         detail.append(pricing);
       }
       // Only genuine purchase actions use a button. Locked data stays plain text.
       if (entry.available && !entry.available.locked) {
         var purchase = options.createChoice(entry.available);
-        purchase.replaceChildren(document.createTextNode(options.free ? "Apply upgrade" : "Upgrade · " + entry.available.cost + " Matter"));
+        purchase.replaceChildren(document.createTextNode(options.free ? tr("Apply upgrade") : tr("Upgrade · {cost} Matter", { cost: entry.available.cost })));
         purchase.classList.add("research-purchase");
         detail.append(purchase);
-      } else if (entry.status !== "owned" && (options.free || entry.status === "excluded")) detail.append(node("p","research-cost",entry.cost + " · " + options.copies + (options.copies === 1 ? " copy" : " copies")));
+      } else if (entry.status !== "owned" && (options.free || entry.status === "excluded")) detail.append(node("p","research-cost",options.copies === 1 ? tr("{cost} · {count} copy", { cost: entry.cost, count: options.copies }) : tr("{cost} · {count} copies", { cost: entry.cost, count: options.copies })));
     },selectedRun[type]);
   };
 })();

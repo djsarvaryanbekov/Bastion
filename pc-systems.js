@@ -1,5 +1,6 @@
 (function () {
   "use strict";
+  var tr = (typeof window !== "undefined" && window.tr) || function (text, vars) { return vars ? text.replace(/\{(\w+)\}/g, function (match, name) { return name in vars ? String(vars[name]) : match; }) : text; };
   var FAST_PURCHASE_WINDOW_MS = 250;
   var selected = { cores:null, ranks:null };
   function el(tag, css, text) { var item=document.createElement(tag);item.className=css||"";if(text!==undefined)item.textContent=text;return item; }
@@ -12,34 +13,34 @@
     var items=buttons.map(function(button,index){return {button:button,id:button.dataset.core||button.dataset.meta||String(index),title:button.querySelector("strong").textContent,description:button.querySelector("small").textContent,action:button.querySelector(kind==="cores"?".core-state":".meta-price").textContent,selected:button.classList.contains("selected")};});
     container.replaceChildren(); container.classList.add("systems-workspace");
     var list=el("nav","systems-list"),hero=el("section","systems-hero"),detail=el("section","systems-detail");
-    list.setAttribute("aria-label",kind==="cores"?"Core models":"Permanent systems");
+    list.setAttribute("aria-label",kind==="cores"?tr("Core models"):tr("Permanent systems"));
     container.append(list,hero,detail);
     function show(item) {
       selected[kind]=item.id;
       items.forEach(function(entry){entry.selector.classList.toggle("selected",entry===item);entry.selector.setAttribute("aria-pressed",String(entry===item));});
       hero.replaceChildren(); detail.replaceChildren();
       var image=el("div","systems-core-art");image.innerHTML=window.DriftModuleArt.iconHtml("core");
-      hero.append(el("span","eyebrow",kind==="cores"?"CORE ASSEMBLY":"PERMANENT CALIBRATION"),image,el("strong","",item.title),el("p","",kind==="cores"?"The foundation of your next bastion.":"Applied to the selected core on future runs."));
-      detail.append(el("span","eyebrow",kind==="cores"?"CORE SPECIFICATION":"SYSTEM EFFECT"),el("h3","",item.title),el("p","systems-description",item.description));
+      hero.append(el("span","eyebrow",kind==="cores"?tr("CORE ASSEMBLY"):tr("PERMANENT CALIBRATION")),image,el("strong","",item.title),el("p","",kind==="cores"?tr("The foundation of your next bastion."):tr("Applied to the selected core on future runs.")));
+      detail.append(el("span","eyebrow",kind==="cores"?tr("CORE SPECIFICATION"):tr("SYSTEM EFFECT")),el("h3","",item.title),el("p","systems-description",item.description));
       if (kind === "cores") {
         var core = window.DriftCampaign.getCore(item.id), stats = el("dl","systems-stats");
-        [["Module hull",core.moduleHpMultiplier],["Movement",core.speedMultiplier],["Reload time",core.cooldownMultiplier],["Matter income",core.matterMultiplier]].forEach(function (stat) { stats.append(el("dt","",stat[0]),el("dd","",Math.round(stat[1]*100)+"%")); });
+        [[tr("Module hull"),core.moduleHpMultiplier],[tr("Movement"),core.speedMultiplier],[tr("Reload time"),core.cooldownMultiplier],[tr("Matter income"),core.matterMultiplier]].forEach(function (stat) { stats.append(el("dt","",stat[0]),el("dd","",Math.round(stat[1]*100)+"%")); });
         detail.append(stats);
       }
       if(kind==="ranks") {
         var match=item.title.match(/(\d+)\/(\d+)/), ranks=el("div","systems-ranks");
         for(var i=0;i<25;i++){var pip=el("i",match&&i<Number(match[1])?"owned":"");ranks.append(pip);}detail.append(ranks);
       }
-      var note=kind==="cores"?"Each core keeps its own permanent upgrade ranks.":"Fragments purchase · Permanent · Selected core only";
+      var note=kind==="cores"?tr("Each core keeps its own permanent upgrade ranks."):tr("Fragments purchase · Permanent · Selected core only");
       detail.append(el("p","systems-note",note));
-      item.button.className="primary systems-action"; item.button.textContent=item.action.replace(/ F$/, " Fragments");
+      item.button.className="primary systems-action"; item.button.textContent=item.action.replace(/(\d+) F$/, function (match, cost) { return tr("{cost} Fragments", { cost: cost }); });
       detail.append(item.button);
-      if(item.button.disabled)detail.append(el("p","research-warning",item.button.dataset.reason || "This upgrade is retained from an earlier profile."));
+      if(item.button.disabled)detail.append(el("p","research-warning",item.button.dataset.reason || tr("This upgrade is retained from an earlier profile.")));
     }
     items.forEach(function(item,index){
       var selector=el("button","systems-selector");selector.type="button";
-      selector.append(el("span","systems-index",String(index+1).padStart(2,"0")),el("strong","",item.title),el("small","",item.selected?"EQUIPPED":kind==="cores"?"INSPECT CORE":"INSPECT UPGRADE"));
-      if (kind === "ranks") selector.title = "Quick double-click to buy one rank";
+      selector.append(el("span","systems-index",String(index+1).padStart(2,"0")),el("strong","",item.title),el("small","",item.selected?tr("EQUIPPED"):kind==="cores"?tr("INSPECT CORE"):tr("INSPECT UPGRADE")));
+      if (kind === "ranks") selector.title = tr("Quick double-click to buy one rank");
       selector.addEventListener("click",function(event){
         show(item);
         if (kind !== "ranks") return;

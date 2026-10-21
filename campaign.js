@@ -6,11 +6,12 @@
 })(typeof window !== "undefined" ? window : null, function () {
   "use strict";
 
+  var tr = (typeof window !== "undefined" && window.tr) || function (text, vars) { return vars ? text.replace(/\{(\w+)\}/g, function (match, name) { return name in vars ? String(vars[name]) : match; }) : text; };
   var CORES = [
-    { id: "standard", name: "Standard Core", description: "Balanced hull and systems.", requiredTime: 0, requiredBosses: 0, cost: 0, hpMultiplier: 1, moduleHpMultiplier: 1, speedMultiplier: 1, cooldownMultiplier: 1, matterMultiplier: 1 },
-    { id: "striker", name: "Striker Core", description: "Weapons recharge 15% sooner. All installed modules have 25% less HP.", requiredTime: 0, requiredBosses: 0, cost: 64, hpMultiplier: 1, moduleHpMultiplier: .75, speedMultiplier: 1, cooldownMultiplier: .85, matterMultiplier: 1 },
-    { id: "bulwark", name: "Bulwark Core", description: "+35% HP for all installed modules. -15% movement speed.", requiredTime: 0, requiredBosses: 0, cost: 80, hpMultiplier: 1, moduleHpMultiplier: 1.35, speedMultiplier: .85, cooldownMultiplier: 1, matterMultiplier: 1 },
-    { id: "salvager", name: "Salvager Core", description: "+20% Matter from regular enemies. Reloads take 10% longer.", requiredTime: 0, requiredBosses: 0, cost: 96, hpMultiplier: 1, moduleHpMultiplier: 1, speedMultiplier: 1, cooldownMultiplier: 1.1, matterMultiplier: 1.2 }
+    { id: "standard", name: tr("Standard Core"), description: tr("Balanced hull and systems."), requiredTime: 0, requiredBosses: 0, cost: 0, hpMultiplier: 1, moduleHpMultiplier: 1, speedMultiplier: 1, cooldownMultiplier: 1, matterMultiplier: 1 },
+    { id: "striker", name: tr("Striker Core"), description: tr("Weapons recharge 15% sooner. All installed modules have 25% less HP."), requiredTime: 0, requiredBosses: 0, cost: 64, hpMultiplier: 1, moduleHpMultiplier: .75, speedMultiplier: 1, cooldownMultiplier: .85, matterMultiplier: 1 },
+    { id: "bulwark", name: tr("Bulwark Core"), description: tr("+35% HP for all installed modules. -15% movement speed."), requiredTime: 0, requiredBosses: 0, cost: 80, hpMultiplier: 1, moduleHpMultiplier: 1.35, speedMultiplier: .85, cooldownMultiplier: 1, matterMultiplier: 1 },
+    { id: "salvager", name: tr("Salvager Core"), description: tr("+20% Matter from regular enemies. Reloads take 10% longer."), requiredTime: 0, requiredBosses: 0, cost: 96, hpMultiplier: 1, moduleHpMultiplier: 1, speedMultiplier: 1, cooldownMultiplier: 1.1, matterMultiplier: 1.2 }
   ];
   var LEGACY_CORE_CLEARS = { striker: 3, bulwark: 6, salvager: 9 };
   var LEGACY_OPERATION_IDS = [];
@@ -89,9 +90,9 @@
 
   function coreRequirementText(id) {
     var core = getCore(id);
-    if (!core) return "Unknown core";
-    if (core.id === "standard") return "Always available";
-    return "Unlock for " + core.cost + " Fragments";
+    if (!core) return tr("Unknown core");
+    if (core.id === "standard") return tr("Always available");
+    return tr("Unlock for {cost} Fragments", { cost: core.cost });
   }
 
   function purchaseCore(state, id, fragments, progressionState) {

@@ -1,6 +1,7 @@
 (function () {
     "use strict";
 
+    var tr = (typeof window !== "undefined" && window.tr) || function (text, vars) { return vars ? text.replace(/\{(\w+)\}/g, function (match, name) { return name in vars ? String(vars[name]) : match; }) : text; };
     var TAU = Math.PI * 2;
     var TILE_SIZE = 42;
     var MODULE_PROJECTILE_GRACE = .10;
@@ -49,129 +50,129 @@
 
     var MODULES = {
       armor: {
-        id: "armor", name: "Armor Tile", glyph: "A", color: "#7fa4b7",
+        id: "armor", name: tr("Armor Tile"), glyph: "A", color: "#7fa4b7",
         baseCost: 8, scale: 1.18, hp: 120, mass: 1.35,
-        summary: "Blocks shots and links modules.",
-        description: "Heavy structural link. No active system."
+        summary: tr("Blocks shots and links modules."),
+        description: tr("Heavy structural link. No active system.")
       },
       cannon: {
-        id: "cannon", name: "Auto Cannon", glyph: "C", color: "#65e8ff",
+        id: "cannon", name: tr("Auto Cannon"), glyph: "C", color: "#65e8ff",
         baseCost: 20, scale: 1.22, hp: 50, mass: 1,
         range: 400, cooldown: .5, damage: 12,
-        summary: "Steady fire at nearby enemies.",
-        description: "Reliable kinetic fire at the nearest visible target. Edge-adjacent Ember flame bursts briefly ignite its rounds."
+        summary: tr("Steady fire at nearby enemies."),
+        description: tr("Reliable kinetic fire at the nearest visible target. Edge-adjacent Ember flame bursts briefly ignite its rounds.")
       },
       laser: {
-        id: "laser", name: "Piercing Laser", glyph: "L", color: "#a987ff",
+        id: "laser", name: tr("Piercing Laser"), glyph: "L", color: "#a987ff",
         baseCost: 33, scale: 1.22, hp: 40, mass: 1.1,
         range: 500, cooldown: 1.05, damage: 18,
-        summary: "Cuts through enemies in a line.",
-        description: "Fixed-length beam. Every enemy on the line takes damage."
+        summary: tr("Cuts through enemies in a line."),
+        description: tr("Fixed-length beam. Every enemy on the line takes damage.")
       },
       missile: {
-        id: "missile", name: "Missile Pod", glyph: "M", color: "#ffd96a",
+        id: "missile", name: tr("Missile Pod"), glyph: "M", color: "#ffd96a",
         baseCost: 42, scale: 1.22, hp: 45, mass: 1.2,
         range: 520, cooldown: 1.7, damage: 32,
-        summary: "Homing shots with splash damage.",
-        description: "Slow homing projectile with a small blast radius. An edge-adjacent Cryo adds a cold payload: blasts slow survivors by 25% for one second."
+        summary: tr("Homing shots with splash damage."),
+        description: tr("Slow homing projectile with a small blast radius. An edge-adjacent Cryo adds a cold payload: blasts slow survivors by 25% for one second.")
       },
       scatter: {
-        id: "scatter", name: "Scatter Array", glyph: "V", color: "#ff9b6a",
+        id: "scatter", name: tr("Scatter Array"), glyph: "V", color: "#ff9b6a",
         baseCost: 24, scale: 1.21, hp: 48, mass: 1,
         range: 250, cooldown: .8, damage: 6, pellets: 5, spread: .28,
-        summary: "Wide burst, strongest up close.",
-        description: "Five-shot cone. Brutal up close, weak at long range. Edge-adjacent Ember flame bursts briefly ignite its pellets."
+        summary: tr("Wide burst, strongest up close."),
+        description: tr("Five-shot cone. Brutal up close, weak at long range. Edge-adjacent Ember flame bursts briefly ignite its pellets.")
       },
       arc: {
-        id: "arc", name: "Arc Emitter", glyph: "Z", color: "#70ffc2",
+        id: "arc", name: tr("Arc Emitter"), glyph: "Z", color: "#70ffc2",
         baseCost: 37, scale: 1.23, hp: 42, mass: 1.15,
         range: 350, cooldown: 1.15, damage: 14, chains: 4, jumpRange: 145,
-        summary: "Lightning jumps between enemies.",
-        description: "Lightning jumps through clustered enemies with falloff."
+        summary: tr("Lightning jumps between enemies."),
+        description: tr("Lightning jumps through clustered enemies with falloff.")
       },
       rail: {
-        id: "rail", name: "Rail Lance", glyph: "R", color: "#ff8ee8",
+        id: "rail", name: tr("Rail Lance"), glyph: "R", color: "#ff8ee8",
         baseCost: 52, scale: 1.24, hp: 46, mass: 1.3,
         range: 650, cooldown: 2.6, damage: 85,
-        summary: "Heavy piercing shots. Long reload.",
-        description: "High-speed piercing slug. Heavy damage and knockback. An edge-adjacent Cryo enables Shatter rounds: +25% damage to chilled or frozen enemies."
+        summary: tr("Heavy piercing shots. Long reload."),
+        description: tr("High-speed piercing slug. Heavy damage and knockback. An edge-adjacent Cryo enables Shatter rounds: +25% damage to chilled or frozen enemies.")
       },
       flak: {
-        id: "flak", name: "Flak Battery", glyph: "F", color: "#ffb15c",
+        id: "flak", name: tr("Flak Battery"), glyph: "F", color: "#ffb15c",
         baseCost: 29, scale: 1.21, hp: 48, mass: 1.05,
         range: 360, cooldown: 1.1, damage: 7, blastRadius: 125,
-        summary: "Clears enemy shots. Low damage.",
-        description: "Wide anti-projectile airburst. Clears hostile shots, but deals very low damage to enemies. Edge-adjacent Ember flame bursts briefly ignite its hits."
+        summary: tr("Clears enemy shots. Low damage."),
+        description: tr("Wide anti-projectile airburst. Clears hostile shots, but deals very low damage to enemies. Edge-adjacent Ember flame bursts briefly ignite its hits.")
       },
       pulse: {
-        id: "pulse", name: "Pulse Nova", glyph: "P", color: "#54f4ff",
+        id: "pulse", name: tr("Pulse Nova"), glyph: "P", color: "#54f4ff",
         baseCost: 39, scale: 1.23, hp: 50, mass: 1.2,
         range: 220, cooldown: 2.0, damage: 24,
-        summary: "Blasts every enemy around it.",
-        description: "Radial shockwave. Hits every nearby enemy at once."
+        summary: tr("Blasts every enemy around it."),
+        description: tr("Radial shockwave. Hits every nearby enemy at once.")
       },
       cryo: {
-        id: "cryo", name: "Cryo Projector", glyph: "K", color: "#8ac7ff",
+        id: "cryo", name: tr("Cryo Projector"), glyph: "K", color: "#8ac7ff",
         baseCost: 34, scale: 1.21, hp: 44, mass: 1.1,
         range: 430, cooldown: 1.1, damage: 9, slowFactor: .5, slowDuration: 2,
-        summary: "Slows enemies with freezing shots.",
-        description: "Freezing bolt halves enemy speed for two seconds. Edge-adjacent Rail Lances gain Shatter; Missile Pods gain briefly chilling blasts."
+        summary: tr("Slows enemies with freezing shots."),
+        description: tr("Freezing bolt halves enemy speed for two seconds. Edge-adjacent Rail Lances gain Shatter; Missile Pods gain briefly chilling blasts.")
       },
       mine: {
-        id: "mine", name: "Mine Layer", glyph: "X", color: "#ff6f91",
+        id: "mine", name: tr("Mine Layer"), glyph: "X", color: "#ff6f91",
         baseCost: 26, scale: 1.20, hp: 50, mass: 1.1,
         range: 300, cooldown: 2.4, damage: 55, blastRadius: 90,
-        summary: "Mines explode near enemies.",
-        description: "Deploys proximity mines into approaching lanes."
+        summary: tr("Mines explode near enemies."),
+        description: tr("Deploys proximity mines into approaching lanes.")
       },
       ember: {
-        id: "ember", name: "Ember Projector", glyph: "E", color: "#ff7547",
+        id: "ember", name: tr("Ember Projector"), glyph: "E", color: "#ff7547",
         baseCost: 32, scale: 1.21, hp: 46, mass: 1.1,
         range: 190, cooldown: .7, damage: 8, coneAngle: .65, burnDamage: 6, burnDuration: 2.5,
-        summary: "Close flame cone. Burns enemies.",
-        description: "Hits a short cone and burns for 2.5s. During each flame burst, edge-adjacent Cannon, Scatter and Flak shots also apply a minor burn."
+        summary: tr("Close flame cone. Burns enemies."),
+        description: tr("Hits a short cone and burns for 2.5s. During each flame burst, edge-adjacent Cannon, Scatter and Flak shots also apply a minor burn.")
       },
       gravity: {
-        id: "gravity", name: "Gravity Well", glyph: "G", color: "#c8a2ff",
+        id: "gravity", name: tr("Gravity Well"), glyph: "G", color: "#c8a2ff",
         baseCost: 45, scale: 1.22, hp: 42, mass: 1.2,
         range: 380, cooldown: 3, damage: 6, fieldDuration: 2, fieldRadius: 105, pullStrength: 100,
-        summary: "Pulls groups into a damaging field.",
-        description: "Places a 2s field at a target. Pulls enemies together; bosses resist the pull."
+        summary: tr("Pulls groups into a damaging field."),
+        description: tr("Places a 2s field at a target. Pulls enemies together; bosses resist the pull.")
       },
       shield: {
-        id: "shield", name: "Shield Node", glyph: "S", color: "#70ffc2",
+        id: "shield", name: tr("Shield Node"), glyph: "S", color: "#70ffc2",
         baseCost: 37, scale: 1.22, hp: 55, mass: 1.2,
         shield: 60, shieldRadius: 2.3, rechargeDelay: 6, rechargeRate: 3,
-        summary: "Shields nearby modules.",
-        description: "Regenerating local shield protecting nearby tiles."
+        summary: tr("Shields nearby modules."),
+        description: tr("Regenerating local shield protecting nearby tiles.")
       },
       repair: {
-        id: "repair", name: "Repair Array", glyph: "+", color: "#7dff9b",
+        id: "repair", name: tr("Repair Array"), glyph: "+", color: "#7dff9b",
         baseCost: 32, scale: 1.20, hp: 50, mass: 1.15,
         repairAmount: 5, repairInterval: 1.5, repairRadius: 1.5, repairDelay: 2,
-        summary: "Repairs nearby tiles out of danger.",
-        description: "Repairs nearby tiles, including Repair Arrays, after 2s without hull damage. Overlapping repair areas do not stack."
+        summary: tr("Repairs nearby tiles out of danger."),
+        description: tr("Repairs nearby tiles, including Repair Arrays, after 2s without hull damage. Overlapping repair areas do not stack.")
       },
       reactor: {
-        id: "reactor", name: "Reactor Link", glyph: "O", color: "#ffe06a",
+        id: "reactor", name: tr("Reactor Link"), glyph: "O", color: "#ffe06a",
         baseCost: 45, scale: 1.23, hp: 45, mass: 1.25,
         cooldownBonus: .25,
-        summary: "Adjacent weapons fire faster.",
-        description: "Weapons in the surrounding 3×3 area fire 25% faster; bonuses add."
+        summary: tr("Adjacent weapons fire faster."),
+        description: tr("Weapons in the surrounding 3×3 area fire 25% faster; bonuses add.")
       },
       collector: {
-        id: "collector", name: "Matter Siphon", glyph: "$", color: "#a8ff70",
+        id: "collector", name: tr("Matter Siphon"), glyph: "$", color: "#a8ff70",
         baseCost: 24, scale: 1.20, hp: 38, mass: .9,
         matterBonus: .10,
-        summary: "Earn more Matter from kills.",
-        description: "+10% Matter; each further Siphon adds 80% of the previous bonus."
+        summary: tr("Earn more Matter from kills."),
+        description: tr("+10% Matter; each further Siphon adds 80% of the previous bonus.")
       },
       bulkhead: {
-        id: "bulkhead", name: "Aegis Bulkhead", glyph: "B", color: "#9bb4c8",
+        id: "bulkhead", name: tr("Aegis Bulkhead"), glyph: "B", color: "#9bb4c8",
         baseCost: 13, scale: 1.18, hp: 170, mass: 1.7,
         damageReduction: .12,
-        summary: "Protects the surrounding 3×3 area.",
-        description: "The eight surrounding tiles take 12% less hull damage, up to 48%. Does not protect itself."
+        summary: tr("Protects the surrounding 3×3 area."),
+        description: tr("The eight surrounding tiles take 12% less hull damage, up to 48%. Does not protect itself.")
       }
     };
 
@@ -180,27 +181,27 @@
     var START_WEAPONS = WEAPON_TYPES.slice();
 
     var META_DEFS = [
-      { id: "modules", name: "Hull Integrity", bonusPercent: 1, unit: "core and module HP", max: 25 },
-      { id: "matter", name: "Matter Converter", bonusPercent: 1, unit: "Matter income", max: 25 },
-      { id: "drive", name: "Movement Tuning", bonusPercent: 1, unit: "thrust, speed and turn", max: 25 },
-      { id: "damage", name: "Weapon Calibration", bonusPercent: 1, unit: "weapon damage", max: 25 }
+      { id: "modules", name: tr("Hull Integrity"), bonusPercent: 1, unit: tr("core and module HP"), max: 25 },
+      { id: "matter", name: tr("Matter Converter"), bonusPercent: 1, unit: tr("Matter income"), max: 25 },
+      { id: "drive", name: tr("Movement Tuning"), bonusPercent: 1, unit: tr("thrust, speed and turn"), max: 25 },
+      { id: "damage", name: tr("Weapon Calibration"), bonusPercent: 1, unit: tr("weapon damage"), max: 25 }
     ];
 
     var ENEMY_DEFS = {
-      scout: { name: "Scout", hp: 12, speed: 132, radius: 12, halfLength: 14, halfWidth: 10, damage: 4, reward: 1, color: "#ff4f67", sides: 20, directChase: true },
-      drone: { name: "Swarm Drone", hp: 9, speed: 165, radius: 8, halfLength: 10, halfWidth: 7, damage: 3, reward: 1, color: "#ff5e75", sides: 0, directChase: true },
-      hunter: { name: "Hunter", hp: 22, speed: 250, radius: 11, halfLength: 15, halfWidth: 8, damage: 7, reward: 2, color: "#ff9b55", sides: 3, turnRate: .48 },
-      raptor: { name: "Raptor", hp: 48, speed: 340, radius: 14, halfLength: 18, halfWidth: 10, damage: 16, reward: 4, color: "#ff3ea5", sides: 3, turnRate: .22 },
-      orbiter: { name: "Orbiter", hp: 34, speed: 118, radius: 13, halfLength: 14, halfWidth: 14, damage: 9, reward: 2, color: "#54dfff", sides: 4 },
-      brute: { name: "Brute", hp: 62, speed: 102, radius: 19, halfLength: 18, halfWidth: 25, damage: 18, reward: 3, color: "#a987ff", sides: 24, directChase: true },
-      bulwark: { name: "Bulwark", hp: 85, speed: 74, radius: 21, halfLength: 20, halfWidth: 24, damage: 18, reward: 4, color: "#9b83ff", sides: 6, shield: 45, directChase: true },
-      bolter: { name: "Bolt Drone", hp: 22, speed: 78, radius: 12, halfLength: 17, halfWidth: 11, muzzleOffset: 17, damage: 5, reward: 2, color: "#72d8ff", sides: 4 },
-      gunner: { name: "Gunner", hp: 40, speed: 64, radius: 14, halfLength: 15, halfWidth: 23, muzzleOffset: 16, damage: 9, reward: 3, color: "#65e8ff", sides: 4 },
-      bomber: { name: "Bomber", hp: 38, speed: 104, radius: 15, halfLength: 19, halfWidth: 12, damage: 26, reward: 3, color: "#ffd45c", sides: 5, blastRadius: 2.25 },
-      splitter: { name: "Splitter", hp: 56, speed: 88, radius: 16, halfLength: 18, halfWidth: 12, damage: 21, reward: 4, color: "#ffd96a", sides: 6, directChase: true },
-      sniper: { name: "Sniper", hp: 46, speed: 58, radius: 16, halfLength: 28, halfWidth: 10, muzzleOffset: 28, damage: 24, reward: 5, color: "#57a7ff", sides: 4 },
-      colossus: { name: "Colossus", hp: 170, speed: 70, radius: 28, halfLength: 28, halfWidth: 28, damage: 50, reward: 8, color: "#f56fff", sides: 28, directChase: true },
-      mini: { name: "Shard", hp: 10, speed: 205, radius: 7, halfLength: 10, halfWidth: 5, damage: 7, reward: 1, color: "#ffca68", sides: 3, directChase: true }
+      scout: { name: tr("Scout"), hp: 12, speed: 132, radius: 12, halfLength: 14, halfWidth: 10, damage: 4, reward: 1, color: "#ff4f67", sides: 20, directChase: true },
+      drone: { name: tr("Swarm Drone"), hp: 9, speed: 165, radius: 8, halfLength: 10, halfWidth: 7, damage: 3, reward: 1, color: "#ff5e75", sides: 0, directChase: true },
+      hunter: { name: tr("Hunter"), hp: 22, speed: 250, radius: 11, halfLength: 15, halfWidth: 8, damage: 7, reward: 2, color: "#ff9b55", sides: 3, turnRate: .48 },
+      raptor: { name: tr("Raptor"), hp: 48, speed: 340, radius: 14, halfLength: 18, halfWidth: 10, damage: 16, reward: 4, color: "#ff3ea5", sides: 3, turnRate: .22 },
+      orbiter: { name: tr("Orbiter"), hp: 34, speed: 118, radius: 13, halfLength: 14, halfWidth: 14, damage: 9, reward: 2, color: "#54dfff", sides: 4 },
+      brute: { name: tr("Brute"), hp: 62, speed: 102, radius: 19, halfLength: 18, halfWidth: 25, damage: 18, reward: 3, color: "#a987ff", sides: 24, directChase: true },
+      bulwark: { name: tr("Bulwark"), hp: 85, speed: 74, radius: 21, halfLength: 20, halfWidth: 24, damage: 18, reward: 4, color: "#9b83ff", sides: 6, shield: 45, directChase: true },
+      bolter: { name: tr("Bolt Drone"), hp: 22, speed: 78, radius: 12, halfLength: 17, halfWidth: 11, muzzleOffset: 17, damage: 5, reward: 2, color: "#72d8ff", sides: 4 },
+      gunner: { name: tr("Gunner"), hp: 40, speed: 64, radius: 14, halfLength: 15, halfWidth: 23, muzzleOffset: 16, damage: 9, reward: 3, color: "#65e8ff", sides: 4 },
+      bomber: { name: tr("Bomber"), hp: 38, speed: 104, radius: 15, halfLength: 19, halfWidth: 12, damage: 26, reward: 3, color: "#ffd45c", sides: 5, blastRadius: 2.25 },
+      splitter: { name: tr("Splitter"), hp: 56, speed: 88, radius: 16, halfLength: 18, halfWidth: 12, damage: 21, reward: 4, color: "#ffd96a", sides: 6, directChase: true },
+      sniper: { name: tr("Sniper"), hp: 46, speed: 58, radius: 16, halfLength: 28, halfWidth: 10, muzzleOffset: 28, damage: 24, reward: 5, color: "#57a7ff", sides: 4 },
+      colossus: { name: tr("Colossus"), hp: 170, speed: 70, radius: 28, halfLength: 28, halfWidth: 28, damage: 50, reward: 8, color: "#f56fff", sides: 28, directChase: true },
+      mini: { name: tr("Shard"), hp: 10, speed: 205, radius: 7, halfLength: 10, halfWidth: 5, damage: 7, reward: 1, color: "#ffca68", sides: 3, directChase: true }
     };
     var ENEMY_VISUAL_TURN_RATES = {
       scout: 3.4, drone: 4.2, hunter: 3.8, raptor: 3.2, orbiter: 3,
@@ -344,7 +345,7 @@
       debugStats: document.getElementById("debugStats")
     };
     ["hudBossProgress", "buildUpgradePanel", "upgradeList",
-      "resultBosses", "resultUnlocks", "resultObjectiveText", "resultObjectiveProgress", "uiScaleSelect",
+      "resultBosses", "resultUnlocks", "resultObjectiveText", "resultObjectiveProgress", "uiScaleSelect", "languageSelect",
       "startRunMode",
       "milestoneOverlay", "milestoneReward", "finishSurvivalButton", "continueSurvivalButton",
       "corePicker",
@@ -587,7 +588,7 @@
       return clean;
     }
 
-    var saveStorageStatus = "LOCAL SAVE READY";
+    var saveStorageStatus = tr("LOCAL SAVE READY");
     var saveNeedsMigration = false;
 
     function loadSave() {
@@ -605,7 +606,7 @@
             var clean = sanitizeSave(parsedCandidate);
             var hasLegacyPerformanceSetting = parsedCandidate.settings && Object.prototype.hasOwnProperty.call(parsedCandidate.settings, "performanceMode") && !Object.prototype.hasOwnProperty.call(parsedCandidate.settings, "qualityTier");
             saveNeedsMigration = candidates[i].key !== SAVE_KEY || Number(parsedCandidate.version) !== SAVE_VERSION || hasLegacyPerformanceSetting;
-            if (candidates[i].label === "backup") saveStorageStatus = "RESTORED FROM BACKUP";
+            if (candidates[i].label === "backup") saveStorageStatus = tr("RESTORED FROM BACKUP");
             return clean;
           } catch (candidateError) {
             console.warn("Ignored invalid " + candidates[i].label + " save data.");
@@ -613,7 +614,7 @@
         }
         return defaultSave();
       } catch (error) {
-        saveStorageStatus = "LOCAL SAVE UNAVAILABLE";
+        saveStorageStatus = tr("LOCAL SAVE UNAVAILABLE");
         console.warn("Local save storage is unavailable.");
         return defaultSave();
       }
@@ -637,11 +638,11 @@
         }
         localStorage.setItem(SAVE_KEY, serialized);
         if (localStorage.getItem(SAVE_KEY) !== serialized) throw new Error("Save verification failed.");
-        saveStorageStatus = "PROGRESS SAVED LOCALLY";
+        saveStorageStatus = tr("PROGRESS SAVED LOCALLY");
         updateSaveStatus();
         return true;
       } catch (error) {
-        saveStorageStatus = "LOCAL SAVE FAILED";
+        saveStorageStatus = tr("LOCAL SAVE FAILED");
         updateSaveStatus(true);
         console.warn("Progress could not be saved.");
         return false;
@@ -773,7 +774,7 @@
       session.controller = trainingApi.create({ onStage: enterTrainingStage, onChange: updateTrainingView,
         onComplete: function () { session.completed = true; game.state = "training_complete"; game.accumulator = 0; updateTrainingView(); } });
       session.view = trainingViewApi.create({ onExit: leaveTraining, onReturn: leaveTraining,
-        onOpenBuild: openTrainingBuild, onPause: function () { openPause("training"); }, onRetry: function () { session.controller.retry(); } });
+        onOpenBuild: openTrainingBuild, onPause: function () { openPause(tr("training")); }, onRetry: function () { session.controller.retry(); } });
       settingsOpenedFromMenu = false;
       [ui.menu, ui.hangarOverlay, ui.resultOverlay, ui.milestoneOverlay, ui.buildOverlay, ui.pauseOverlay, ui.debugBar, ui.bossHud].forEach(function (element) { element.classList.add("hidden"); });
       ui.hud.classList.remove("hidden");
@@ -809,12 +810,12 @@
         game.state = "paused";
         settingsOpenedFromMenu = false;
         showSettingsPage(false);
-        ui.pauseEyebrow.textContent = "RUN PRESERVED";
-        ui.pauseTitle.textContent = "Paused";
-        ui.resumeButton.textContent = "Resume [P]";
+        ui.pauseEyebrow.textContent = tr("RUN PRESERVED");
+        ui.pauseTitle.textContent = tr("Paused");
+        ui.resumeButton.textContent = tr("Resume [P]");
         ui.restartButton.classList.add("hidden");
         ui.pauseHangarButton.classList.remove("hidden");
-        ui.pauseHangarButton.textContent = "End run";
+        ui.pauseHangarButton.textContent = tr("End run");
         ui.pauseOverlay.classList.remove("hidden");
         syncSettingsUi();
         updateHud();
@@ -921,31 +922,31 @@
 
     function moduleRole(type) {
       var roles = {
-        armor: "Hull", cannon: "Kinetic", laser: "Pierce", missile: "Splash",
-        scatter: "Close range", arc: "Chain", rail: "Heavy", flak: "Defense",
-        pulse: "Crowd", cryo: "Control", mine: "Trap", ember: "Burn", gravity: "Pull", shield: "Barrier",
-        drive: "Mobility", repair: "Repair", reactor: "Fire rate",
-        collector: "Economy", bulkhead: "Guard"
+        armor: tr("Hull"), cannon: tr("Kinetic"), laser: tr("Pierce"), missile: tr("Splash"),
+        scatter: tr("Close range"), arc: tr("Chain"), rail: tr("Heavy"), flak: tr("Defense"),
+        pulse: tr("Crowd"), cryo: tr("Control"), mine: tr("Trap"), ember: tr("Burn"), gravity: tr("Pull"), shield: tr("Barrier"),
+        drive: tr("Mobility"), repair: tr("Repair"), reactor: tr("Fire rate"),
+        collector: tr("Economy"), bulkhead: tr("Guard")
       };
-      return roles[type] || "Module";
+      return roles[type] || tr("Module");
     }
 
     function moduleStats(type) {
       var def = MODULES[type];
       var stats = [];
-      if (def.damage !== undefined) stats.push((def.fieldDuration ? "DPS " : "DMG ") + def.damage);
-      if (def.cooldown) stats.push("RATE " + (1 / def.cooldown).toFixed(1) + "/S");
-      if (def.range) stats.push("RANGE " + def.range);
-      if (def.blastRadius) stats.push("BLAST " + def.blastRadius);
-      if (def.burnDamage) stats.push("BURN " + def.burnDamage + "/S");
-      if (def.fieldRadius) stats.push("FIELD " + def.fieldRadius);
-      if (!stats.length) stats.push("HP " + def.hp);
-      if (type === "shield") stats.push("SHIELD " + def.shield);
-      if (type === "drive") stats.push("SPEED +" + Math.round(def.driveBonus * 100) + "%");
-      if (type === "repair") stats.push("PULSE " + def.repairAmount + " / " + def.repairInterval + "S");
-      if (type === "reactor") stats.push("RATE +" + Math.round(def.cooldownBonus * 100) + "%");
-      if (type === "collector") stats.push("MATTER +" + Math.round(def.matterBonus * 100) + "%");
-      if (type === "bulkhead") stats.push("RESIST " + Math.round(def.damageReduction * 100) + "%");
+      if (def.damage !== undefined) stats.push(def.fieldDuration ? tr("DPS {value}", { value: def.damage }) : tr("DMG {value}", { value: def.damage }));
+      if (def.cooldown) stats.push(tr("RATE {value}/S", { value: (1 / def.cooldown).toFixed(1) }));
+      if (def.range) stats.push(tr("RANGE {value}", { value: def.range }));
+      if (def.blastRadius) stats.push(tr("BLAST {value}", { value: def.blastRadius }));
+      if (def.burnDamage) stats.push(tr("BURN {value}/S", { value: def.burnDamage }));
+      if (def.fieldRadius) stats.push(tr("FIELD {value}", { value: def.fieldRadius }));
+      if (!stats.length) stats.push(tr("HP {value}", { value: def.hp }));
+      if (type === "shield") stats.push(tr("SHIELD {value}", { value: def.shield }));
+      if (type === "drive") stats.push(tr("SPEED +{value}%", { value: Math.round(def.driveBonus * 100) }));
+      if (type === "repair") stats.push(tr("PULSE {amount} / {interval}S", { amount: def.repairAmount, interval: def.repairInterval }));
+      if (type === "reactor") stats.push(tr("RATE +{value}%", { value: Math.round(def.cooldownBonus * 100) }));
+      if (type === "collector") stats.push(tr("MATTER +{value}%", { value: Math.round(def.matterBonus * 100) }));
+      if (type === "bulkhead") stats.push(tr("RESIST {value}%", { value: Math.round(def.damageReduction * 100) }));
       return stats.slice(0, 4);
     }
 
@@ -998,7 +999,7 @@
       art.innerHTML = moduleArt && moduleArt.iconHtml ? moduleArt.iconHtml(type) : moduleGlyphHtml(type);
       var label = document.createElement("span");
       label.className = "eyebrow";
-      label.textContent = state.owned ? "UNLOCKED MODULE" : state.available ? "MODULE LICENSE" : "LOCKED MODULE";
+      label.textContent = state.owned ? tr("UNLOCKED MODULE") : state.available ? tr("MODULE LICENSE") : tr("LOCKED MODULE");
       var title = document.createElement("h3");
       title.textContent = def.name;
       var description = document.createElement("p");
@@ -1006,29 +1007,29 @@
       description.textContent = def.description || def.summary;
       var status = document.createElement("p");
       status.className = "armory-detail-status";
-      if (state.owned) status.textContent = selectedStarter === type ? "Equipped for your next run" : "Available in Build for Matter";
-      else if (!state.available) status.textContent = state.objective ? state.objective.text : "Complete the unlock objective";
-      else if (save.fragments < state.cost) status.textContent = "Need " + Math.ceil(state.cost - save.fragments) + " more Fragments";
+      if (state.owned) status.textContent = selectedStarter === type ? tr("Equipped for your next run") : tr("Available in Build for Matter");
+      else if (!state.available) status.textContent = state.objective ? state.objective.text : tr("Complete the unlock objective");
+      else if (save.fragments < state.cost) status.textContent = tr("Need {count} more Fragments", { count: Math.ceil(state.cost - save.fragments) });
       [art, label, title, description].forEach(function (node) { panel.appendChild(node); });
       if (status.textContent) panel.appendChild(status);
       var actions = document.createElement("div");
       actions.className = "armory-detail-actions";
       if (state.owned && isStarterWeapon(type) && selectedStarter !== type) {
         var equip = document.createElement("button");
-        equip.type = "button"; equip.className = "primary armory-detail-action"; equip.textContent = "Use as starting weapon";
+        equip.type = "button"; equip.className = "primary armory-detail-action"; equip.textContent = tr("Use as starting weapon");
         equip.addEventListener("click", function () { selectStarter(type); renderHangarModuleDetails(); });
         actions.appendChild(equip);
       } else if (!state.owned) {
         var buy = document.createElement("button");
         buy.type = "button"; buy.className = "primary armory-detail-action";
-        buy.textContent = "Unlock · " + state.cost + " Fragments";
+        buy.textContent = tr("Unlock · {cost} Fragments", { cost: state.cost });
         buy.disabled = !state.available || save.fragments < state.cost;
         buy.addEventListener("click", function () { if (buyModuleUnlock(type)) renderHangarModuleDetails(); });
         actions.appendChild(buy);
       }
       var range = document.createElement("button");
       range.type = "button"; range.className = "secondary armory-detail-action";
-      range.textContent = "Test in range ↗";
+      range.textContent = tr("Test in range ↗");
       range.addEventListener("click", function () { startRange(type); });
       actions.appendChild(range);
       panel.appendChild(actions);
@@ -1052,19 +1053,19 @@
         button.setAttribute("aria-pressed", String(selectedHangarModule === type));
         button.title = def.description;
         button.innerHTML = moduleGlyphHtml(type) + '<strong>' + def.name + '</strong><span class="pick-role">' + def.summary + '</span>';
-        if (newModuleBadges.has(type)) button.innerHTML += '<span class="new-unlock">NEW</span>';
+        if (newModuleBadges.has(type)) button.innerHTML += '<span class="new-unlock">' + tr("NEW") + '</span>';
         if (state.owned) {
-          button.innerHTML += '<span class="ownership-state">' + (selectedStarter === type ? "Starting weapon" : "Unlocked") + '</span>';
+          button.innerHTML += '<span class="ownership-state">' + (selectedStarter === type ? tr("Starting weapon") : tr("Unlocked")) + '</span>';
         } else {
           if (!state.available && objective) {
             var definition = progression.definitions.find(function (item) { return item.type === type; });
-            var labels = { totalKills: "Total kills", bestTime: "Best survival", bossesDefeated: "Bosses defeated", totalUpgrades: "Weapon upgrades" };
+            var labels = { totalKills: tr("Total kills"), bestTime: tr("Best survival"), bossesDefeated: tr("Bosses defeated"), totalUpgrades: tr("Weapon upgrades") };
             var progressLabel = labels[definition.stat];
             var count = definition.stat === "bestTime" ? formatTime(objective.current) + " / " + formatTime(objective.target) : Math.floor(objective.current) + " / " + objective.target;
             button.innerHTML += '<span class="unlock-requirement">' + progressLabel + ': ' + count + '</span>';
           }
-          button.innerHTML += '<span class="module-unlock-cost">' + state.cost + ' Fragments</span>';
-          if (state.available && save.fragments < state.cost) button.innerHTML += '<span class="unlock-requirement">Need ' + Math.ceil(state.cost - save.fragments) + ' more Fragments</span>';
+          button.innerHTML += '<span class="module-unlock-cost">' + tr("{count} Fragments", { count: state.cost }) + '</span>';
+          if (state.available && save.fragments < state.cost) button.innerHTML += '<span class="unlock-requirement">' + tr("Need {count} more Fragments", { count: Math.ceil(state.cost - save.fragments) }) + '</span>';
         }
         button.addEventListener("click", function () {
           selectedHangarModule = type;
@@ -1092,14 +1093,14 @@
       renderStarterPicker();
       renderStarterSelection();
       renderMetaShop();
-      showToast(MODULES[type].name + " unlocked for future runs");
+      showToast(tr("{name} unlocked for future runs", { name: MODULES[type].name }));
       audio.tone(330, .16, .045, "sine", 360);
       return true;
     }
 
     function renderStarterSelection() {
       var def = MODULES[selectedStarter];
-      ui.starterBrief.innerHTML = moduleGlyphHtml(selectedStarter) + '<div><span class="module-role">Starting weapon</span><strong>' + def.name + '</strong></div><div class="loadout-core"><span class="module-role">Core</span><strong>' + campaign.getCore(save.campaign.selectedCore).name.replace(" Core", "") + '</strong></div>';
+      ui.starterBrief.innerHTML = moduleGlyphHtml(selectedStarter) + '<div><span class="module-role">' + tr("Starting weapon") + '</span><strong>' + def.name + '</strong></div><div class="loadout-core"><span class="module-role">' + tr("Core") + '</span><strong>' + campaign.getCore(save.campaign.selectedCore).name.replace(" Core", "") + '</strong></div>';
       ui.startWeaponGlyph.innerHTML = moduleIconHtml(selectedStarter);
       ui.startWeaponGlyph.style.color = def.color;
       ui.startWeaponGlyph.style.borderColor = def.color;
@@ -1121,13 +1122,13 @@
         game ? game.runUnlocks : [], MODULES);
       var heading = document.getElementById("resultUnlockHeading");
       var goalCard = document.getElementById("resultObjectiveCard");
-      document.getElementById("resultBankedBalance").textContent = Math.floor(save.fragments) + " Fragments in Hangar";
+      document.getElementById("resultBankedBalance").textContent = tr("{count} Fragments in Hangar", { count: Math.floor(save.fragments) });
       var carriedReward = progression.settleRunReward(null, save.fragmentCarryUnits);
       var carryPercent = Math.floor(carriedReward.carryUnits / carriedReward.scale * 100);
       document.getElementById("resultFragmentProgress").textContent = carriedReward.carryUnits > 0
-        ? "Next Fragment: " + (carryPercent > 0 ? carryPercent : "<1") + "% · saved" : "";
-      document.getElementById("resultProgressHint").textContent = "Licenses and permanent upgrades stay. Matter and weapon levels start fresh next run.";
-      heading.textContent = model.affordableCount > model.offers.length ? "You can buy · " + model.affordableCount + " modules in Hangar" : "You can buy for your next run";
+        ? tr("Next Fragment: {percent}% · saved", { percent: carryPercent > 0 ? carryPercent : "<1" }) : "";
+      document.getElementById("resultProgressHint").textContent = tr("Licenses and permanent upgrades stay. Matter and weapon levels start fresh next run.");
+      heading.textContent = model.affordableCount > model.offers.length ? tr("You can buy · {count} modules in Hangar", { count: model.affordableCount }) : tr("You can buy for your next run");
       heading.classList.toggle("hidden", !model.offers.length);
       ui.resultUnlocks.innerHTML = "";
       ui.resultUnlocks.classList.toggle("hidden", !model.offers.length);
@@ -1137,8 +1138,8 @@
         button.className = "result-purchase-card";
         button.dataset.module = offer.type;
         button.innerHTML = moduleGlyphHtml(offer.type) + '<span class="result-purchase-copy"><strong>' + MODULES[offer.type].name +
-          '</strong><span>' + offer.cost + ' Fragments' + (offer.newlyAvailable ? ' · Discovered this run' : '') +
-          '</span></span><span class="result-purchase-action">View in Hangar →</span>';
+          '</strong><span>' + (offer.newlyAvailable ? tr("{count} Fragments · Discovered this run", { count: offer.cost }) : tr("{count} Fragments", { count: offer.cost })) +
+          '</span></span><span class="result-purchase-action">' + tr("View in Hangar →") + '</span>';
         button.addEventListener("click", function () { selectedHangarModule = offer.type; exitToHangar(); });
         ui.resultUnlocks.appendChild(button);
       });
@@ -1150,7 +1151,7 @@
       ui.resultObjectiveProgress.setAttribute("aria-label", model.goal ? model.goal.text : "");
       var ownedCount = Object.keys(MODULES).filter(function (type) { return progression.isUnlocked(save.progression, type); }).length;
       document.getElementById("hangarStatusSummary").classList.remove("hidden");
-      document.getElementById("hangarStatusSummary").textContent = ownedCount + " unlocked · " + model.affordableCount + " affordable";
+      document.getElementById("hangarStatusSummary").textContent = tr("{owned} unlocked · {affordable} affordable", { owned: ownedCount, affordable: model.affordableCount });
     }
 
     Game.prototype.recordProgress = function (delta) {
@@ -1176,12 +1177,12 @@
         var button = document.createElement("button");
         button.className = "core-card" + (selectedCore ? " selected" : "");
         button.dataset.core = core.id;
-        button.dataset.reason = game && !game.finished ? "Finish the active run to change cores." : !owned && !available ? campaign.coreRequirementText(core.id) : !owned && save.fragments < core.cost ? "Need " + Math.ceil(core.cost - save.fragments) + " more Fragments." : "";
+        button.dataset.reason = game && !game.finished ? tr("Finish the active run to change cores.") : !owned && !available ? campaign.coreRequirementText(core.id) : !owned && save.fragments < core.cost ? tr("Need {count} more Fragments.", { count: Math.ceil(core.cost - save.fragments) }) : "";
         button.style.borderLeft = "3px solid " + CORE_COLORS[core.id];
         button.disabled = Boolean(game && !game.finished) || !owned && (!available || save.fragments < core.cost);
         button.setAttribute("aria-pressed", String(selectedCore));
         button.innerHTML = "<strong>" + core.name + "</strong><small>" + core.description + '</small><span class="core-state">' +
-          (owned ? (selectedCore ? "Selected" : "Equip") : (available ? "Unlock · " + core.cost + " Fragments" : campaign.coreRequirementText(core.id) + " · " + core.cost + " F")) + "</span>";
+          (owned ? (selectedCore ? tr("Selected") : tr("Equip")) : (available ? tr("Unlock · {cost} Fragments", { cost: core.cost }) : tr("{requirement} · {cost} F", { requirement: campaign.coreRequirementText(core.id), cost: core.cost }))) + "</span>";
         button.addEventListener("click", function () {
           if (game && !game.finished) return;
           if (!campaign.isCoreOwned(save.campaign, core.id)) {
@@ -1229,8 +1230,8 @@
     function renderMetaShop() {
       ui.fragmentCount.textContent = Math.floor(save.fragments);
       ui.menuFragmentCount.textContent = Math.floor(save.fragments);
-      ui.bestRun.textContent = "BEST " + formatTime(save.bestTime);
-      ui.victoryCount.textContent = save.progression.bossesDefeated + " BOSSES DEFEATED";
+      ui.bestRun.textContent = tr("BEST {time}", { time: formatTime(save.bestTime) });
+      ui.victoryCount.textContent = tr("{count} BOSSES DEFEATED", { count: save.progression.bossesDefeated });
       renderObjectives();
       ui.metaList.dataset.restoreFocus = String(Boolean(ui.metaList.contains && ui.metaList.contains(document.activeElement)));
       ui.metaList.innerHTML = "";
@@ -1239,12 +1240,12 @@
         var cost = metaCost(level);
         var button = document.createElement("button");
         button.dataset.meta = def.id;
-        button.dataset.reason = game && !game.finished ? "Finish the active run to calibrate this core." : level >= META_PURCHASE_CAP ? "Maximum rank reached." : save.fragments < cost ? "Need " + Math.ceil(cost - save.fragments) + " more Fragments." : "";
+        button.dataset.reason = game && !game.finished ? tr("Finish the active run to calibrate this core.") : level >= META_PURCHASE_CAP ? tr("Maximum rank reached.") : save.fragments < cost ? tr("Need {count} more Fragments.", { count: Math.ceil(cost - save.fragments) }) : "";
         button.className = "meta-card" + (def.legacy && !level ? " hidden" : "");
         button.disabled = Boolean(game && !game.finished) || def.legacy || level >= META_PURCHASE_CAP || save.fragments < cost;
         var effect = def.legacy ? def.description : progressionView.buildMetaComparison(level, META_PURCHASE_CAP, def.bonusPercent, def.unit).text;
         button.innerHTML = "<strong>" + def.name + " &nbsp; " + level + "/" + Math.max(level, META_PURCHASE_CAP) + '</strong><small class="meta-effect">' + effect +
-          '</small><small class="meta-scope">Selected core only</small><span class="meta-price">' + (def.legacy ? "RETAINED" : (level >= META_PURCHASE_CAP ? "MAX" : "Buy · " + cost + " F")) + "</span>";
+          '</small><small class="meta-scope">' + tr("Selected core only") + '</small><span class="meta-price">' + (def.legacy ? tr("RETAINED") : (level >= META_PURCHASE_CAP ? tr("MAX") : tr("Buy · {cost} F", { cost: cost }))) + "</span>";
         button.addEventListener("click", function () {
           if ((game && !game.finished) || def.legacy || selectedCoreRanks()[def.id] >= META_PURCHASE_CAP) return;
           var currentCost = metaCost(selectedCoreRanks()[def.id]);
@@ -1741,7 +1742,7 @@
         shotDamage: attackDamage,
         shotCount: variant === "storm" ? 12 + Math.min(6, Math.floor(encounterLevel / 3) * 2) : 8 + Math.min(encounterLevel, 4),
         variant: variant,
-        displayName: ["Siege Ring", "Pursuer", "Storm Ring"][variantIndex],
+        displayName: [tr("Siege Ring"), tr("Pursuer"), tr("Storm Ring")][variantIndex],
         fanShotCount: variant === "pursuer" ? 5 : 3,
         fanSpread: variant === "pursuer" ? .18 : .2,
         color: ["#ff637c", "#ff9b55", "#a987ff"][variantIndex],
@@ -1779,7 +1780,7 @@
       if (playtestTelemetry) playtestTelemetry.recordBossSpawn(this.elapsed, hp, { id: boss.id, variant: boss.variant });
       this.flashEffect(this.ship.x, this.ship.y, "#ff637c", 320);
       audio.tone(90, .7, .08, "sawtooth", -25);
-      showToast("BOSS " + boss.encounter + " · " + boss.displayName.toUpperCase() + " — WATCH THE ATTACK LANES");
+      showToast(tr("BOSS {number} · {name} — WATCH THE ATTACK LANES", { number: boss.encounter, name: boss.displayName.toUpperCase() }));
     };
 
     Game.prototype.updateMovement = function (dt) {
@@ -1893,7 +1894,7 @@
       if (isCore) {
         this.damageVignette = Math.max(this.damageVignette, clamp(.2 + intensity * .34, 0, save.settings.reducedFlash ? .42 : .9));
         this.damageWarningTimer = Math.max(this.damageWarningTimer, .85);
-        this.damageWarningText = "CORE IMPACT";
+        this.damageWarningText = tr("CORE IMPACT");
       }
       audio.impact(intensity, isCore);
     };
@@ -2119,7 +2120,7 @@
         warningRing.maxRadius = 520;
         var directionWarning = this.spawnEffect("directionWarning", this.ship.x, this.ship.y, bossWarningLead, "#ff637c");
         directionWarning.angle = this.pendingBossAngle;
-        showToast("BOSS IN " + bossWarningLead + "s — SWARM EASING");
+        showToast(tr("BOSS IN {seconds}s — SWARM EASING", { seconds: bossWarningLead }));
         audio.tone(105, .45, .055, "sawtooth", 45);
       }
       if (!this.bossSpawned && this.elapsed >= bossTime) {
@@ -3516,7 +3517,7 @@
           playtestTelemetry.recordBossDefeat(this.elapsed, { id: enemy.id });
         }
         audio.tone(70, .9, .1, "sawtooth", 420);
-        showToast("BOSS DEFEATED · +" + enemy.reward + " MATTER · 12% REPAIR");
+        showToast(tr("BOSS DEFEATED · +{reward} MATTER · 12% REPAIR", { reward: enemy.reward }));
         return;
       }
       this.kills += 1;
@@ -3619,7 +3620,7 @@
         var nextStage = healthRatio <= .25 ? 2 : (healthRatio <= .5 ? 1 : 0);
         if (nextStage > this.coreWarningStage) {
           this.coreWarningStage = nextStage;
-          showToast(nextStage === 2 ? "CORE CRITICAL — 25%" : "CORE INTEGRITY BELOW 50%");
+          showToast(nextStage === 2 ? tr("CORE CRITICAL — 25%") : tr("CORE INTEGRITY BELOW 50%"));
           audio.tone(nextStage === 2 ? 74 : 96, .42, .06, "square", -28);
         }
       }
@@ -3823,12 +3824,12 @@
       game.accumulator = 0;
       ui.milestoneOverlay.classList.add("hidden");
       if (playtestTelemetry) playtestTelemetry.event("survival_continue", game.elapsed, { bosses: game.bossesDefeated });
-      showToast("CONTINUING · Same ship, upgrades and Matter · 8s respite");
+      showToast(tr("CONTINUING · Same ship, upgrades and Matter · 8s respite"));
       updateHud();
     }
 
     Game.prototype.finishRun = function (victory, retired) {
-      if (this.testRange) { this.state = "paused"; openPause("RANGE HULL LOST"); showToast("Reset loadout to rebuild the range ship."); return; }
+      if (this.testRange) { this.state = "paused"; openPause(tr("RANGE HULL LOST")); showToast(tr("Reset loadout to rebuild the range ship.")); return; }
       if (this.training) { failTrainingLesson(); return; }
       if (this.finished) return;
       this.finished = true;
@@ -3857,8 +3858,8 @@
         }, telemetrySample());
       }
       storeSave();
-      ui.resultTitle.textContent = retired ? (this.survivalCompleted ? "SURVIVAL COMPLETE" : "RUN BANKED") : "CORE LOST";
-      ui.resultSubtitle.textContent = "Fragments earned from combat time, ordinary kills and bosses. Spend them in Hangar.";
+      ui.resultTitle.textContent = retired ? (this.survivalCompleted ? tr("SURVIVAL COMPLETE") : tr("RUN BANKED")) : tr("CORE LOST");
+      ui.resultSubtitle.textContent = tr("Fragments earned from combat time, ordinary kills and bosses. Spend them in Hangar.");
       ui.resultKills.textContent = this.kills;
       ui.resultTime.textContent = formatTime(this.elapsed);
       ui.resultFragments.textContent = "+" + fragments;
@@ -3874,9 +3875,9 @@
     };
 
     function buildModuleName(type) {
-      var names = { armor: "Armor", cannon: "Cannon", laser: "Laser", missile: "Missile", scatter: "Scatter", arc: "Arc", rail: "Rail",
-        flak: "Flak", pulse: "Pulse", cryo: "Cryo", mine: "Mine", ember: "Ember", gravity: "Gravity", shield: "Shield", drive: "Drive",
-        repair: "Repair", reactor: "Reactor", collector: "Siphon", bulkhead: "Bulkhead" };
+      var names = { armor: tr("Armor"), cannon: tr("Cannon"), laser: tr("Laser"), missile: tr("Missile"), scatter: tr("Scatter"), arc: tr("Arc"), rail: tr("Rail"),
+        flak: tr("Flak"), pulse: tr("Pulse"), cryo: tr("Cryo"), mine: tr("Mine"), ember: tr("Ember"), gravity: tr("Gravity"), shield: tr("Shield"), drive: tr("Drive"),
+        repair: tr("Repair"), reactor: tr("Reactor"), collector: tr("Siphon"), bulkhead: tr("Bulkhead") };
       return names[type] || MODULES[type].name;
     }
 
@@ -3887,7 +3888,7 @@
       var available = Object.keys(MODULES).filter(moduleAvailable);
       if (available.length && available.indexOf(selectedBuildModule) < 0) selectedBuildModule = available[0];
       var focusButton = null;
-      [{ key: "weapon", name: "Weapons" }, { key: "system", name: "Systems" }, { key: "structure", name: "Hull" }].forEach(function (category) {
+      [{ key: "weapon", name: tr("Weapons") }, { key: "system", name: tr("Systems") }, { key: "structure", name: tr("Hull") }].forEach(function (category) {
         var types = available.filter(function (type) { return moduleCategory(type) === category.key; });
         if (!types.length) return;
         var group = document.createElement("section");
@@ -3910,7 +3911,7 @@
           button.disabled = !game;
           button.dataset.type = type;
           button.setAttribute("aria-pressed", selectedForPurchase ? "true" : "false");
-          button.setAttribute("aria-label", def.name + ", " + price + " Matter" + (affordable ? "" : ", not enough Matter"));
+          button.setAttribute("aria-label", affordable ? tr("{name}, {price} Matter", { name: def.name, price: price }) : tr("{name}, {price} Matter, not enough Matter", { name: def.name, price: price }));
           button.title = def.name + " · " + def.summary;
           button.innerHTML = moduleGlyphHtml(type) + '<strong>' + buildModuleName(type) + '</strong><span class="catalog-cost">' + price + "</span>";
           if (typeof wireCatalogDrag === "function") wireCatalogDrag(button, type);
@@ -3957,7 +3958,8 @@
       game.ship.tiles.forEach(function (tile) {
         if (tile.type === type) { tile.cooldown = 0; tile.upgradeFlash = .65; }
       });
-      showToast(game.training ? (copies === 1 ? "Cannon upgraded" : "All " + copies + " Cannons upgraded") : MODULES[type].name + " · " + runUpgrades.label(type, game.upgrades[type]) + (copies === 1 ? " · Weapon upgraded" : " · All " + copies + " copies upgraded"));
+      var upgradeVars = { count: copies, name: MODULES[type].name, level: runUpgrades.label(type, game.upgrades[type]) };
+      showToast(game.training ? (copies === 1 ? tr("Cannon upgraded") : tr("All {count} Cannons upgraded", upgradeVars)) : (copies === 1 ? tr("{name} · {level} · Weapon upgraded", upgradeVars) : tr("{name} · {level} · All {count} copies upgraded", upgradeVars)));
       storeSave();
       ui.toast.classList.add("success");
       audio.tone(330, .16, .045, "sine", 360);
@@ -3977,14 +3979,14 @@
       if (!copies) return;
         var card = document.createElement("article");
         card.className = "upgrade-card";
-        card.innerHTML = '<header><strong class="upgrade-scope-title">' + buildModuleName(type) + ' upgrades</strong><span class="upgrade-level">' + runUpgrades.label(type, game.upgrades[type]) + '</span><small class="upgrade-scope-note">' + copies + ' installed · Includes future copies · This run</small></header>';
+        card.innerHTML = '<header><strong class="upgrade-scope-title">' + tr("{name} upgrades", { name: buildModuleName(type) }) + '</strong><span class="upgrade-level">' + runUpgrades.label(type, game.upgrades[type]) + '</span><small class="upgrade-scope-note">' + tr("{count} installed · Includes future copies · This run", { count: copies }) + '</small></header>';
         var track = document.createElement("div");
         track.className = "run-upgrade-track";
         track.setAttribute("tabindex", "0");
-        track.setAttribute("aria-label", "Upgrade tree; scroll to explore branches and later upgrades");
+        track.setAttribute("aria-label", tr("Upgrade tree; scroll to explore branches and later upgrades"));
         var choices = runUpgrades.options(type, game.upgrades[type], upgradePricingCopies(type), effectiveBranchLicenses());
-        if (!choices.length) card.innerHTML += '<p class="upgrade-max"><strong>MAX</strong> Route complete. No further upgrades.</p>';
-        else if (choices.every(function (choice) { return choice.locked; })) card.innerHTML += '<p class="upgrade-lock-help">Unlock branches in Hangar with Fragments between runs.</p>';
+        if (!choices.length) card.innerHTML += '<p class="upgrade-max"><strong>' + tr("MAX") + '</strong> ' + tr("Route complete. No further upgrades.") + '</p>';
+        else if (choices.every(function (choice) { return choice.locked; })) card.innerHTML += '<p class="upgrade-lock-help">' + tr("Unlock branches in Hangar with Fragments between runs.") + '</p>';
         function createUpgradeChoice(choice) {
           var button = document.createElement(choice.locked ? "article" : "button");
           button.className = "upgrade-option" + (choice.locked ? " upgrade-locked" : "");
@@ -3994,9 +3996,10 @@
           var description = runUpgrades.describeChange(MODULES[type], game.upgrades[type], choice);
           if (choice.milestone) button.classList.add("milestone-upgrade");
           var branch = choice.locked ? runUpgrades.trees[type].branches.find(function (entry) { return type + ":" + entry.id === choice.license; }) : null;
-          var status = choice.locked ? '<span class="upgrade-status">LOCKED</span>' : '';
-          var price = choice.locked ? '<b>Unlock · ' + branch.fragmentCost + ' Fragments in Hangar</b><small>Run upgrade: ' + choice.cost + ' Matter for ' + copies + ' installed ' + (copies === 1 ? 'copy' : 'copies') + '.</small>' : '<b>' + choice.cost + ' Matter</b><small>' + (game.matter < choice.cost ? 'Need ' + Math.ceil(choice.cost - game.matter) + ' more Matter' : 'Upgrade ' + copies + ' installed ' + (copies === 1 ? 'copy' : 'copies')) + '</small>';
-          if (game.testRange) price = "<b>Free in test range</b><small>Applies to installed copies</small>";
+          var status = choice.locked ? '<span class="upgrade-status">' + tr("LOCKED") + '</span>' : '';
+          var priceVars = { fragments: branch ? branch.fragmentCost : 0, cost: choice.cost, count: copies, missing: Math.ceil(choice.cost - game.matter) };
+          var price = choice.locked ? '<b>' + tr("Unlock · {fragments} Fragments in Hangar", priceVars) + '</b><small>' + (copies === 1 ? tr("Run upgrade: {cost} Matter for {count} installed copy.", priceVars) : tr("Run upgrade: {cost} Matter for {count} installed copies.", priceVars)) + '</small>' : '<b>' + tr("{cost} Matter", priceVars) + '</b><small>' + (game.matter < choice.cost ? tr("Need {missing} more Matter", priceVars) : (copies === 1 ? tr("Upgrade {count} installed copy", priceVars) : tr("Upgrade {count} installed copies", priceVars))) + '</small>';
+          if (game.testRange) price = "<b>" + tr("Free in test range") + "</b><small>" + tr("Applies to installed copies") + "</small>";
           button.innerHTML = status + '<strong>' + choice.name.replace(/ [+-][\d.]+%$/, '') + '</strong>' + price + '<span class="upgrade-delta">' + description + '</span>';
           if (choice.locked) return button;
           button.addEventListener("click", function (event) {
@@ -4060,13 +4063,13 @@
     function moduleSaleBlockReason(sourceKey) {
       if (!game) return "";
       var tile = game.ship.tiles.get(sourceKey);
-      if (!tile || tile.type === "core") return "The core cannot be dismantled.";
-      if (!buildLayoutConnected(sourceKey)) return "Other modules need this connection. Remove the outer modules first.";
+      if (!tile || tile.type === "core") return tr("The core cannot be dismantled.");
+      if (!buildLayoutConnected(sourceKey)) return tr("Other modules need this connection. Remove the outer modules first.");
       if (!isWeaponType(tile.type)) return "";
       var weaponCount = 0;
       game.ship.tiles.forEach(function (installed) { if (isWeaponType(installed.type)) weaponCount += 1; });
       if (weaponCount > 1) return "";
-      return "Keep at least one weapon installed.";
+      return tr("Keep at least one weapon installed.");
     }
 
     function finishBuildChange() {
@@ -4082,7 +4085,7 @@
       if (!tile || tile.type === "core") return false;
       var blockReason = moduleSaleBlockReason(sourceKey);
       if (blockReason) {
-        showToast("CANNOT DISMANTLE · " + blockReason);
+        showToast(tr("CANNOT DISMANTLE · {reason}", { reason: blockReason }));
         return false;
       }
       var refund = moduleSellRefund(tile);
@@ -4110,11 +4113,11 @@
       if (!moduleAvailable(type)) return false;
       var price = modulePrice(type);
       if (game.matter < price) {
-        showToast("NOT ENOUGH MATTER");
+        showToast(tr("NOT ENOUGH MATTER"));
         return false;
       }
       if (!validPlacement(x, y, type)) {
-        showToast("INVALID CONNECTION");
+        showToast(tr("INVALID CONNECTION"));
         return false;
       }
       game.matter -= price;
@@ -4144,8 +4147,12 @@
       var capacity = tile ? Math.ceil(tile.shield) + "/" + tile.maxShield : String(def.shield);
       var delay = def.rechargeDelay;
       var rate = def.rechargeRate;
-      var status = tile && tile.shieldDelay > 0 ? " · Recharges in " + tile.shieldDelay.toFixed(1) + "s" : "";
-      return "Shield " + capacity + " shared" + status + " · +" + rate + "/s, " + delay + "s without hits in range";
+      var vars = { capacity: capacity, rate: rate, delay: delay };
+      if (tile && tile.shieldDelay > 0) {
+        vars.seconds = tile.shieldDelay.toFixed(1);
+        return tr("Shield {capacity} shared · Recharges in {seconds}s · +{rate}/s, {delay}s without hits in range", vars);
+      }
+      return tr("Shield {capacity} shared · +{rate}/s, {delay}s without hits in range", vars);
     }
 
     function renderBuildModuleDetails() {
@@ -4155,19 +4162,19 @@
       details.innerHTML = "";
       details.classList.toggle("hidden", !tile);
       if (!tile) return;
-      var name = tile.type === "core" ? "Core" : MODULES[tile.type].name;
-      details.innerHTML = '<div class="installed-module-heading"><span class="module-role">Installed</span><strong>' + name + '</strong></div><span> Hull ' + Math.ceil(tile.hp) + '/' + Math.ceil(tile.maxHp) + '</span>';
+      var name = tile.type === "core" ? tr("Core") : MODULES[tile.type].name;
+      details.innerHTML = '<div class="installed-module-heading"><span class="module-role">' + tr("Installed") + '</span><strong>' + name + '</strong></div><span> ' + tr("Hull {hp}/{maxHp}", { hp: Math.ceil(tile.hp), maxHp: Math.ceil(tile.maxHp) }) + '</span>';
       if (tile.type === "shield") details.innerHTML += '<p class="build-shield-stats">' + shieldBuildDescription(tile) + '</p>';
-      if (receivesEmberCombo(tile.type) && game.countAdjacentType(tile, "ember")) details.innerHTML += '<p>Ember combo · 3 burn/s for 1.5s during adjacent flame bursts.</p>';
+      if (receivesEmberCombo(tile.type) && game.countAdjacentType(tile, "ember")) details.innerHTML += '<p>' + tr("Ember combo · 3 burn/s for 1.5s during adjacent flame bursts.") + '</p>';
       if (tile.type === "rail") details.innerHTML += game.hasCryoNeighbor(tile) ?
-        '<p>Shatter linked · +25% Rail damage to chilled/frozen enemies · extra Cryos do not stack.</p>' :
-        '<p>Shatter unlinked · place Cryo on an edge for +25% damage to chilled/frozen enemies.</p>';
+        '<p>' + tr("Shatter linked · +25% Rail damage to chilled/frozen enemies · extra Cryos do not stack.") + '</p>' :
+        '<p>' + tr("Shatter unlinked · place Cryo on an edge for +25% damage to chilled/frozen enemies.") + '</p>';
       if (tile.type === "missile") details.innerHTML += game.hasCryoNeighbor(tile) ?
-        '<p>Cold payload linked · blasts slow survivors by 25% for 1s · extra Cryos do not stack.</p>' :
-        '<p>Cold payload unlinked · place Cryo on an edge for 25% blast slow for 1s.</p>';
-      if (tile.type === "cryo" && game.countAdjacentType(tile, "rail")) details.innerHTML += '<p>Enables Shatter in edge-adjacent Rail Lances.</p>';
-      if (tile.type === "cryo" && game.countAdjacentType(tile, "missile")) details.innerHTML += '<p>Enables cold payloads in edge-adjacent Missile Pods: 25% blast slow for 1s.</p>';
-      if (tile.type === "core") { details.innerHTML += '<p>The core stays at the center.</p>'; return; }
+        '<p>' + tr("Cold payload linked · blasts slow survivors by 25% for 1s · extra Cryos do not stack.") + '</p>' :
+        '<p>' + tr("Cold payload unlinked · place Cryo on an edge for 25% blast slow for 1s.") + '</p>';
+      if (tile.type === "cryo" && game.countAdjacentType(tile, "rail")) details.innerHTML += '<p>' + tr("Enables Shatter in edge-adjacent Rail Lances.") + '</p>';
+      if (tile.type === "cryo" && game.countAdjacentType(tile, "missile")) details.innerHTML += '<p>' + tr("Enables cold payloads in edge-adjacent Missile Pods: 25% blast slow for 1s.") + '</p>';
+      if (tile.type === "core") { details.innerHTML += '<p>' + tr("The core stays at the center.") + '</p>'; return; }
       var blockReason = moduleSaleBlockReason(buildInteraction.selectedKey);
       var canSell = !blockReason;
       var refund = moduleSellRefund(tile);
@@ -4175,15 +4182,15 @@
       actions.className = "build-detail-actions";
       var sell = document.createElement("button");
       sell.className = "sell-module-button";
-      sell.textContent = refund > 0 ? "Sell · +" + refund + " Matter" : "Remove";
+      sell.textContent = refund > 0 ? tr("Sell · +{refund} Matter", { refund: refund }) : tr("Remove");
       sell.disabled = !canSell;
-      sell.setAttribute("aria-label", refund > 0 ? "Sell " + name + " for " + refund + " Matter" : "Remove " + name + ", no refund");
+      sell.setAttribute("aria-label", refund > 0 ? tr("Sell {name} for {refund} Matter", { name: name, refund: refund }) : tr("Remove {name}, no refund", { name: name }));
       var selectedKey = buildInteraction.selectedKey;
       sell.addEventListener("click", function () { sellInstalledModule(selectedKey); });
       actions.appendChild(sell);
       details.appendChild(actions);
       var note = document.createElement("p");
-      note.textContent = blockReason || "Dismantling gives no Matter refund.";
+      note.textContent = blockReason || tr("Dismantling gives no Matter refund.");
       details.appendChild(note);
     }
 
@@ -4205,8 +4212,8 @@
 
     function supportPreviewDescription(origin, count) {
       var def = game.weaponDefinitions[origin.type];
-      var modules = count + (count === 1 ? " module" : " modules");
-      if (origin.type === "ember") return "Flame-burst combo · " + count + " Cannon/Scatter/Flak · 3 burn/s for 1.5s · edge neighbors only";
+      var modules = count === 1 ? tr("{count} module", { count: count }) : tr("{count} modules", { count: count });
+      if (origin.type === "ember") return tr("Flame-burst combo · {count} Cannon/Scatter/Flak · 3 burn/s for 1.5s · edge neighbors only", { count: count });
       if (origin.type === "cryo") {
         var rails = 0, missiles = 0;
         game.ship.tiles.forEach(function (tile) {
@@ -4214,15 +4221,15 @@
           if (tile.type === "rail") rails += 1;
           if (tile.type === "missile") missiles += 1;
         });
-        if (rails && !missiles) return "Shatter · " + count + (count === 1 ? " Rail" : " Rails") + " · +25% damage to chilled/frozen enemies · edge neighbors only";
-        if (!count) return "Cryo links · place Rail or Missile on an edge · bonuses do not stack";
-        return "Cryo links · " + rails + " Rail (+25% vs chilled/frozen) · " + missiles + " Missile (25% slow, 1s) · edge neighbors only";
+        if (rails && !missiles) return count === 1 ? tr("Shatter · {count} Rail · +25% damage to chilled/frozen enemies · edge neighbors only", { count: count }) : tr("Shatter · {count} Rails · +25% damage to chilled/frozen enemies · edge neighbors only", { count: count });
+        if (!count) return tr("Cryo links · place Rail or Missile on an edge · bonuses do not stack");
+        return tr("Cryo links · {rails} Rail (+25% vs chilled/frozen) · {missiles} Missile (25% slow, 1s) · edge neighbors only", { rails: rails, missiles: missiles });
       }
-      if (origin.type === "shield") return "Protects " + modules + " · " + shieldBuildDescription(origin.tile);
-      if (origin.type === "repair") return "Repairs " + modules + " · +" + def.repairAmount + " HP every " + def.repairInterval + "s after " + def.repairDelay + "s without hull damage";
-      if (origin.type === "reactor") return "Boosts " + count + (count === 1 ? " weapon" : " weapons") + " · +" + Math.round(def.cooldownBonus * 100) + "% fire rate · surrounding 3×3";
-      if (origin.type === "bulkhead") return "Protects " + modules + " · " + Math.round(def.damageReduction * 100) + "% less hull damage · surrounding 3×3";
-      return "Ship-wide Matter bonus · placement has no range limit";
+      if (origin.type === "shield") return tr("Protects {modules} · {details}", { modules: modules, details: shieldBuildDescription(origin.tile) });
+      if (origin.type === "repair") return tr("Repairs {modules} · +{amount} HP every {interval}s after {delay}s without hull damage", { modules: modules, amount: def.repairAmount, interval: def.repairInterval, delay: def.repairDelay });
+      if (origin.type === "reactor") return count === 1 ? tr("Boosts {count} weapon · +{percent}% fire rate · surrounding 3×3", { count: count, percent: Math.round(def.cooldownBonus * 100) }) : tr("Boosts {count} weapons · +{percent}% fire rate · surrounding 3×3", { count: count, percent: Math.round(def.cooldownBonus * 100) });
+      if (origin.type === "bulkhead") return tr("Protects {modules} · {percent}% less hull damage · surrounding 3×3", { modules: modules, percent: Math.round(def.damageReduction * 100) });
+      return tr("Ship-wide Matter bonus · placement has no range limit");
     }
 
     function receivedSupportBenefits(x, y, target, supports) {
@@ -4235,16 +4242,22 @@
         return counts[type];
       }).map(function (type) {
         var offline = type === "shield" && shieldVfx.coverageAt(x, y) === 1;
-        if (type === "ember") return { type:type, count:1, offline:false, label:"Ember combo (during flame bursts; does not stack)" };
+        if (type === "ember") return { type:type, count:1, offline:false, label:tr("Ember combo (during flame bursts; does not stack)") };
         if (type === "cryo") return { type:type, count:1, offline:false, label:cryoBenefitLabel(target.type, false) };
         return { type: type, count: counts[type], offline: offline,
-          label: MODULES[type].name + (counts[type] > 1 ? " ×" + counts[type] : "") + (offline ? " (recharging)" : "") };
+          label: supportBenefitLabel(MODULES[type].name, counts[type], offline ? tr("{label} (recharging)") : "{label}") };
       });
     }
 
     function cryoBenefitLabel(type, preview) {
-      return (type === "missile" ? "Cold payload (25% blast slow for 1s" : "Shatter (+25% Rail damage to chilled/frozen enemies") +
-        (preview ? "; includes placement preview)" : "; does not stack)");
+      if (type === "missile") return preview ? tr("Cold payload (25% blast slow for 1s; includes placement preview)") : tr("Cold payload (25% blast slow for 1s; does not stack)");
+      return preview ? tr("Shatter (+25% Rail damage to chilled/frozen enemies; includes placement preview)") : tr("Shatter (+25% Rail damage to chilled/frozen enemies; does not stack)");
+    }
+
+    // suffixTemplate wraps the "{label}" of a support name, e.g. "{label} (recharging)".
+    function supportBenefitLabel(name, count, suffixTemplate) {
+      var label = count > 1 ? tr("{name} ×{count}", { name: name, count: count }) : name;
+      return suffixTemplate.replace("{label}", label);
     }
 
     function renderBuildSupportBenefits(cell, benefits) {
@@ -4297,13 +4310,13 @@
         var benefits = receivedSupportBenefits(gx, gy, target || (ghost ? { type: selectedBuildModule } : null), supports);
         if (ghost && selectedBuildModule === "rail") {
           cryoReceiverPreviewText = benefits.some(function (benefit) { return benefit.type === "cryo"; }) ?
-            "Shatter linked · +25% vs chilled/frozen · edge neighbor" :
-            "Shatter unlinked · add an edge-adjacent Cryo for +25% vs chilled/frozen";
+            tr("Shatter linked · +25% vs chilled/frozen · edge neighbor") :
+            tr("Shatter unlinked · add an edge-adjacent Cryo for +25% vs chilled/frozen");
         }
         if (ghost && selectedBuildModule === "missile") {
           cryoReceiverPreviewText = benefits.some(function (benefit) { return benefit.type === "cryo"; }) ?
-            "Cold payload linked · 25% blast slow for 1s · edge neighbor" :
-            "Cold payload unlinked · add an edge-adjacent Cryo for 25% blast slow for 1s";
+            tr("Cold payload linked · 25% blast slow for 1s · edge neighbor") :
+            tr("Cold payload unlinked · add an edge-adjacent Cryo for 25% blast slow for 1s");
         }
         var inRadius = origin && supportCoversCell(origin, gx, gy, target);
         if (inRadius && !origin.tile && (target || ghost)) {
@@ -4315,9 +4328,9 @@
           previewBenefit.count = origin.type === "ember" || origin.type === "cryo" ? 1 : previewBenefit.count + 1;
           previewBenefit.preview = true;
           previewBenefit.offline = false;
-          previewBenefit.label = origin.type === "ember" ? "Ember combo (during flame bursts; includes placement preview)" :
+          previewBenefit.label = origin.type === "ember" ? tr("Ember combo (during flame bursts; includes placement preview)") :
             origin.type === "cryo" ? cryoBenefitLabel(target.type, true) :
-            MODULES[origin.type].name + (previewBenefit.count > 1 ? " ×" + previewBenefit.count : "") + " (includes placement preview)";
+            supportBenefitLabel(MODULES[origin.type].name, previewBenefit.count, tr("{label} (includes placement preview)"));
         }
         var shieldPreview = inRadius && origin.type === "shield";
         var occupied = Boolean(target);
@@ -4333,11 +4346,11 @@
         cell.dataset.supportType = origin ? origin.type : "";
         cell.dataset.shieldCoverage = coverage ? (coverage === 2 ? "active" : "recharging") : (shieldPreview ? "preview" : "none");
         if (!cell.dataset.baseLabel) cell.dataset.baseLabel = cell.getAttribute("aria-label");
-        var coverageLabel = coverage ? (coverage === 2 ? "Shield coverage" : "Shield coverage, recharging") : (shieldPreview ? "New shield coverage preview" : "No shield coverage");
+        var coverageLabel = coverage ? (coverage === 2 ? tr("Shield coverage") : tr("Shield coverage, recharging")) : (shieldPreview ? tr("New shield coverage preview") : tr("No shield coverage"));
         if (inRadius && origin.type !== "shield") coverageLabel += " · " + MODULES[origin.type].name + (origin.tile ? " support" : " preview");
         if (benefits.length) coverageLabel += " · Receives: " + benefits.map(function (benefit) { return benefit.label; }).join(", ");
         cell.setAttribute("aria-label", cell.dataset.baseLabel + " · " + coverageLabel);
-        cell.title = (cell.classList.contains("upgrade-available") ? "Upgrade available · " : "") + coverageLabel;
+        cell.title = cell.classList.contains("upgrade-available") ? tr("Upgrade available · {coverage}", { coverage: coverageLabel }) : coverageLabel;
         cell.classList.toggle("preview-origin", Boolean(ghost || (origin && gx === origin.x && gy === origin.y) || buildInteraction.pendingCellKey === key));
         if (!occupied && !(drag && drag.active)) {
           if (ghost) { cell.innerHTML = '<span class="pc-placement-ghost">' + ((moduleArt && moduleArt.iconHtml(selectedBuildModule, true)) || moduleIconHtml(selectedBuildModule)) + '</span>'; cell.dataset.pcGhost = "1"; }
@@ -4350,15 +4363,15 @@
       var status = document.getElementById("buildPreviewStatus");
       if (!status) return;
       status.textContent = origin ? supportPreviewDescription(origin, protectedCount) :
-        (installedCoverage ? "Shield coverage: " + installedCoverage + " modules" :
-          (hasSupportPreview(selectedBuildModule) && !selected ? "Hover a cell or drag the module to preview its support." : ""));
-      if (origin && !origin.tile) status.textContent = "Preview · " + status.textContent + (origin.type === "shield" ? " · Gold marks new coverage" : "");
+        (installedCoverage ? tr("Shield coverage: {count} modules", { count: installedCoverage }) :
+          (hasSupportPreview(selectedBuildModule) && !selected ? tr("Hover a cell or drag the module to preview its support.") : ""));
+      if (origin && !origin.tile) status.textContent = origin.type === "shield" ? tr("Preview · {details} · Gold marks new coverage", { details: status.textContent }) : tr("Preview · {details}", { details: status.textContent });
       if (origin && origin.type === "shield" && selected && origin.tile === selected) {
-        status.textContent = "Protects " + protectedCount + " modules · " + game.weaponDefinitions.shield.shieldRadius + "-cell radius";
+        status.textContent = tr("Protects {count} modules · {radius}-cell radius", { count: protectedCount, radius: game.weaponDefinitions.shield.shieldRadius });
       }
-      if (cryoReceiverPreviewText) status.textContent = "Preview · " + cryoReceiverPreviewText;
-      if (buildInteraction.pendingCellKey) status.textContent = "Tap again to attach" +
-        (cryoReceiverPreviewText ? " · " + cryoReceiverPreviewText : origin ? " · " + supportPreviewDescription(origin, protectedCount) : " the module.");
+      if (cryoReceiverPreviewText) status.textContent = tr("Preview · {details}", { details: cryoReceiverPreviewText });
+      if (buildInteraction.pendingCellKey) status.textContent = cryoReceiverPreviewText || origin ?
+        tr("Tap again to attach · {details}", { details: cryoReceiverPreviewText || supportPreviewDescription(origin, protectedCount) }) : tr("Tap again to attach the module.");
       status.classList.toggle("is-empty", !status.textContent);
     }
 
@@ -4527,8 +4540,8 @@
       var missingMatter = Math.ceil(selectedPrice - game.matter);
       var inheritedUpgradeCost = game.testRange ? 0 : runUpgrades.investment(selectedBuildModule, game.upgrades[selectedBuildModule]);
       var copyPriceBreakdown = inheritedUpgradeCost > 0 ? '<small class="copy-price-breakdown">' +
-        (selectedPrice - inheritedUpgradeCost) + ' base + ' + inheritedUpgradeCost + ' upgrades</small>' : '';
-      ui.buildSelection.innerHTML = moduleGlyphHtml(selectedBuildModule) + '<div><span class="module-role">Buy one copy</span><strong>' + selected.name + '</strong><p>' + selected.summary + '</p></div><div class="selection-price' + (canAffordSelected ? '' : ' short') + '">' + selectedPrice + ' MATTER' + copyPriceBreakdown + '<small>' + (canAffordSelected ? 'READY TO ATTACH' : 'Available: ' + Math.floor(game.matter) + ' Matter') + '</small></div>';
+        tr("{base} base + {upgrades} upgrades", { base: selectedPrice - inheritedUpgradeCost, upgrades: inheritedUpgradeCost }) + '</small>' : '';
+      ui.buildSelection.innerHTML = moduleGlyphHtml(selectedBuildModule) + '<div><span class="module-role">' + tr("Buy one copy") + '</span><strong>' + selected.name + '</strong><p>' + selected.summary + '</p></div><div class="selection-price' + (canAffordSelected ? '' : ' short') + '">' + tr("{price} MATTER", { price: selectedPrice }) + copyPriceBreakdown + '<small>' + (canAffordSelected ? tr("READY TO ATTACH") : tr("Available: {count} Matter", { count: Math.floor(game.matter) })) + '</small></div>';
       ui.buildSelection.title = selected.description;
       var minX = 0;
       var maxX = 0;
@@ -4562,7 +4575,7 @@
             var cellArt = moduleArt && moduleArt.iconHtml(artType, true, { angle: tile.aim });
             var glyph = cellArt || (tile.type === "core" ? "▲" : moduleIconHtml(tile.type));
             if (cellArt) button.classList.add("has-module-art");
-            button.setAttribute("aria-label", tile.type === "core" ? "Core" : MODULES[tile.type].name);
+            button.setAttribute("aria-label", tile.type === "core" ? tr("Core") : MODULES[tile.type].name);
             var color = tile.type === "core" ? "#ffffff" : MODULES[tile.type].color;
             button.innerHTML = '<span style="color:' + color + '">' + glyph + '</span><span class="cell-hp"><i style="width:' + clamp(tile.hp / tile.maxHp * 100, 0, 100) + '%"></i></span>';
             if (readyFamilies[tile.type]) {
@@ -4588,7 +4601,7 @@
           } else {
             var structurallyValid = !installedSelection && validPlacement(x, y, selectedBuildModule);
             var placeable = structurallyValid && canAffordSelected;
-            button.setAttribute("aria-label", (installedSelection ? "Select a catalog module to attach" : (placeable ? "Attach " + selected.name : "Unavailable attachment")) + " at " + x + ", " + y);
+            button.setAttribute("aria-label", installedSelection ? tr("Select a catalog module to attach at {x}, {y}", { x: x, y: y }) : placeable ? tr("Attach {name} at {x}, {y}", { name: selected.name, x: x, y: y }) : tr("Unavailable attachment at {x}, {y}", { x: x, y: y }));
             button.classList.add(placeable ? "valid" : (structurallyValid ? "unaffordable" : "blocked"));
             button.dataset.action = installedSelection ? "none" : "attach";
             button.innerHTML = "<span>" + (placeable ? "+" : (structurallyValid ? "+" : "·")) + "</span>";
@@ -4597,7 +4610,7 @@
               button.addEventListener("click", function (event) {
                 if ((buildInteraction.drag && buildInteraction.drag.active) || performance.now() < buildInteraction.suppressClickUntil) return;
                 if (buildInteraction.selectedKey) {
-                  ui.buildHint.textContent = "Select a module in the catalog to buy and attach it.";
+                  ui.buildHint.textContent = tr("Select a module in the catalog to buy and attach it.");
                   return;
                 }
                 var targetKey = keyOf(gx, gy);
@@ -4607,7 +4620,7 @@
                   buildInteraction.pendingCellKey = targetKey;
                   updateBuildPreview(gx, gy);
                   updateTrainingView();
-                  ui.buildHint.textContent = "Tap this cell again to attach " + MODULES[selectedBuildModule].name + ".";
+                  ui.buildHint.textContent = tr("Tap this cell again to attach {name}.", { name: MODULES[selectedBuildModule].name });
                   return;
                 }
                 buildInteraction.pendingCellKey = null;
@@ -4627,10 +4640,10 @@
         }
       }
       ui.buildHint.textContent = installedSelection
-        ? (installedSelection.type === "core" ? "Select an installed module to inspect, upgrade or dismantle it." : "Inspect, upgrade or dismantle this module. Select the catalog to add another.")
+        ? (installedSelection.type === "core" ? tr("Select an installed module to inspect, upgrade or dismantle it.") : tr("Inspect, upgrade or dismantle this module. Select the catalog to add another."))
         : canAffordSelected
-        ? "Drag " + selected.name + " to the ship, or select a + cell."
-        : "Selected for inspection. Earn " + missingMatter + " more Matter to attach " + selected.name + ".";
+        ? tr("Drag {name} to the ship, or select a + cell.", { name: selected.name })
+        : tr("Selected for inspection. Earn {count} more Matter to attach {name}.", { count: missingMatter, name: selected.name });
       ui.buildMatter.textContent = Math.floor(game.matter);
       renderBuildModuleDetails();
       renderRunUpgrades();
@@ -4685,6 +4698,7 @@
       ui.qualitySelect.value = String(save.settings.qualityTier);
       ui.fpsLimitSelect.value = String(save.settings.fpsLimit);
       ui.uiScaleSelect.value = String(save.settings.uiScale);
+      if (window.BastionI18n) ui.languageSelect.value = window.BastionI18n.language();
       document.documentElement.style.setProperty("--ui-scale", String(save.settings.uiScale / 100));
       document.body.classList.toggle("reduced-flash", save.settings.reducedFlash);
       updateSaveStatus(false);
@@ -4739,7 +4753,7 @@
     }
 
     function resetProgress() {
-      if (game && game.training) { ui.progressActionStatus.textContent = "Exit training before resetting progress."; return false; }
+      if (game && game.training) { ui.progressActionStatus.textContent = tr("Exit training before resetting progress."); return false; }
       var fresh = defaultSave();
       fresh.settings = Object.assign({}, save.settings);
       fresh.updatedAt = Date.now();
@@ -4759,7 +4773,7 @@
             else localStorage.setItem(key, previousValues[index]);
           } catch (restoreError) { /* Keep the in-memory profile intact when storage is unavailable. */ }
         });
-        ui.progressActionStatus.textContent = "Reset failed: local storage unavailable. Progress kept.";
+        ui.progressActionStatus.textContent = tr("Reset failed: local storage unavailable. Progress kept.");
         return false;
       }
       if (game && !game.finished) {
@@ -4776,9 +4790,9 @@
       keys = Object.create(null);
       ui.resetProgressConfirm.classList.add("hidden");
       returnToMenu();
-      saveStorageStatus = "PROGRESS RESET";
+      saveStorageStatus = tr("PROGRESS RESET");
       updateSaveStatus();
-      showToast("PROGRESS RESET");
+      showToast(tr("PROGRESS RESET"));
       return true;
     }
 
@@ -4840,9 +4854,9 @@
       document.getElementById("settingsContent").classList.toggle("hidden", !open);
       document.getElementById("pauseSettingsButton").classList.toggle("hidden", open);
       ui.pauseOverlay.classList.toggle("settings-view", open);
-      ui.pauseTitle.textContent = open ? "Settings" : "Paused";
-      ui.pauseEyebrow.textContent = open ? "GAME OPTIONS" : "COMBAT SUSPENDED";
-      ui.resumeButton.textContent = open ? (settingsOpenedFromMenu ? "Close" : "Back to pause") : "Resume [P]";
+      ui.pauseTitle.textContent = open ? tr("Settings") : tr("Paused");
+      ui.pauseEyebrow.textContent = open ? tr("GAME OPTIONS") : tr("COMBAT SUSPENDED");
+      ui.resumeButton.textContent = open ? (settingsOpenedFromMenu ? tr("Close") : tr("Back to pause")) : tr("Resume [P]");
       ui.pauseHangarButton.classList.toggle("hidden", open);
       ui.restartButton.classList.toggle("hidden", open || !game || !game.training);
       if (open) syncSettingsUi();
@@ -4859,10 +4873,10 @@
     function openMenuSettings() {
       settingsOpenedFromMenu = true;
       showSettingsPage(true);
-      ui.pauseEyebrow.textContent = "GAME OPTIONS";
-      ui.pauseTitle.textContent = "Settings";
+      ui.pauseEyebrow.textContent = tr("GAME OPTIONS");
+      ui.pauseTitle.textContent = tr("Settings");
       document.getElementById("settingsContent").scrollTop = 0;
-      ui.resumeButton.textContent = "Close";
+      ui.resumeButton.textContent = tr("Close");
       ui.restartButton.classList.add("hidden");
       ui.pauseHangarButton.classList.add("hidden");
       ui.pauseOverlay.classList.remove("hidden");
@@ -4878,11 +4892,11 @@
       game.state = "paused";
       if (playtestTelemetry) playtestTelemetry.recordPause(true, game.elapsed, reason || "manual");
       keys = Object.create(null);
-      ui.pauseEyebrow.textContent = reason || "COMBAT SUSPENDED";
-      ui.pauseTitle.textContent = "Paused";
-      ui.resumeButton.textContent = "Resume [P]";
-      ui.pauseHangarButton.textContent = game.testRange ? "Return from range" : game.training ? "Exit training" : "End run";
-      if (game.testRange) ui.restartButton.textContent = "Reset loadout";
+      ui.pauseEyebrow.textContent = reason || tr("COMBAT SUSPENDED");
+      ui.pauseTitle.textContent = tr("Paused");
+      ui.resumeButton.textContent = tr("Resume [P]");
+      ui.pauseHangarButton.textContent = game.testRange ? tr("Return from range") : game.training ? tr("Exit training") : tr("End run");
+      if (game.testRange) ui.restartButton.textContent = tr("Reset loadout");
       ui.restartButton.classList.toggle("hidden", !game.training);
       ui.pauseHangarButton.classList.remove("hidden");
       ui.pauseOverlay.classList.remove("hidden");
@@ -5044,9 +5058,9 @@
       ui.hudKills.textContent = game.kills;
       ui.hudTime.textContent = formatTime(game.elapsed);
       ui.hudModules.textContent = game.ship.tiles.size;
-      ui.hudBossProgress.textContent = game.bossSpawned ? "BOSS " + (game.bossesDefeated + 1) :
-        (Number.isFinite(game.nextBossAt) ? "BOSS " + (game.bossesDefeated + 1) + " IN " + formatTime(Math.max(0, game.nextBossAt - game.elapsed)) : "HOLD UNTIL 10:00");
-      if (game.testRange) ui.hudBossProgress.textContent = "TEST RANGE";
+      ui.hudBossProgress.textContent = game.bossSpawned ? tr("BOSS {number}", { number: game.bossesDefeated + 1 }) :
+        (Number.isFinite(game.nextBossAt) ? tr("BOSS {number} IN {time}", { number: game.bossesDefeated + 1, time: formatTime(Math.max(0, game.nextBossAt - game.elapsed)) }) : tr("HOLD UNTIL 10:00"));
+      if (game.testRange) ui.hudBossProgress.textContent = tr("TEST RANGE");
       if (core) {
         var healthRatio = core.hp / core.maxHp;
         ui.hudHpText.textContent = Math.ceil(core.hp) + " / " + Math.ceil(core.maxHp);
@@ -5055,11 +5069,10 @@
         ui.hud.classList.toggle("core-critical", healthRatio <= .25);
       }
       if (game.boss && !game.boss.dead) {
-        ui.bossName.textContent = (game.boss.displayName || "Siege Ring") +
-          (game.boss.variant !== "ring" && game.boss.combatPhase === 2 ? " — PHASE 2" : "");
+        ui.bossName.textContent = game.boss.variant !== "ring" && game.boss.combatPhase === 2 ? tr("{name} — PHASE 2", { name: game.boss.displayName || tr("Siege Ring") }) : (game.boss.displayName || tr("Siege Ring"));
         ui.bossFill.style.width = clamp(game.boss.hp / game.boss.maxHp * 100, 0, 100) + "%";
       }
-      ui.muteButton.textContent = audio.muted ? "MUTED" : "SOUND";
+      ui.muteButton.textContent = audio.muted ? tr("MUTED") : tr("SOUND");
       updateTrainingView();
     }
 
@@ -6100,7 +6113,7 @@
         return;
       }
       ui.damageVignette.style.opacity = String(clamp(game.damageVignette, 0, 1));
-      ui.dangerBanner.textContent = game.damageWarningText || "CORE IMPACT";
+      ui.dangerBanner.textContent = game.damageWarningText || tr("CORE IMPACT");
       ui.dangerBanner.classList.toggle("show", game.damageWarningTimer > 0 && game.state === "playing");
     }
 
@@ -6140,7 +6153,7 @@
       ctx.font = "800 10px ui-monospace, monospace";
       ctx.textAlign = "center";
       ctx.textBaseline = "bottom";
-      ctx.fillText("BOSS · " + distance, locatorX, locatorY - (onScreen ? boss.radius * zoom + 14 : 15));
+      ctx.fillText(tr("BOSS · {distance}", { distance: distance }), locatorX, locatorY - (onScreen ? boss.radius * zoom + 14 : 15));
       ctx.restore();
     }
 
@@ -6227,7 +6240,7 @@
       }
       try { if (playtestTelemetry) playtestTelemetry.flush(); } catch (telemetryError) { /* Crash screen matters more. */ }
       audio.stop();
-      ui.crashSubtitle.textContent = saved ? "Your Fragments are saved." : "Progress could not be saved.";
+      ui.crashSubtitle.textContent = saved ? tr("Your Fragments are saved.") : tr("Progress could not be saved.");
       ui.crashDetails.textContent = crashReport(error);
       ui.crashOverlay.classList.remove("hidden");
       ui.crashReloadButton.focus();
@@ -6244,7 +6257,7 @@
       };
       if (!navigator.clipboard) { selectReport(); return; }
       navigator.clipboard.writeText(text).then(function () {
-        ui.crashCopyButton.textContent = "Copied";
+        ui.crashCopyButton.textContent = tr("Copied");
       }, selectReport);
     }
 
@@ -6603,11 +6616,27 @@
     ui.qualitySelect.addEventListener("change", applySettingsFromUi);
     ui.fpsLimitSelect.addEventListener("change", applySettingsFromUi);
     ui.uiScaleSelect.addEventListener("change", applySettingsFromUi);
+    if (window.BastionI18n) {
+      window.BastionI18n.languages.forEach(function (language) {
+        var option = document.createElement("option");
+        option.value = language.code;
+        option.textContent = language.name;
+        option.lang = language.code;
+        ui.languageSelect.appendChild(option);
+      });
+      ui.languageSelect.value = window.BastionI18n.language();
+      // Text is translated once at load, so a language change reloads; mid-run it waits so the run is not banked.
+      ui.languageSelect.addEventListener("change", function () {
+        if (!window.BastionI18n.setLanguage(ui.languageSelect.value)) return;
+        if (game && !game.finished && !game.training) { showToast(tr("Language changes after this run")); return; }
+        window.location.reload();
+      });
+    }
     ui.debugToolsToggle.addEventListener("change", function () { setDebugTools(ui.debugToolsToggle.checked); });
     ui.replayOnboardingButton.addEventListener("click", startTraining);
     ui.startTrainingButton.addEventListener("click", startTraining);
     ui.resetProgressButton.addEventListener("click", function () {
-      ui.resetProgressMessage.textContent = (game && !game.finished ? "End this run and reset " : "Reset ") + "Fragments, purchases and records? Settings and playtest logs stay.";
+      ui.resetProgressMessage.textContent = game && !game.finished ? tr("End this run and reset Fragments, purchases and records? Settings and playtest logs stay.") : tr("Reset Fragments, purchases and records? Settings and playtest logs stay.");
       ui.resetProgressConfirm.classList.remove("hidden");
       ui.progressActionStatus.textContent = "";
       if (ui.cancelResetProgress.focus) ui.cancelResetProgress.focus();
@@ -6787,7 +6816,7 @@
       audio.setFocused(false);
       keys = Object.create(null);
       resetMobileInput();
-      if (save.settings.autoPause && game && game.state === "playing" && !game.finished) openPause("FOCUS LOST — AUTO-PAUSED");
+      if (save.settings.autoPause && game && game.state === "playing" && !game.finished) openPause(tr("FOCUS LOST — AUTO-PAUSED"));
     }
     window.addEventListener("blur", clearUnfocusedInput);
     window.addEventListener("focus", function () { audio.setFocused(true); });
@@ -6836,14 +6865,14 @@
     }, []);
     function effectiveBranchLicenses() { return game && game.testRange ? allRangeLicenses : save.progression.branchLicenses; }
     function rangeConfigurations(type) {
-      var result = [{ name: "Base module", state: null }], queue = [null];
+      var result = [{ name: tr("Base module"), state: null }], queue = [null];
       while (queue.length) {
         var state = queue.shift();
         runUpgrades.options(type, state, 1, allRangeLicenses).forEach(function (choice) {
           if (choice.locked) return;
           var next = runUpgrades.nextState(type, state, choice);
           var path = (next.path || []).join(" / ");
-          result.push({ name: (path ? path + " · " : "") + choice.name + " · rank " + next.level, state: next });
+          result.push({ name: path ? tr("{path} · {choice} · rank {level}", { path: path, choice: choice.name, level: next.level }) : tr("{choice} · rank {level}", { choice: choice.name, level: next.level }), state: next });
           queue.push(next);
         });
       }
@@ -6971,7 +7000,7 @@
       },
       statRows: function (type) {
         var def = game && game.testRange ? game.weaponDefinitions[type] : MODULES[type];
-        var fields = [["damage", "Damage"], ["cooldown", "Fire interval", "s"], ["range", "Range"], ["hp", "Module health"], ["shots", "Shots"], ["pellets", "Pellets"], ["chains", "Chain targets"], ["shield", "Shield capacity"], ["repairAmount", "Repair HP"], ["matterBonus", "First siphon bonus"], ["cooldownBonus", "Local fire-rate bonus"], ["mass", "Mass"], ["shieldRadius", "Shield radius", " cells"], ["rechargeDelay", "Recharge delay", "s"], ["rechargeRate", "Shield recharge", "/s"], ["repairInterval", "Repair interval", "s"], ["repairRadius", "Repair radius", " cells"], ["repairDelay", "Safe repair delay", "s"], ["damageReduction", "Adjacent damage reduction"], ["blastRadius", "Blast radius"], ["fieldRadius", "Field radius"], ["fieldDuration", "Field duration", "s"], ["pullStrength", "Pull strength"], ["slowFactor", "Enemy speed multiplier"], ["slowDuration", "Slow duration", "s"], ["burnDamage", "Burn damage", "/s"], ["burnDuration", "Burn duration", "s"], ["penetration", "Penetration"], ["burstCount", "Burst shots"], ["burstInterval", "Burst interval", "s"], ["beamWidth", "Beam width"], ["beamCount", "Beam count"], ["beamDuration", "Beam duration", "s"], ["cloudDuration", "Cloud duration", "s"], ["jumpRange", "Chain jump range"], ["clusterCount", "Cluster count"], ["collapseDamage", "Collapse damage"]];
+        var fields = [["damage", tr("Damage")], ["cooldown", tr("Fire interval"), "s"], ["range", tr("Range")], ["hp", tr("Module health")], ["shots", tr("Shots")], ["pellets", tr("Pellets")], ["chains", tr("Chain targets")], ["shield", tr("Shield capacity")], ["repairAmount", tr("Repair HP")], ["matterBonus", tr("First siphon bonus")], ["cooldownBonus", tr("Local fire-rate bonus")], ["mass", tr("Mass")], ["shieldRadius", tr("Shield radius"), tr(" cells")], ["rechargeDelay", tr("Recharge delay"), "s"], ["rechargeRate", tr("Shield recharge"), "/s"], ["repairInterval", tr("Repair interval"), "s"], ["repairRadius", tr("Repair radius"), tr(" cells")], ["repairDelay", tr("Safe repair delay"), "s"], ["damageReduction", tr("Adjacent damage reduction")], ["blastRadius", tr("Blast radius")], ["fieldRadius", tr("Field radius")], ["fieldDuration", tr("Field duration"), "s"], ["pullStrength", tr("Pull strength")], ["slowFactor", tr("Enemy speed multiplier")], ["slowDuration", tr("Slow duration"), "s"], ["burnDamage", tr("Burn damage"), "/s"], ["burnDuration", tr("Burn duration"), "s"], ["penetration", tr("Penetration")], ["burstCount", tr("Burst shots")], ["burstInterval", tr("Burst interval"), "s"], ["beamWidth", tr("Beam width")], ["beamCount", tr("Beam count")], ["beamDuration", tr("Beam duration"), "s"], ["cloudDuration", tr("Cloud duration"), "s"], ["jumpRange", tr("Chain jump range")], ["clusterCount", tr("Cluster count")], ["collapseDamage", tr("Collapse damage")]];
         return fields.filter(function (field) { return def[field[0]] !== undefined; }).map(function (field) {
           var value = def[field[0]]; value = (field[0].includes("Bonus") || field[0] === "damageReduction") ? Math.round(value * 100) + "%" : Number(value.toFixed(2)) + (field[2] || "");
           return "<dt>" + field[1] + "</dt><dd>" + value + "</dd>";
