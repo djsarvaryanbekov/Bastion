@@ -26,6 +26,8 @@
     var CRYO_MISSILE_SLOW_FACTOR = .75;
     var CRYO_MISSILE_SLOW_DURATION = 1;
     var EMBER_COMBO_OFFSETS = [[1,0],[-1,0],[0,1],[0,-1]];
+    var EMBER_WIDE_OFFSETS = [[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]];
+    var MAX_FROST_LINES = 24;
     var BURN_FLAME_DETAIL_BUDGETS = [32, 16, 0];
     var fireVfx = window.DriftFireVfx;
     var COLD_DETAIL_BUDGETS = [32, 16, 0];
@@ -44,6 +46,16 @@
     var trainingApi = window.DriftTraining || null;
     var trainingArenaApi = window.DriftTrainingArena || null;
     var trainingViewApi = window.DriftTrainingView || null;
+    var waves = window.DriftWaves || null;
+    var cardsApi = window.DriftCards || null;
+    var WAVE_BOSS_DELAY = 8;
+    var WAVE_CLEAR_SETTLE = 1.2;
+    var WAVE_INTERMISSION_REPAIR = .3;
+    var WAVE_DAMAGE_TAKEN_FLOOR = .5;
+    var WAVE_FINAL_BOSS_HP_SCALE = 1.3;
+    // During the sweep, enemies beyond this distance are pulled in so stragglers never stall the break.
+    var STRAGGLER_DISTANCE = 760;
+    var STRAGGLER_PULL_SPEED = 240;
     var META_PURCHASE_CAP = 25;
     var CORE_COLORS = { standard: "#ffffff", striker: "#ff9b6a", bulwark: "#8ac7ff", salvager: "#a8ff70" };
     var SHOT_COLORS = { hostile: "#ff7359", hostileCore: "#fff1cf", hostileRim: "#29151d" };
@@ -264,6 +276,9 @@
       bossFill: document.getElementById("bossFill"),
       bossName: document.getElementById("bossName"),
       buildButton: document.getElementById("buildButton"),
+      buildEyebrow: document.getElementById("buildEyebrow"),
+      buildControlHint: document.getElementById("buildControlHint"),
+      hudCards: document.getElementById("hudCards"),
       muteButton: document.getElementById("muteButton"),
       pauseButton: document.getElementById("pauseButton"),
       mobileControls: document.getElementById("mobileControls"),
@@ -345,7 +360,7 @@
       debugStats: document.getElementById("debugStats")
     };
     ["hudBossProgress", "buildUpgradePanel", "upgradeList",
-      "resultBosses", "resultUnlocks", "resultObjectiveText", "resultObjectiveProgress", "uiScaleSelect", "languageSelect",
+      "resultBosses", "resultUnlocks", "resultObjectiveText", "resultObjectiveProgress", "uiScaleSelect", "languageSelect", "startEndlessButton", "waveOverlay", "waveEyebrow", "waveTitle", "waveSummary", "wavePanel", "doctrinePips", "cardChoices", "cardOwned", "cardOwnedDetail", "cardRerollButton", "cardSkipButton", "waveBuildButton", "waveEndRunButton", "nextWaveButton",
       "startRunMode",
       "milestoneOverlay", "milestoneReward", "finishSurvivalButton", "continueSurvivalButton",
       "corePicker",
@@ -776,7 +791,7 @@
       session.view = trainingViewApi.create({ onExit: leaveTraining, onReturn: leaveTraining,
         onOpenBuild: openTrainingBuild, onPause: function () { openPause(tr("training")); }, onRetry: function () { session.controller.retry(); } });
       settingsOpenedFromMenu = false;
-      [ui.menu, ui.hangarOverlay, ui.resultOverlay, ui.milestoneOverlay, ui.buildOverlay, ui.pauseOverlay, ui.debugBar, ui.bossHud].forEach(function (element) { element.classList.add("hidden"); });
+      [ui.menu, ui.hangarOverlay, ui.resultOverlay, ui.milestoneOverlay, ui.waveOverlay, ui.buildOverlay, ui.pauseOverlay, ui.debugBar, ui.bossHud].forEach(function (element) { element.classList.add("hidden"); });
       ui.hud.classList.remove("hidden");
       audio.ensure();
       session.controller.start({ cannonCopies: 1, cannonLevel: 0 });
@@ -797,7 +812,7 @@
       selectedBuildModule = session.previousModule;
       resetMobileInput();
       keys = Object.create(null);
-      [ui.buildOverlay, ui.pauseOverlay, ui.resultOverlay, ui.milestoneOverlay].forEach(function (element) { element.classList.add("hidden"); });
+      [ui.buildOverlay, ui.pauseOverlay, ui.resultOverlay, ui.milestoneOverlay, ui.waveOverlay].forEach(function (element) { element.classList.add("hidden"); });
       if (session.completed) { save.training = { version: 1, completed: true }; storeSave(); }
       if (game && !game.finished) {
         game.lastFrame = performance.now();
@@ -911,7 +926,9 @@
       var copies = installedModuleCopies(type);
       // Keep the first two copies accessible; larger fleets require more investment.
       var additionalCopyScale = Math.pow(ADDITIONAL_COPY_COST_SCALE, Math.max(0, copies - 1));
-      return Math.ceil(def.baseCost * Math.pow(def.scale, copies) * additionalCopyScale) + runUpgrades.investment(type, game && game.upgrades[type]);
+      var price = Math.ceil(def.baseCost * Math.pow(def.scale, copies) * additionalCopyScale) + runUpgrades.investment(type, game && game.upgrades[type]);
+      var factor = game && game.mode === "waves" && game.priceFactors ? game.priceFactors[type] : 0;
+      return factor && factor !== 1 ? Math.max(1, Math.round(price * factor)) : price;
     }
 
     function moduleCategory(type) {
@@ -1292,6 +1309,37 @@
 
     function Game(options) {
       this.training = Boolean(options && options.training);
+      this.mode = !this.training && options && options.mode === "waves" && waves ? "waves" : "endless";
+      this.wave = 0;
+      this.waveElapsed = 0;
+      this.wavePhase = null;
+      this.waveClearTimer = 0;
+      this.waveOvertime = false;
+      this.cardPicks = [];
+      this.cardMods = cardsApi ? cardsApi.emptyMods() : { global: {}, family: {} };
+      this.cardOffer = null;
+      this.cardPicked = false;
+      this.rerolls = 0;
+      this.volatileQueue = [];
+      this.seenDuos = [];
+      this.ownsDuo = false;
+      this.cardSkipped = false;
+      this.offerIsDoctrine = false;
+      this.freeRerolls = 0;
+      this.priceFactors = {};
+      this.flagshipTile = null;
+      this.activePairs = new Set();
+      this.derelicts = [];
+      this.frostLines = [];
+      this.sparks = [];
+      this.conduitClock = 0;
+      this.layoutClock = 0;
+      this.arcSpinePair = null;
+      this.arcSpineTick = 0;
+      this.latticeClock = 0;
+      this.latticeActive = false;
+      this.latticeCounts = { reactor: 0, bulkhead: 0, cryo: 0, cannon: 0, emberActive: 0, weaponFamilies: 0 };
+      this.latticeFamilies = new Set();
       this.attackVfx = window.DriftAttackVfx ? window.DriftAttackVfx.create() : null;
       this.weaponFeedback = window.DriftWeaponFeedback.create();
       this.state = "playing";
@@ -1322,7 +1370,7 @@
       this.matter = 0;
       this.upgrades = {};
       this.weaponDefinitions = {};
-      Object.keys(MODULES).forEach(function (type) { this.weaponDefinitions[type] = runUpgrades.resolve(MODULES[type]); }, this);
+      Object.keys(MODULES).forEach(function (type) { this.weaponDefinitions[type] = this.resolveWeaponDefinition(type); }, this);
       this.runUnlocks = [];
       this.progressSaveAt = 5;
       this.kills = 0;
@@ -1375,8 +1423,137 @@
       this.coreWarningStage = 0;
       this.telegraphSoundClock = 0;
       this.separationClock = 0;
-      if (!this.training) this.spawnAssaultWave(true);
+      if (this.mode === "waves") {
+        this.nextBossAt = Infinity;
+        this.startWave(1);
+      } else if (!this.training) {
+        this.spawnAssaultWave(true);
+      }
     }
+
+    // Card modifiers apply only in Waves; Endless and every existing check see unmodified definitions.
+    Game.prototype.resolveWeaponDefinition = function (type) {
+      var def = runUpgrades.resolve(MODULES[type], this.upgrades[type]);
+      return this.mode === "waves" && cardsApi ? cardsApi.applyDefinition(type, def, this.cardMods) : def;
+    };
+
+    Game.prototype.cardMod = function (key) {
+      return this.cardMods.global[key] || 0;
+    };
+
+    Game.prototype.hasCard = function (id) {
+      return this.mode === "waves" && Boolean(cardsApi) && cardsApi.hasPick(this.cardPicks, id);
+    };
+
+    // Edge-adjacent family pairs on the ship; duo cards read them to unlock and to stay active.
+    Game.prototype.adjacentPairs = function () {
+      var pairs = new Set();
+      if (!cardsApi) return pairs;
+      this.ship.tiles.forEach(function (tile) {
+        var right = this.ship.tiles.get(keyOf(tile.x + 1, tile.y));
+        var below = this.ship.tiles.get(keyOf(tile.x, tile.y + 1));
+        if (right && right.type !== tile.type) pairs.add(cardsApi.pairKey(tile.type, right.type));
+        if (below && below.type !== tile.type) pairs.add(cardsApi.pairKey(tile.type, below.type));
+      }, this);
+      return pairs;
+    };
+
+    Game.prototype.duoActive = function (id) {
+      if (!this.ownsDuo) return false;
+      var def = cardsApi.BY_ID[id];
+      return Boolean(def && def.pair && this.hasCard(id) && this.activePairs.has(cardsApi.pairKey(def.pair[0], def.pair[1])));
+    };
+
+    Game.prototype.addCardPick = function (pick) {
+      this.cardPicks.push(pick);
+      this.cardMods = cardsApi.fold(this.cardPicks);
+      if (cardsApi.BY_ID[pick.id].kind === "duo") this.ownsDuo = true;
+      this.activePairs = this.adjacentPairs();
+      Object.keys(MODULES).forEach(function (type) {
+        this.weaponDefinitions[type] = this.resolveWeaponDefinition(type);
+        this.refreshFamilyTiles(type, false);
+      }, this);
+      if (pick.id === "grayMarket") this.rollPriceFactors();
+      if (pick.id === "hollowStrut") {
+        var strutCore = this.ship.tiles.get("0,0");
+        if (strutCore) { strutCore.maxHp *= 1 - cardsApi.TUNING.strutCorePenalty; strutCore.hp = Math.min(strutCore.hp, strutCore.maxHp); }
+      }
+      this.layoutClock = 0;
+      this.assignFlagship();
+    };
+
+    Game.prototype.cardDamageScale = function () {
+      return (1 + this.coreBonus("damage")) * (1 + this.cardMod("damage"));
+    };
+
+    Game.prototype.leanHullBonus = function () {
+      var per = this.cardMod("leanHull");
+      if (!per) return 0;
+      var tuning = cardsApi.TUNING;
+      return Math.min(tuning.leanHullMax, per * Math.max(0, tuning.leanHullCap - (this.ship.tiles.size - 1)));
+    };
+
+    Game.prototype.occupiedNeighbors = function (tile) {
+      var count = 0;
+      for (var y = -1; y <= 1; y += 1) for (var x = -1; x <= 1; x += 1) {
+        if ((x || y) && this.ship.tiles.has(keyOf(tile.x + x, tile.y + y))) count += 1;
+      }
+      return count;
+    };
+
+    Game.prototype.flagshipActive = function () {
+      return Boolean(this.flagshipTile) && this.ship.tiles.get(keyOf(this.flagshipTile.x, this.flagshipTile.y)) === this.flagshipTile;
+    };
+
+    // The title moves only between waves, so losing the Flagship mid-wave is a real loss.
+    Game.prototype.assignFlagship = function () {
+      this.flagshipTile = null;
+      if (!this.cardMod("flagship")) return;
+      var best = null, bestScore = -Infinity;
+      this.ship.tiles.forEach(function (tile) {
+        if (!isWeaponType(tile.type)) return;
+        var score = this.occupiedNeighbors(tile) * 100 - (Math.abs(tile.x) + Math.abs(tile.y));
+        if (score > bestScore) { best = tile; bestScore = score; }
+      }, this);
+      this.flagshipTile = best;
+    };
+
+    // Doctrine damage per weapon tile; core and global card bonuses are applied separately.
+    Game.prototype.tileCardDamage = function (tile) {
+      var factor = 1 + this.leanHullBonus();
+      if (this.cardMod("flagship")) {
+        var tuning = cardsApi.TUNING;
+        factor *= tile === this.flagshipTile && this.flagshipActive() ?
+          1 + this.cardMod("flagship") + tuning.flagshipPer * this.occupiedNeighbors(tile) : 1 - tuning.flagshipPenalty;
+      }
+      return factor;
+    };
+
+    Game.prototype.combinedArmsCount = function (tile) {
+      if (this.latticeActive) return Math.min(cardsApi.TUNING.combinedArmsMax, Math.max(0, this.latticeCounts.weaponFamilies - 1));
+      var first = null, second = null, third = null, count = 0;
+      for (var i = 0; i < EMBER_COMBO_OFFSETS.length; i += 1) {
+        var neighbor = this.ship.tiles.get(keyOf(tile.x + EMBER_COMBO_OFFSETS[i][0], tile.y + EMBER_COMBO_OFFSETS[i][1]));
+        if (!neighbor || neighbor.type === tile.type || !isWeaponType(neighbor.type)) continue;
+        if (neighbor.type === first || neighbor.type === second || neighbor.type === third) continue;
+        if (!first) first = neighbor.type; else if (!second) second = neighbor.type; else third = neighbor.type;
+        count += 1;
+      }
+      return Math.min(cardsApi.TUNING.combinedArmsMax, count);
+    };
+
+    Game.prototype.isChilled = function (enemy) {
+      return (enemy.slowTimer > 0 && enemy.slowFactor < 1) || (enemy.type !== "boss" && this.elapsed < (enemy.freezeUntil || 0));
+    };
+
+    Game.prototype.rollPriceFactors = function () {
+      this.priceFactors = {};
+      if (!this.cardMod("grayMarket")) return;
+      var tuning = cardsApi.TUNING;
+      Object.keys(MODULES).forEach(function (type) {
+        this.priceFactors[type] = Math.round((tuning.marketMin + Math.random() * (tuning.marketMax - tuning.marketMin)) * 10) / 10;
+      }, this);
+    };
 
     Game.prototype.coreBonus = function(stat) {
       if (this.training) return 0;
@@ -1387,7 +1564,7 @@
       if (!def) return;
       var hpRatio = tile.maxHp > 0 ? tile.hp / tile.maxHp : 0;
       var shieldRatio = tile.maxShield > 0 ? tile.shield / tile.maxShield : 0;
-      tile.maxHp = def.hp * (1 + this.coreBonus("modules")) * this.coreDef.moduleHpMultiplier;
+      tile.maxHp = def.hp * (1 + this.coreBonus("modules")) * this.coreDef.moduleHpMultiplier * (1 + this.cardMod("hullHp"));
       tile.hp = tile.maxHp * (newlyBuilt ? 1 : hpRatio);
       if (tile.type === "shield") { tile.maxShield = def.shield; tile.shield = tile.maxShield * (newlyBuilt ? 1 : shieldRatio); }
     };
@@ -1413,7 +1590,7 @@
     };
 
     Game.prototype.driveMultiplier = function () {
-      return (1 + this.coreBonus("drive")) * this.coreDef.speedMultiplier;
+      return (1 + this.coreBonus("drive")) * this.coreDef.speedMultiplier * (1 + this.cardMod("drive"));
     };
 
     Game.prototype.isAdjacentToShip = function (x, y) {
@@ -1490,6 +1667,15 @@
       enemy.muzzleOffset = def.muzzleOffset || enemy.halfLength;
       enemy.damage = def.damage;
       enemy.reward = def.reward;
+      if (this.mode === "waves" && type !== "boss") {
+        var scale = waves.enemyScale(this.wave);
+        enemy.hp *= scale.hp;
+        enemy.maxHp = enemy.hp;
+        enemy.shield *= scale.hp;
+        enemy.maxShield = enemy.shield;
+        enemy.damage *= scale.damage;
+        enemy.reward *= scale.reward;
+      }
       enemy.color = def.color;
       enemy.sides = def.sides;
       enemy.fireClock = 1 + Math.random();
@@ -1516,6 +1702,7 @@
       enemy.burnDamage = 0;
       enemy.burnTickTime = 0;
       enemy.freezeHitTimes = []; enemy.freezeUntil = 0; enemy.freezeImmuneUntil = 0; enemy.spreadBurn = false;
+      enemy.thermalShockReadyAt = 0;
       enemy.pendingDamageNumber = 0;
       enemy.damageNumberClock = 0;
       enemy.dead = false;
@@ -1528,10 +1715,16 @@
     Game.prototype.currentEnemyPhase = function () {
       var phase = ENEMY_PHASES[0];
       for (var i = 1; i < ENEMY_PHASES.length; i += 1) {
-        if (this.elapsed < ENEMY_PHASES[i].at) break;
+        if (this.pressureClock() < ENEMY_PHASES[i].at) break;
         phase = ENEMY_PHASES[i];
       }
       return phase;
+    };
+
+    // Waves map onto the endless timeline: each wave fights the enemy mix endless reaches at its pressureAt.
+    Game.prototype.pressureClock = function () {
+      if (this.mode !== "waves") return this.elapsed || 0;
+      return waves.pressureTime(this.wave, this.waveElapsed);
     };
 
     Game.prototype.threatLevel = function () {
@@ -1539,7 +1732,7 @@
     };
 
     Game.prototype.endlessPressureStep = function () {
-      return Math.min(10, Math.floor(Math.max(0, (this.elapsed || 0) - 600) / 90));
+      return Math.min(10, Math.floor(Math.max(0, this.pressureClock() - 600) / 90));
     };
 
     Game.prototype.chooseEnemyType = function (phase) {
@@ -1581,7 +1774,7 @@
       var packetSize = Math.min(phase.packetSize + this.endlessPressureStep(), MAX_ACTIVE_ENEMIES - this.enemies.length);
       if (packetSize <= 0) return;
       var angle = Math.random() * TAU;
-      if (this.elapsed >= 90 && Math.hypot(this.ship.vx || 0, this.ship.vy || 0) > 80 && Math.random() < .5) {
+      if (this.pressureClock() >= 90 && Math.hypot(this.ship.vx || 0, this.ship.vy || 0) > 80 && Math.random() < .5) {
         // Offscreen packs can approach the flight path; a course change still opens an escape.
         angle = Math.atan2(this.ship.vy, this.ship.vx) + (Math.random() - .5) * 1.6;
       }
@@ -1611,7 +1804,7 @@
       var phase = this.currentEnemyPhase();
       var available = MAX_ACTIVE_ENEMIES - this.enemies.length;
       if (available < 4) return false;
-      var surge = !openingWave && this.elapsed >= 90 && this.assaultIndex % 3 === 0;
+      var surge = !openingWave && this.pressureClock() >= 90 && this.assaultIndex % 3 === 0;
       var squadSize = phase.squadSize + this.endlessPressureStep() * 2;
       if (surge) squadSize = Math.ceil(squadSize * 1.2);
       var directions = phase.directions;
@@ -1643,7 +1836,7 @@
         var formation = openingWave ? "ring" : (heavy ? "block" : formations[Math.floor(Math.random() * formations.length)]);
         var columns = Math.ceil(Math.sqrt(members));
         var packType = openingWave ? "drone" : this.chooseEnemyType(phase);
-        var heavyEscortCount = this.elapsed >= HEAVY_RANGED_ESCORT_START ? 1 : 0;
+        var heavyEscortCount = this.pressureClock() >= HEAVY_RANGED_ESCORT_START ? 1 : 0;
         var rangedCount = openingWave ? 0 : Math.min(heavy ? heavyEscortCount : phase.assaultRanged, MAX_ASSAULT_RANGED_ESCORTS, members);
         var colossi = 0;
         for (var slotIndex = 0; slotIndex < members; slotIndex += 1) {
@@ -1724,6 +1917,7 @@
       var hp = encounterLevel < SURVIVAL_BOSS_HP.length ? SURVIVAL_BOSS_HP[encounterLevel]
         : Math.min(100000000, Math.round(SURVIVAL_BOSS_HP[SURVIVAL_BOSS_HP.length - 1] *
           (1 + endlessEncounter * .65 + endlessEncounter * endlessEncounter * .12)));
+      if (this.mode === "waves" && waves.isFinalWave(this.wave)) hp = Math.round(hp * WAVE_FINAL_BOSS_HP_SCALE);
       var attackDamage = 18 * Math.min(4, 1 + encounterLevel * .08);
       this.compactEnemies();
       // The boss has one reserved slot; existing living enemies stay in the arena.
@@ -2038,8 +2232,10 @@
 
     Game.prototype.hasActiveEmberNeighbor = function (tile) {
       if (!receivesEmberCombo(tile.type)) return false;
-      for (var i = 0; i < EMBER_COMBO_OFFSETS.length; i += 1) {
-        var neighbor = this.ship.tiles.get(keyOf(tile.x + EMBER_COMBO_OFFSETS[i][0], tile.y + EMBER_COMBO_OFFSETS[i][1]));
+      if (this.latticeActive && this.latticeCounts.emberActive > 0) return true;
+      var offsets = this.cardMod("wideIgnition") ? EMBER_WIDE_OFFSETS : EMBER_COMBO_OFFSETS;
+      for (var i = 0; i < offsets.length; i += 1) {
+        var neighbor = this.ship.tiles.get(keyOf(tile.x + offsets[i][0], tile.y + offsets[i][1]));
         if (neighbor && neighbor.type === "ember" && neighbor.emberActiveTime > 1e-6) return true;
       }
       return false;
@@ -2059,7 +2255,8 @@
 
     Game.prototype.hasCryoNeighbor = function (tile) {
       return receivesCryoCombo(tile.type) && this.ship.tiles.get(keyOf(tile.x, tile.y)) === tile &&
-        this.countAdjacentType(tile, "cryo") > 0;
+        (this.countAdjacentType(tile, "cryo") > 0 || (this.cardMod("coldSteel") > 0 && this.countAdjacentType(tile, "cannon") > 0) ||
+        (this.latticeActive && (this.latticeCounts.cryo > 0 || (this.cardMod("coldSteel") > 0 && this.latticeCounts.cannon > 0))));
     };
 
     Game.prototype.applyMissileChill = function (enemy) {
@@ -2081,13 +2278,20 @@
     };
 
     Game.prototype.weaponCooldownRate = function (tile) {
-      var reactors = 0;
+      var reactors = 0, bulkheads = 0;
       for (var y = -1; y <= 1; y += 1) for (var x = -1; x <= 1; x += 1) {
         if (!x && !y) continue;
         var neighbor = this.ship.tiles.get(keyOf(tile.x + x, tile.y + y));
         if (neighbor && neighbor.type === "reactor") reactors += 1;
+        else if (neighbor && neighbor.type === "bulkhead") bulkheads += 1;
       }
-      return (1 + reactors * this.weaponDefinitions.reactor.cooldownBonus) / this.coreDef.cooldownMultiplier;
+      // During the Phase Lattice window every Reactor and Bulkhead counts, capped at one full 3×3 ring.
+      if (this.latticeActive) { reactors = Math.min(8, this.latticeCounts.reactor); bulkheads = Math.min(8, this.latticeCounts.bulkhead); }
+      var rate = (1 + reactors * this.weaponDefinitions.reactor.cooldownBonus + bulkheads * this.cardMod("bulkheadRelay")) /
+        this.coreDef.cooldownMultiplier * (1 + this.cardMod("fireRate"));
+      if (this.cardMod("leanHull")) rate *= 1 + this.leanHullBonus();
+      if (this.cardMod("combinedArms")) rate *= 1 + this.cardMod("combinedArms") * this.combinedArmsCount(tile);
+      return rate;
     };
 
     Game.prototype.matterIncomeMultiplier = function () {
@@ -2095,7 +2299,9 @@
       this.ship.tiles.forEach(function (tile) {
         if (tile.type === "collector") collectors += 1;
       });
-      return (1 + this.coreBonus("matter") + this.weaponDefinitions.collector.matterBonus * (1 - Math.pow(.8, collectors)) / .2) * this.coreDef.matterMultiplier;
+      var overtimeBonus = this.waveOvertime ? this.cardMod("overtimeMatter") : 0;
+      return (1 + this.coreBonus("matter") + this.weaponDefinitions.collector.matterBonus * (1 - Math.pow(.8, collectors)) / .2) * this.coreDef.matterMultiplier *
+        (1 + this.cardMod("matter") + overtimeBonus);
     };
 
     Game.prototype.bulkheadReduction = function (target) {
@@ -2105,6 +2311,7 @@
         var neighbor = this.ship.tiles.get(keyOf(target.x + x, target.y + y));
         if (neighbor && neighbor.type === "bulkhead") bulkheads += 1;
       }
+      if (this.latticeActive) bulkheads = this.latticeCounts.bulkhead - (target.type === "bulkhead" ? 1 : 0);
       return Math.min(.48, bulkheads * MODULES.bulkhead.damageReduction);
     };
 
@@ -2164,7 +2371,7 @@
           var gridX = centerGridX + offsetX;
           var gridY = centerGridY + offsetY;
           var key = keyOf(gridX, gridY);
-          if (!this.ship.tiles.has(key) || (ignoredKeys && ignoredKeys.has(key))) continue;
+          if (!this.ship.tiles.has(key) || (ignoredKeys && ignoredKeys.has(key)) || this.isStrut(this.ship.tiles.get(key))) continue;
           var tileLocalX = gridX * TILE_SIZE;
           var tileLocalY = gridY * TILE_SIZE;
           var dx = localX - tileLocalX;
@@ -2245,7 +2452,7 @@
       for (var gridY = minY; gridY <= maxY; gridY += 1) {
         for (var gridX = minX; gridX <= maxX; gridX += 1) {
           var key = keyOf(gridX, gridY);
-          if (!this.ship.tiles.has(key) || (ignoredKeys && ignoredKeys.has(key))) continue;
+          if (!this.ship.tiles.has(key) || (ignoredKeys && ignoredKeys.has(key)) || this.isStrut(this.ship.tiles.get(key))) continue;
           var time = sweptRectangleHitTime(localStartX, localStartY, localEndX, localEndY,
             gridX * TILE_SIZE, gridY * TILE_SIZE, TILE_SIZE / 2, TILE_SIZE / 2, radius);
           if (time >= 0 && time < bestTime) { bestTime = time; bestKey = key; }
@@ -2592,6 +2799,7 @@
       projectile.incendiary = false;
       projectile.shatter = false;
       projectile.coldPayload = false;
+      projectile.lensed = false;
       if (projectile.hitIds) projectile.hitIds.clear();
       if ((kind === "rail" || kind === "sniperShot") && !projectile.hitIds) projectile.hitIds = new Set();
       if (this.attackVfx) this.attackVfx.resetProjectile(projectile);
@@ -2761,6 +2969,7 @@
     };
 
     Game.prototype.updateProjectiles = function (dt) {
+      var lensing = this.gravityFields.length > 0 && this.duoActive("lensing");
       var missileSteering = 1 - Math.exp(-5 * dt);
       var mineDamping = Math.exp(-4.5 * dt);
       for (var i = 0; i < this.projectiles.length; i += 1) {
@@ -2790,6 +2999,7 @@
         }
         projectile.x += projectile.vx * dt;
         projectile.y += projectile.vy * dt;
+        if (lensing && projectile.friendly && projectile.kind === "rail" && !projectile.lensed) this.lensRail(projectile);
         if (projectile.friendly) {
           var sweptTravel = projectile.kind === "rail" || projectile.kind === "cryo";
           var pathStartX = Number.isFinite(launchX) ? launchX : startX;
@@ -2855,7 +3065,8 @@
                 var shatterHit = projectile.kind === "rail" && projectile.shatter && ((enemy.slowTimer > 0 && enemy.slowFactor < 1) ||
                   (enemy.type !== "boss" && this.elapsed < (enemy.freezeUntil || 0)));
                 var hitDamage = projectile.damage * (projectile.hitIds.size > 1 ? projectile.secondHitScale : 1);
-                if (shatterHit) hitDamage *= CRYO_SHATTER_DAMAGE_MULTIPLIER;
+                // Open Shatter already covers every hit, so Rail Shatter must not stack on top of it.
+                if (shatterHit && !this.cardMod("openShatter")) hitDamage *= CRYO_SHATTER_DAMAGE_MULTIPLIER;
                 this.damageEnemy(enemy, hitDamage, hitX, hitY);
                 if (shatterHit) this.spawnCryoShatter(enemy, hitX, hitY, Math.atan2(projectile.vy, projectile.vx));
                 if (projectile.incendiary) this.applyEmberComboBurn(enemy);
@@ -2991,11 +3202,14 @@
         this.damageEnemy(enemy, damage * falloff);
         if (incendiary) this.applyEmberComboBurn(enemy);
       }
+      // Plain lookup: checker probes call this without the card state.
+      var returnScale = this.cardMods && this.cardMods.global.returnToSender || 0, returned = 0;
       for (var p = 0; p < this.projectiles.length; p += 1) {
         var projectile = this.projectiles[p];
         if (projectile.friendly || projectile.life <= 0) continue;
         if (distanceSquared(impactX, impactY, projectile.x, projectile.y) <= def.blastRadius * def.blastRadius) {
           projectile.life = 0;
+          if (returnScale && returned < cardsApi.TUNING.returnMax && this.returnShrapnel(projectile, returnScale)) returned += 1;
         }
       }
       var flakStart = visualStart || origin;
@@ -3078,7 +3292,7 @@
     };
 
     Game.prototype.updateWeapons = function (dt) {
-      var damageMultiplier = 1 + this.coreBonus("damage");
+      var damageMultiplier = (1 + this.coreBonus("damage")) * (1 + this.cardMod("damage"));
       this.weaponFeedback.begin(dt, this.shipMass());
       // Resolve actual Ember discharges first so simultaneous combos ignore placement order.
       this.ship.tiles.forEach(function (tile) {
@@ -3094,8 +3308,10 @@
 
     Game.prototype.updateWeapon = function (tile, dt, damageMultiplier) {
       if (!isWeaponType(tile.type)) return;
+      if (this.cardMod("leanHull") || this.cardMod("flagship")) damageMultiplier *= this.tileCardDamage(tile);
       window.DriftWeaponFeedback.settle(tile, dt);
       tile.cooldown -= dt * this.weaponCooldownRate(tile);
+      if (tile.echoShot) this.updateOutriderEcho(tile, dt);
       if (tile.activeBeam) {
         var beam = tile.activeBeam, beamStep = Math.min(dt, beam.remaining);
         tile.aim = Math.atan2(beam.ny, beam.nx) - this.ship.angle;
@@ -3105,6 +3321,7 @@
           var rayAngle = Math.atan2(beam.ny, beam.nx) + ((beam.def.beamCount || 1) > 1 ? (ray ? .12 : -.12) : 0);
           this.firePiercingBeam(beam.origin, Math.cos(rayAngle), Math.sin(rayAngle), beam.def.range, beam.def.damage * beam.multiplier * beamStep / beam.duration, beam.def.color, beam.def.beamWidth || 11, Math.max(.04, beamStep), beamMuzzle);
         }
+        if (this.duoActive("coldLens")) this.leaveFrostLine(tile, beam.origin, beam.nx, beam.ny, beam.def.range);
         if (beam.remaining <= 0) tile.activeBeam = null;
         return;
       }
@@ -3144,7 +3361,11 @@
       var nx = dx / distance;
       var ny = dy / distance;
       tile.cooldown = def.cooldown;
+      if (tile.conduitBoost) { damageMultiplier *= tile.conduitBoost; tile.conduitBoost = 0; }
       this.fireAttack(tile, origin, nx, ny, def, target, damageMultiplier);
+      if (tile.outrider && this.cardMod("outrider") && !def.beamDuration && tile.type !== "gravity") {
+        tile.echoShot = { clock: cardsApi.TUNING.outriderDelay, targetId: target.id, multiplier: damageMultiplier * this.cardMod("outrider") };
+      }
       if (def.burstCount > 1) tile.pendingBurst = { remaining: def.burstCount - 1, clock: def.burstInterval, interval: def.burstInterval, nx:nx, ny:ny, def:def, target:target, multiplier:damageMultiplier };
     };
 
@@ -3160,6 +3381,7 @@
         } else if (tile.type === "laser") {
           if (def.beamDuration) tile.activeBeam = { origin: origin, nx: nx, ny: ny, remaining: def.beamDuration, duration: def.beamDuration, def: def, multiplier: damageMultiplier };
           else this.firePiercingBeam(origin, nx, ny, def.range, def.damage * damageMultiplier, def.color, def.beamWidth || 11, .13, muzzle);
+          if (!def.beamDuration && this.duoActive("coldLens")) this.leaveFrostLine(tile, origin, nx, ny, def.range);
           audio.tone(520, .1, .024, "sawtooth", 210);
         } else if (tile.type === "missile") {
           var missilesFired = this.fireWeaponVolley(origin, nx, ny, def, "missile", 180, 5, 3.4, damageMultiplier, target.id, tile);
@@ -3308,6 +3530,8 @@
     };
     Game.prototype.updateWeaponStatuses = function (dt) {
       this.updateWeaponAreas(dt);
+      this.updateFrostLines(dt);
+      var thermalShock = this.duoActive("thermalShock");
       var fields = this.gravityFields || [];
       for (var f = 0; f < fields.length; f += 1) {
         var field = fields[f];
@@ -3332,6 +3556,7 @@
           }
           if (enemy.burnTimer <= 0) { enemy.burnDamage = 0; enemy.spreadBurn = false; }
         }
+        if (thermalShock && !enemy.dead && enemy.burnTimer > 0 && this.isChilled(enemy) && this.elapsed >= (enemy.thermalShockReadyAt || 0)) this.triggerThermalShock(enemy);
         if (enemy.dead) continue;
         var strongestPull = 0;
         var pullX = 0;
@@ -3383,6 +3608,7 @@
         }
         hitCount += 1;
       }
+      if (hitCount > 0 && this.duoActive("stormSurge")) this.fireStormSurge(origin, def, damageMultiplier);
       var pulseEffect = this.spawnEffect("ring", origin.x, origin.y, .35, def.color);
       pulseEffect.radius = 8;
       pulseEffect.maxRadius = def.range;
@@ -3439,6 +3665,8 @@
 
     Game.prototype.damageEnemy = function (enemy, amount, hitX, hitY) {
       if (!enemy || enemy.dead || !Number.isFinite(amount) || amount <= 0) return;
+      if (enemy.type === "boss") amount *= 1 + this.cardMod("bossDamage");
+      if (this.cardMod("openShatter") && this.isChilled(enemy)) amount *= 1 + this.cardMod("openShatter");
       this.enemyHitFeedback(enemy, hitX, hitY);
       var hpBefore = Math.max(0, enemy.hp);
       var shieldBefore = Math.max(0, enemy.shield || 0);
@@ -3518,6 +3746,7 @@
         }
         audio.tone(70, .9, .1, "sawtooth", 420);
         showToast(tr("BOSS DEFEATED · +{reward} MATTER · 12% REPAIR", { reward: enemy.reward }));
+        if (this.mode === "waves") { this.nextBossAt = Infinity; this.beginSweep(); }
         return;
       }
       this.kills += 1;
@@ -3526,6 +3755,7 @@
       var rewardMultiplier = this.matterIncomeMultiplier();
       var earnedMatter = enemy.reward * rewardMultiplier;
       this.matter += earnedMatter;
+      if (this.cardMod("volatile") > 0) this.volatileQueue.push({ x: enemy.x, y: enemy.y, damage: (enemy.maxHp || 0) * this.cardMod("volatile") });
       if (this.training && enemy.trainingTarget) {
         trainingShipState();
         trainingEvent("target_destroyed", { id: enemy.trainingTarget.id, group: enemy.trainingTarget.group, upgraded: Boolean(this.upgrades.cannon && this.upgrades.cannon.level > 0) });
@@ -3553,12 +3783,15 @@
     };
 
     Game.prototype.applyDamageToTile = function (targetKey, amount) {
+      if (DEBUG && this.debugInvulnerable) return;
+      if (this.mode === "waves") amount *= Math.max(WAVE_DAMAGE_TAKEN_FLOOR, 1 + this.cardMod("damageTaken"));
       var shieldDef = this.weaponDefinitions ? this.weaponDefinitions.shield : MODULES.shield, repairDef = this.weaponDefinitions ? this.weaponDefinitions.repair : MODULES.repair;
       var target = this.ship.tiles.get(targetKey);
       this.lastShieldAbsorbed = 0;
       this.shieldBuffer.length = 0;
       if (!target || this.finished || !Number.isFinite(amount) || amount <= 0 ||
           this.elapsed < target.placementProtectedUntil) return;
+      if (this.isStrut(target)) return;
       var remaining = amount;
       var shieldAbsorbed = 0;
       var shields = this.shieldBuffer;
@@ -3662,7 +3895,9 @@
       this.ship.tiles.forEach(function (tile, key) {
         if (!reachable.has(key)) detached.push(key);
       });
-      var groupedDebris = shipDebris ? shipDebris.spawn(this, detached, target, TILE_SIZE, MODULES, currentQualityTier()) : null;
+      // Castaway wrecks draw themselves, so their tiles stay out of the grouped debris.
+      var debrisKeys = this.cardMod("castaway") ? detached.filter(function (key) { return !isWeaponType(this.ship.tiles.get(key).type); }, this) : detached;
+      var groupedDebris = shipDebris ? shipDebris.spawn(this, debrisKeys, target, TILE_SIZE, MODULES, currentQualityTier()) : null;
       for (var d = 0; d < detached.length; d += 1) {
         this.detachTile(detached[d], true, groupedDebris && groupedDebris.has(detached[d]));
       }
@@ -3676,9 +3911,10 @@
       this.ship.tiles.delete(key);
       this.modulesLost += 1;
       if (playtestTelemetry) playtestTelemetry.recordModuleLost(tile.type, branch);
-      if (!groupedDebris) {
+      var drifting = this.spawnDerelict(tile, pos);
+      if (!groupedDebris || drifting) {
         this.burst(pos.x, pos.y, branch ? "#a987ff" : "#65e8ff", branch ? 12 : 8, branch ? 150 : 100);
-        this.spawnTileDebris(tile, pos);
+        if (!drifting) this.spawnTileDebris(tile, pos);
       }
     };
 
@@ -3794,14 +4030,18 @@
       this.updateFeedback(dt);
       this.updateShields(dt);
       this.updateSupportModules(dt);
-      this.updateSpawner(dt);
+      if (this.updateWaveDirector(dt)) this.updateSpawner(dt);
       this.updateWeaponStatuses(dt);
       this.updateEnemies(dt);
       if (this.finished) return;
       this.updateProjectiles(dt);
       if (this.finished) return;
+      this.updateLayoutCards(dt);
+      if (this.ownsDuo) this.activePairs = this.latticeActive ? this.shipTypePairs() : this.adjacentPairs();
       this.updateWeapons(dt);
+      this.updateDerelicts(dt);
       this.updateEffects(dt);
+      this.processVolatileBlasts();
       if (this.training && trainingSession && this === game && this.state === "playing") {
         trainingShipState();
         // Transitions can replace enemies, so advance only after all combat iteration ends.
@@ -3814,8 +4054,574 @@
 
     Game.prototype.checkSurvival = function () { /* Endless has no completion timer. */ };
 
+    Game.prototype.startWave = function (wave) {
+      var def = waves.get(wave);
+      this.wave = wave;
+      this.waveElapsed = 0;
+      this.wavePhase = "combat";
+      this.waveOvertime = false;
+      this.recoveryUntil = 0;
+      this.ambientSpawnClock = 1.5 + Math.random();
+      this.assaultClock = ASSAULT_FIRST_DELAY;
+      this.bossWarningShown = false;
+      this.nextBossAt = def.boss ? this.elapsed + WAVE_BOSS_DELAY : Infinity;
+      this.assignFlagship();
+      this.latticeClock = 0;
+      this.latticeActive = false;
+      this.conduitClock = 0;
+      this.sparks.length = 0;
+      this.layoutClock = 0;
+      if (this.cardMod("waveStartRepair") > 0) this.repairShip(this.cardMod("waveStartRepair"), 0);
+      this.spawnAssaultWave(true);
+      if (playtestTelemetry && this === game) playtestTelemetry.event("wave_start", this.elapsed, { wave: wave, pressure: Math.round(this.pressureClock()), boss: def.boss || "" });
+    };
+
+    Game.prototype.waveTimeLimit = function () {
+      var def = waves.get(this.wave);
+      return def.duration ? def.duration + this.cardMod("overtime") : Infinity;
+    };
+
+    // Returns whether the spawner runs this step. Boss waves have no time limit and end on the kill.
+    Game.prototype.updateWaveDirector = function (dt) {
+      if (this.mode !== "waves") return true;
+      if (this.wavePhase === "clearing") {
+        this.waveClearTimer -= dt;
+        if (this.waveClearTimer <= 0) this.completeWave();
+        return false;
+      }
+      if (this.wavePhase === "sweep") {
+        if (!this.livingEnemyCount()) this.beginWaveClear();
+        else this.pullStragglers(dt);
+        return false;
+      }
+      this.waveElapsed += dt;
+      var def = waves.get(this.wave);
+      this.waveOvertime = Boolean(def.duration) && this.waveElapsed > def.duration;
+      if (this.waveElapsed >= this.waveTimeLimit()) this.beginSweep();
+      return this.wavePhase === "combat";
+    };
+
+    // The timer only stops new arrivals; the existing swarm stays dangerous until destroyed.
+    Game.prototype.beginSweep = function () {
+      if (this.wavePhase !== "combat") return;
+      this.wavePhase = "sweep";
+      this.waveOvertime = false;
+      this.nextBossAt = Infinity;
+      if (this === game) showToast(tr("SPAWNS STOPPED · DESTROY THE SWARM"));
+    };
+
+    Game.prototype.livingEnemyCount = function () {
+      var count = 0;
+      for (var i = 0; i < this.enemies.length; i += 1) if (!this.enemies[i].dead) count += 1;
+      return count;
+    };
+
+    Game.prototype.pullStragglers = function (dt) {
+      var ship = this.ship;
+      for (var i = 0; i < this.enemies.length; i += 1) {
+        var enemy = this.enemies[i];
+        if (enemy.dead || enemy.type === "boss") continue;
+        var dx = ship.x - enemy.x, dy = ship.y - enemy.y;
+        var distance = Math.hypot(dx, dy);
+        if (distance <= STRAGGLER_DISTANCE) continue;
+        var step = Math.min(distance - STRAGGLER_DISTANCE, STRAGGLER_PULL_SPEED * dt);
+        enemy.x += dx / distance * step;
+        enemy.y += dy / distance * step;
+      }
+    };
+
+    // Runs once the swarm is gone; anything left (only possible through debug tools) leaves without rewards.
+    Game.prototype.beginWaveClear = function () {
+      if (this.wavePhase !== "combat" && this.wavePhase !== "sweep") return;
+      this.wavePhase = "clearing";
+      this.waveOvertime = false;
+      this.waveClearTimer = WAVE_CLEAR_SETTLE;
+      this.nextBossAt = Infinity;
+      for (var i = 0; i < this.enemies.length; i += 1) {
+        var enemy = this.enemies[i];
+        if (enemy.dead || enemy.type === "boss") continue;
+        enemy.dead = true;
+        this.burst(enemy.x, enemy.y, enemy.color || "#e9ad82", 3, 90);
+      }
+      this.compactEnemies();
+      for (var p = 0; p < this.projectiles.length; p += 1) {
+        if (!this.projectiles[p].friendly) this.projectiles[p].life = 0;
+      }
+      this.volatileQueue.length = 0;
+    };
+
+    Game.prototype.repairShip = function (hullFraction, shieldFraction) {
+      this.ship.tiles.forEach(function (tile) {
+        tile.hp = Math.min(tile.maxHp, tile.hp + tile.maxHp * hullFraction);
+        if (tile.maxShield) tile.shield = Math.min(tile.maxShield, tile.shield + tile.maxShield * shieldFraction);
+      });
+    };
+
+    Game.prototype.completeWave = function () {
+      var bonus = waves.clearBonus(this.wave) + this.cardMod("waveClearMatter");
+      var dividend = Math.min(cardsApi ? cardsApi.DIVIDEND_CAP : 0, Math.floor(this.matter * this.cardMod("dividend")));
+      this.matter += bonus + dividend;
+      this.lastWaveReward = { wave: this.wave, matter: bonus + dividend };
+      this.repairShip(WAVE_INTERMISSION_REPAIR, 1);
+      if (playtestTelemetry && this === game) {
+        var core = this.ship.tiles.get("0,0");
+        playtestTelemetry.event("wave_clear", this.elapsed, { wave: this.wave, matter: Math.round(this.matter), reward: bonus + dividend, coreHp: core ? Math.round(core.hp) : 0, modules: this.ship.tiles.size });
+      }
+      if (waves.isFinalWave(this.wave) && !this.survivalCompleted) { this.winWaves(); return; }
+      this.enterIntermission();
+    };
+
+    Game.prototype.enterIntermission = function () {
+      this.state = "intermission";
+      this.cardPicked = false;
+      this.cardSkipped = false;
+      this.cardPickedIndex = -1;
+      this.rerolls = 0;
+      this.derelicts.length = 0;
+      this.frostLines.length = 0;
+      this.sparks.length = 0;
+      this.latticeActive = false;
+      var bossBreak = waves.isBossWave(this.wave);
+      // Doctrines replace the boss-break offer until the per-run cap is reached.
+      this.offerIsDoctrine = Boolean(cardsApi) && bossBreak && cardsApi.doctrineCount(this.cardPicks) < cardsApi.DOCTRINE_CAP &&
+        cardsApi.roll({ doctrine: true, picks: this.cardPicks }).length > 0;
+      this.freeRerolls = (this.offerIsDoctrine ? 1 : 0) + (this.cardMod("leanHull") ? 1 : 0);
+      this.rollPriceFactors();
+      this.assignFlagship();
+      this.cardOffer = this.rollCardOffer(bossBreak);
+      if (this === game) { storeSave(); openWaveOverlay(); }
+    };
+
+    Game.prototype.winWaves = function () {
+      this.survivalCompleted = true;
+      this.state = "milestone";
+      if (playtestTelemetry && this === game) playtestTelemetry.event("waves_won", this.elapsed, { wave: this.wave, kills: this.kills });
+      if (this === game) { storeSave(); openVictoryOverlay(); }
+    };
+
+    Game.prototype.rollCardOffer = function (guaranteeRare) {
+      if (!cardsApi) return [];
+      var installed = [];
+      var weaponCount = 0;
+      this.ship.tiles.forEach(function (tile) {
+        if (installed.indexOf(tile.type) < 0) installed.push(tile.type);
+        if (isWeaponType(tile.type)) weaponCount += 1;
+      });
+      var offer = cardsApi.roll({ wave: this.wave, picks: this.cardPicks, installed: installed,
+        available: Object.keys(MODULES).filter(moduleAvailable), weapons: WEAPON_TYPES, guaranteeRare: guaranteeRare,
+        pairs: Array.from(this.adjacentPairs()), seenDuos: this.seenDuos, doctrine: this.offerIsDoctrine, weaponCount: weaponCount,
+        size: !this.offerIsDoctrine && this.cardMod("grayMarket") ? cardsApi.TUNING.marketOfferSize : 0 });
+      offer.forEach(function (pick) {
+        if (cardsApi.BY_ID[pick.id].kind === "duo" && this.seenDuos.indexOf(pick.id) < 0) this.seenDuos.push(pick.id);
+      }, this);
+      if (playtestTelemetry && this === game) playtestTelemetry.event("card_offer", this.elapsed, { wave: this.wave, cards: offer.map(cardsApi.pickKey) });
+      return offer;
+    };
+
+    Game.prototype.pickCard = function (index) {
+      var pick = this.cardOffer && this.cardOffer[index];
+      if (!pick || this.cardPicked) return false;
+      this.cardPicked = true;
+      this.cardPickedIndex = index;
+      this.addCardPick(pick);
+      if (playtestTelemetry && this === game) playtestTelemetry.event("card_pick", this.elapsed, { wave: this.wave, card: cardsApi.pickKey(pick), stacks: cardsApi.stacksOf(this.cardPicks, cardsApi.pickKey(pick)) });
+      return true;
+    };
+
+    Game.prototype.rerollCards = function () {
+      if (this.cardPicked || !cardsApi) return false;
+      var free = this.freeRerolls > 0;
+      var cost = free ? 0 : cardsApi.rerollCost(this.wave, this.rerolls);
+      if (this.matter < cost) return false;
+      this.matter -= cost;
+      if (free) this.freeRerolls -= 1;
+      else this.rerolls += 1;
+      if (playtestTelemetry && this === game) playtestTelemetry.event("card_reroll", this.elapsed, { wave: this.wave, cost: cost });
+      this.cardOffer = this.rollCardOffer(false);
+      return true;
+    };
+
+    Game.prototype.triggerThermalShock = function (enemy) {
+      var tuning = cardsApi.TUNING;
+      enemy.thermalShockReadyAt = this.elapsed + tuning.thermalShockCooldown;
+      enemy.burnTimer = 0; enemy.burnDamage = 0; enemy.spreadBurn = false;
+      enemy.slowTimer = 0; enemy.slowFactor = 1; enemy.freezeUntil = 0;
+      this.volatileQueue.push({ x: enemy.x, y: enemy.y, damage: this.cardMod("thermalShock") * this.cardDamageScale(),
+        radius: tuning.thermalShockRadius, color: MODULES.cryo.color, accent: MODULES.ember.color });
+    };
+
+    Game.prototype.fireStormSurge = function (origin, def, damageMultiplier) {
+      var tuning = cardsApi.TUNING, arcDef = this.weaponDefinitions.arc;
+      var surge = { damage: arcDef.damage * tuning.stormSurgeDamage, chains: tuning.stormSurgeChains, jumpRange: arcDef.jumpRange, color: arcDef.color };
+      var rangeSquared = def.range * def.range;
+      var struck = this.radiusCandidates(origin.x, origin.y, def.range).filter(function (enemy) {
+        return !enemy.dead && distanceSquared(origin.x, origin.y, enemy.x, enemy.y) <= rangeSquared;
+      }).sort(function (a, b) {
+        return distanceSquared(origin.x, origin.y, a.x, a.y) - distanceSquared(origin.x, origin.y, b.x, b.y);
+      }).slice(0, this.cardMod("stormSurge"));
+      struck.forEach(function (enemy) { if (!enemy.dead) this.fireArc(origin, enemy, surge, damageMultiplier); }, this);
+    };
+
+    Game.prototype.leaveFrostLine = function (source, origin, nx, ny, range) {
+      if (this.elapsed < (source.frostLineAt || 0)) return;
+      source.frostLineAt = this.elapsed + cardsApi.TUNING.coldLensRefresh;
+      if (this.frostLines.length >= MAX_FROST_LINES) this.frostLines.shift();
+      var life = this.cardMod("coldLens");
+      var line = { x1: origin.x, y1: origin.y, x2: origin.x + nx * range, y2: origin.y + ny * range, life: life };
+      this.frostLines.push(line);
+      var trace = this.spawnEffect("frostLine", line.x1, line.y1, life, MODULES.cryo.color);
+      trace.x2 = line.x2;
+      trace.y2 = line.y2;
+      trace.maxLife = life;
+    };
+
+    Game.prototype.updateFrostLines = function (dt) {
+      if (!this.frostLines.length) return;
+      var tuning = cardsApi.TUNING, write = 0;
+      for (var i = 0; i < this.frostLines.length; i += 1) {
+        var line = this.frostLines[i];
+        line.life -= dt;
+        if (line.life <= 0) continue;
+        this.frostLines[write++] = line;
+        var dx = line.x2 - line.x1, dy = line.y2 - line.y1, lengthSquared = dx * dx + dy * dy || 1;
+        for (var e = 0; e < this.enemies.length; e += 1) {
+          var enemy = this.enemies[e];
+          if (enemy.dead) continue;
+          var t = clamp(((enemy.x - line.x1) * dx + (enemy.y - line.y1) * dy) / lengthSquared, 0, 1);
+          var reach = tuning.coldLensWidth + (enemy.radius || 0);
+          if (distanceSquared(enemy.x, enemy.y, line.x1 + dx * t, line.y1 + dy * t) > reach * reach) continue;
+          var factor = enemy.type === "boss" ? Math.max(.8, tuning.coldLensSlowFactor) : tuning.coldLensSlowFactor;
+          // A frost line must not weaken a stronger Cryo slow that is already running.
+          if (enemy.slowTimer > 0 && enemy.slowFactor < factor) continue;
+          enemy.slowFactor = factor;
+          enemy.slowTimer = Math.max(enemy.slowTimer, tuning.coldLensChill);
+        }
+      }
+      this.frostLines.length = write;
+    };
+
+    Game.prototype.lensRail = function (projectile) {
+      for (var i = 0; i < this.gravityFields.length; i += 1) {
+        var field = this.gravityFields[i];
+        if (field.life <= 0 || distanceSquared(projectile.x, projectile.y, field.x, field.y) > field.radius * field.radius) continue;
+        var tuning = cardsApi.TUNING;
+        projectile.lensed = true;
+        projectile.damage *= tuning.lensingDamage;
+        var angle = Math.atan2(projectile.vy, projectile.vx);
+        var speed = Math.sqrt(projectile.vx * projectile.vx + projectile.vy * projectile.vy);
+        for (var split = 1; split < this.cardMod("lensing"); split += 1) {
+          var offset = Math.ceil(split / 2) * (split % 2 ? -1 : 1) * tuning.lensingSpread;
+          var shard = this.spawnProjectile(true, "rail", projectile.x, projectile.y, Math.cos(angle + offset) * speed, Math.sin(angle + offset) * speed,
+            projectile.damage, projectile.radius, projectile.life, projectile.color);
+          if (!shard) break;
+          shard.lensed = true;
+          shard.knockback = projectile.knockback;
+          shard.shatter = projectile.shatter;
+          projectile.hitIds.forEach(function (id) { shard.hitIds.add(id); });
+        }
+        this.burst(projectile.x, projectile.y, field.color, 8, 120);
+        return;
+      }
+    };
+
+    Game.prototype.spawnDerelict = function (tile, pos) {
+      if (this.mode !== "waves" || !this.cardMod("castaway") || !isWeaponType(tile.type) || this.finished) return false;
+      var tuning = cardsApi.TUNING;
+      if (this.derelicts.length >= tuning.castawayMax) this.derelicts.shift();
+      var life = this.cardMod("castaway");
+      this.derelicts.push({
+        type: tile.type, x: pos.x, y: pos.y,
+        vx: this.ship.vx * .5 + (pos.x - this.ship.x) * .35, vy: this.ship.vy * .5 + (pos.y - this.ship.y) * .35,
+        rotation: this.ship.angle, spin: (Math.random() - .5) * 1.2, aim: (tile.aim || 0) + this.ship.angle,
+        life: life, maxLife: life, cooldown: .4,
+        // Off-grid stand-in so tile-based helpers (muzzles, combos, gravity ownership) treat the wreck as detached.
+        proxy: { type: tile.type, x: NaN, y: NaN, aim: tile.aim || 0, muzzleCycle: 0 },
+        def: this.weaponDefinitions[tile.type], multiplier: this.cardDamageScale()
+      });
+      return true;
+    };
+
+    Game.prototype.nearestEnemyTo = function (x, y, range) {
+      var candidates = this.radiusCandidates(x, y, range);
+      var best = null, bestDistance = range * range;
+      for (var i = 0; i < candidates.length; i += 1) {
+        var enemy = candidates[i];
+        if (enemy.dead) continue;
+        var distance = distanceSquared(x, y, enemy.x, enemy.y);
+        if (distance < bestDistance) { best = enemy; bestDistance = distance; }
+      }
+      return best;
+    };
+
+    Game.prototype.updateDerelicts = function (dt) {
+      if (!this.derelicts.length) return;
+      var damping = Math.exp(-1.2 * dt), rate = cardsApi.TUNING.castawayRate, write = 0;
+      for (var i = 0; i < this.derelicts.length; i += 1) {
+        var wreck = this.derelicts[i];
+        wreck.life -= dt;
+        if (wreck.life <= 0) { this.burst(wreck.x, wreck.y, MODULES[wreck.type].color, 8, 110); continue; }
+        this.derelicts[write++] = wreck;
+        wreck.x += wreck.vx * dt;
+        wreck.y += wreck.vy * dt;
+        wreck.vx *= damping;
+        wreck.vy *= damping;
+        wreck.rotation += wreck.spin * dt;
+        wreck.cooldown -= dt * rate;
+        if (wreck.cooldown > 0) continue;
+        var target = this.nearestEnemyTo(wreck.x, wreck.y, wreck.def.range);
+        if (!target) continue;
+        wreck.cooldown = wreck.def.cooldown;
+        this.fireDerelict(wreck, target);
+      }
+      this.derelicts.length = write;
+    };
+
+    // A simplified attack per family: wrecks have no hull, recoil or neighbor combos.
+    Game.prototype.fireDerelict = function (wreck, target) {
+      var def = wreck.def, proxy = wreck.proxy, multiplier = wreck.multiplier, type = wreck.type;
+      var origin = { x: wreck.x, y: wreck.y };
+      var dx = target.x - origin.x, dy = target.y - origin.y, distance = Math.max(1, Math.sqrt(dx * dx + dy * dy));
+      var nx = dx / distance, ny = dy / distance;
+      wreck.aim = Math.atan2(ny, nx);
+      proxy.aim = wreck.aim - this.ship.angle;
+      if (type === "cannon") this.fireWeaponVolley(origin, nx, ny, def, def.projectileKind || "cannon", 560, 3, 1.4, multiplier, undefined, proxy);
+      else if (type === "missile") this.fireWeaponVolley(origin, nx, ny, def, "missile", 180, 5, 3.4, multiplier, target.id, proxy);
+      else if (type === "cryo") this.fireWeaponVolley(origin, nx, ny, def, "cryo", 500, 4, def.range / 500, multiplier, undefined, proxy);
+      else if (type === "laser") {
+        this.firePiercingBeam(origin, nx, ny, def.range, def.damage * multiplier, def.color, def.beamWidth || 11, .13, origin);
+        if (this.duoActive("coldLens")) this.leaveFrostLine(proxy, origin, nx, ny, def.range);
+      } else if (type === "scatter") {
+        for (var pellet = 0; pellet < def.pellets; pellet += 1) {
+          var pelletAngle = Math.atan2(ny, nx) + (pellet - (def.pellets - 1) / 2) * def.spread / (def.pellets - 1);
+          var shot = this.spawnProjectile(true, "scatter", origin.x, origin.y, Math.cos(pelletAngle) * 520, Math.sin(pelletAngle) * 520, def.damage * multiplier, 2.5, def.range / 520, def.color);
+          if (shot) { shot.launchX = origin.x; shot.launchY = origin.y; }
+        }
+      } else if (type === "arc") this.fireArc(origin, target, def, multiplier);
+      else if (type === "rail") {
+        var rail = this.spawnProjectile(true, "rail", origin.x, origin.y, nx * 900, ny * 900, def.damage * multiplier, 4, def.range / 900, def.color);
+        if (rail) { rail.knockback = def.knockback || 125; rail.launchX = origin.x; rail.launchY = origin.y; }
+      } else if (type === "flak") this.fireFlakAirburst(origin, target, def, multiplier, origin, false);
+      else if (type === "pulse") this.firePulse(origin, def, multiplier);
+      else if (type === "mine") {
+        var mine = this.spawnProjectile(true, "mine", origin.x, origin.y, nx * 220, ny * 220, def.damage * multiplier, 6, 6, def.color, 0, 1, 0, 64, def.blastRadius, .35);
+        if (mine) { mine.sourceTile = proxy; mine.chainMine = !!def.chainMine; mine.mineFragments = !!def.mineFragments; }
+      } else if (type === "ember") this.fireEmberCone(origin, nx, ny, def, multiplier, origin);
+      else if (type === "gravity" && !this.gravityFields.some(function (field) { return field.sourceTile === proxy && field.life > 0; })) {
+        this.placeGravityField(proxy, origin, target, def, multiplier);
+      }
+      this.burst(origin.x, origin.y, def.color, 3, 50);
+    };
+
+    // Plain lookup: collision checker probes call the impact finders without card state.
+    Game.prototype.isStrut = function (tile) {
+      return Boolean(tile && tile.type === "armor" && this.cardMods && this.cardMods.global.hollowStrut);
+    };
+
+    Game.prototype.shipTypePairs = function () {
+      var types = [], pairs = new Set();
+      this.ship.tiles.forEach(function (tile) { if (types.indexOf(tile.type) < 0) types.push(tile.type); });
+      for (var i = 0; i < types.length; i += 1) for (var j = i + 1; j < types.length; j += 1) pairs.add(cardsApi.pairKey(types[i], types[j]));
+      return pairs;
+    };
+
+    Game.prototype.updateLayoutCards = function (dt) {
+      if (this.mode !== "waves" || !cardsApi || this.wavePhase === "clearing") { this.latticeActive = false; return; }
+      this.layoutClock -= dt;
+      if (this.layoutClock <= 0) { this.layoutClock = cardsApi.TUNING.layoutRefresh; this.refreshLayoutCards(); }
+      if (this.cardMod("phaseLattice")) this.updatePhaseLattice(dt);
+      if (this.cardMod("coreConduit")) this.updateConduit(dt);
+      if (this.cardMod("arcSpine")) this.updateArcSpine(dt);
+    };
+
+    // Arc Spine endpoints and Outrider marks follow the layout; a few refreshes per second are enough.
+    Game.prototype.refreshLayoutCards = function () {
+      var arc = this.cardMod("arcSpine"), outrider = this.cardMod("outrider");
+      if (!arc && !outrider) return;
+      var weapons = [], farthest = 0;
+      this.ship.tiles.forEach(function (tile) {
+        tile.outrider = false;
+        if (!isWeaponType(tile.type)) return;
+        weapons.push(tile);
+        farthest = Math.max(farthest, Math.abs(tile.x) + Math.abs(tile.y));
+      });
+      // A weapon hugging the core is no outrider: the echo is the reward for building an exposed arm.
+      if (outrider && farthest >= cardsApi.TUNING.outriderMinDistance) weapons.forEach(function (tile) { tile.outrider = Math.abs(tile.x) + Math.abs(tile.y) === farthest; });
+      this.arcSpinePair = null;
+      if (!arc || weapons.length < 2) return;
+      var best = -1;
+      for (var i = 0; i < weapons.length; i += 1) for (var j = i + 1; j < weapons.length; j += 1) {
+        var dx = weapons[i].x - weapons[j].x, dy = weapons[i].y - weapons[j].y, span = dx * dx + dy * dy;
+        if (span > best) { best = span; this.arcSpinePair = [weapons[i], weapons[j]]; }
+      }
+    };
+
+    Game.prototype.updateArcSpine = function (dt) {
+      var pair = this.arcSpinePair, tuning = cardsApi.TUNING;
+      if (!pair) return;
+      if (this.ship.tiles.get(keyOf(pair[0].x, pair[0].y)) !== pair[0] || this.ship.tiles.get(keyOf(pair[1].x, pair[1].y)) !== pair[1]) { this.layoutClock = 0; return; }
+      this.arcSpineTick -= dt;
+      if (this.arcSpineTick > 0) return;
+      this.arcSpineTick += tuning.arcSpineTick;
+      var a = this.gridToWorld(pair[0].x, pair[0].y), b = this.gridToWorld(pair[1].x, pair[1].y);
+      var damage = this.cardMod("arcSpine") * tuning.arcSpineTick * this.cardDamageScale() * waves.enemyScale(this.wave).hp;
+      var dx = b.x - a.x, dy = b.y - a.y, lengthSquared = dx * dx + dy * dy || 1;
+      for (var i = 0; i < this.enemies.length; i += 1) {
+        var enemy = this.enemies[i];
+        if (enemy.dead) continue;
+        var t = clamp(((enemy.x - a.x) * dx + (enemy.y - a.y) * dy) / lengthSquared, 0, 1);
+        var reach = tuning.arcSpineWidth + (enemy.radius || 0);
+        if (distanceSquared(enemy.x, enemy.y, a.x + dx * t, a.y + dy * t) <= reach * reach) this.damageEnemy(enemy, damage);
+      }
+      var points = [{ x: a.x, y: a.y }];
+      for (var step = 1; step < 5; step += 1) {
+        var k = step / 5;
+        points.push({ x: a.x + dx * k + (Math.random() - .5) * 10, y: a.y + dy * k + (Math.random() - .5) * 10 });
+      }
+      points.push({ x: b.x, y: b.y });
+      var spine = this.spawnEffect("arc", a.x, a.y, tuning.arcSpineTick + .05, MODULES.arc.color);
+      spine.points = points;
+    };
+
+    Game.prototype.updateConduit = function (dt) {
+      var tuning = cardsApi.TUNING;
+      this.conduitClock += dt;
+      if (this.conduitClock >= this.cardMod("coreConduit")) {
+        this.conduitClock = 0;
+        this.conduitPulse = (this.conduitPulse || 0) + 1;
+        for (var d = 0; d < EMBER_COMBO_OFFSETS.length; d += 1) this.sparks.push({ x: 0, y: 0, dx: EMBER_COMBO_OFFSETS[d][0], dy: EMBER_COMBO_OFFSETS[d][1], cells: 0, clock: 0 });
+        var corePos = this.gridToWorld(0, 0);
+        var coreRing = this.spawnEffect("ring", corePos.x, corePos.y, .3, MODULES.reactor.color);
+        coreRing.radius = 6;
+        coreRing.maxRadius = TILE_SIZE;
+      }
+      var write = 0;
+      for (var i = 0; i < this.sparks.length; i += 1) {
+        var spark = this.sparks[i];
+        spark.clock += dt;
+        if (spark.clock >= tuning.conduitStep) {
+          spark.clock -= tuning.conduitStep;
+          var from = this.gridToWorld(spark.x, spark.y);
+          spark.x += spark.dx;
+          spark.y += spark.dy;
+          var tile = this.ship.tiles.get(keyOf(spark.x, spark.y));
+          // A gap (or a lost module) ends the circuit.
+          if (!tile) continue;
+          spark.cells += 1;
+          var to = this.gridToWorld(spark.x, spark.y);
+          var trace = this.spawnEffect("arc", from.x, from.y, .16, MODULES.reactor.color);
+          trace.points = [from, to];
+          if (isWeaponType(tile.type)) {
+            tile.cooldown = 0;
+            tile.conduitBoost = 1 + tuning.conduitPerCell * spark.cells;
+          } else if (tile.type === "reactor" && tile.conduitPulse !== this.conduitPulse) {
+            // Each Reactor branches a pulse once, sideways, so the circuit can reach parallel arms.
+            tile.conduitPulse = this.conduitPulse;
+            this.sparks.push({ x: spark.x, y: spark.y, dx: spark.dy, dy: spark.dx, cells: spark.cells, clock: 0 });
+            this.sparks.push({ x: spark.x, y: spark.y, dx: -spark.dy, dy: -spark.dx, cells: spark.cells, clock: 0 });
+          }
+        }
+        this.sparks[write++] = spark;
+      }
+      this.sparks.length = write;
+    };
+
+    Game.prototype.updatePhaseLattice = function (dt) {
+      var tuning = cardsApi.TUNING, interval = this.cardMod("phaseLattice");
+      var previous = this.latticeClock, wasActive = this.latticeActive;
+      this.latticeClock = (this.latticeClock + dt) % interval;
+      var windowStart = interval - tuning.latticeWindow, warningStart = windowStart - tuning.latticeWarning;
+      this.latticeActive = this.latticeClock >= windowStart;
+      if (previous < warningStart && this.latticeClock >= warningStart) {
+        var warning = this.spawnEffect("ring", this.ship.x, this.ship.y, tuning.latticeWarning, "#9ff3ff");
+        warning.radius = 180;
+        warning.maxRadius = 40;
+      }
+      if (this.latticeActive && !wasActive) {
+        var pulse = this.spawnEffect("ring", this.ship.x, this.ship.y, .5, "#9ff3ff");
+        pulse.radius = 20;
+        pulse.maxRadius = 220;
+      }
+      if (!this.latticeActive) return;
+      var counts = this.latticeCounts, families = this.latticeFamilies;
+      counts.reactor = counts.bulkhead = counts.cryo = counts.cannon = counts.emberActive = 0;
+      families.clear();
+      this.ship.tiles.forEach(function (tile) {
+        if (tile.type === "reactor") counts.reactor += 1;
+        else if (tile.type === "bulkhead") counts.bulkhead += 1;
+        else if (tile.type === "cryo") counts.cryo += 1;
+        else if (tile.type === "cannon") counts.cannon += 1;
+        if (tile.type === "ember" && tile.emberActiveTime > 1e-6) counts.emberActive += 1;
+        if (isWeaponType(tile.type)) families.add(tile.type);
+      });
+      counts.weaponFamilies = families.size;
+    };
+
+    Game.prototype.updateOutriderEcho = function (tile, dt) {
+      var echo = tile.echoShot;
+      echo.clock -= dt;
+      if (echo.clock > 0) return;
+      tile.echoShot = null;
+      var def = this.weaponDefinitions[tile.type], origin = this.gridToWorld(tile.x, tile.y);
+      var target = this.enemyById.get(echo.targetId);
+      if (!target || target.dead) target = this.findTarget(tile, def.range);
+      if (!target) return;
+      var dx = target.x - origin.x, dy = target.y - origin.y, distance = Math.max(1, Math.sqrt(dx * dx + dy * dy));
+      this.fireAttack(tile, origin, dx / distance, dy / distance, def, target, echo.multiplier);
+    };
+
+    Game.prototype.returnShrapnel = function (projectile, scale) {
+      var tuning = cardsApi.TUNING;
+      var target = this.nearestEnemyTo(projectile.x, projectile.y, tuning.returnRange);
+      if (!target) return false;
+      var dx = target.x - projectile.x, dy = target.y - projectile.y, distance = Math.max(1, Math.sqrt(dx * dx + dy * dy));
+      var shot = this.spawnProjectile(true, "scatter", projectile.x, projectile.y, dx / distance * 600, dy / distance * 600,
+        projectile.damage * scale, 3, tuning.returnRange / 600, MODULES.flak.color);
+      if (!shot) return false;
+      shot.launchX = projectile.x;
+      shot.launchY = projectile.y;
+      return true;
+    };
+
+    Game.prototype.skipCard = function () {
+      if (this.cardPicked || !cardsApi || !this.cardOffer || !this.cardOffer.length) return false;
+      var reward = cardsApi.skipReward(this.wave);
+      this.cardPicked = true;
+      this.cardSkipped = true;
+      this.cardPickedIndex = -1;
+      this.matter += reward;
+      if (playtestTelemetry && this === game) playtestTelemetry.event("card_skip", this.elapsed, { wave: this.wave, matter: reward, doctrine: this.offerIsDoctrine });
+      return true;
+    };
+
+    // Blasts queue on kill and resolve once per step, so chain reactions never recurse.
+    Game.prototype.processVolatileBlasts = function () {
+      if (!this.volatileQueue.length) return;
+      var blasts = this.volatileQueue;
+      this.volatileQueue = [];
+      blasts.forEach(function (blast) {
+        var radius = blast.radius || cardsApi.VOLATILE_RADIUS;
+        this.burst(blast.x, blast.y, blast.color || "#ff9b55", 6, 160);
+        if (blast.accent) {
+          this.burst(blast.x, blast.y, blast.accent, 6, 120);
+          var blastRing = this.spawnEffect("ring", blast.x, blast.y, .28, blast.color);
+          blastRing.radius = 6;
+          blastRing.maxRadius = radius;
+        }
+        // Copy: kills inside the loop can refill the shared nearby-enemy buffer.
+        this.radiusCandidates(blast.x, blast.y, radius).slice().forEach(function (enemy) {
+          if (!enemy.dead && distanceSquared(blast.x, blast.y, enemy.x, enemy.y) <= radius * radius) this.damageEnemy(enemy, blast.damage, enemy.x, enemy.y);
+        }, this);
+      }, this);
+    };
+
     function continueSurvival() {
       if (!game || game.finished || game.state !== "milestone") return;
+      if (game.mode === "waves") {
+        ui.milestoneOverlay.classList.add("hidden");
+        if (playtestTelemetry) playtestTelemetry.event("survival_continue", game.elapsed, { wave: game.wave });
+        game.enterIntermission();
+        return;
+      }
       game.continued = true;
       game.nextBossAt = game.elapsed + BOSS_REPEAT_INTERVAL;
       game.recoveryUntil = game.elapsed + BOSS_RECOVERY_SECONDS;
@@ -3840,6 +4646,7 @@
       var reward = settleFragmentReward(this);
       var fragments = reward.fragments;
       ui.milestoneOverlay.classList.add("hidden");
+      ui.waveOverlay.classList.add("hidden");
       save.fragments += fragments;
       save.fragmentCarryUnits = reward.carryUnits;
       save.bestTime = Math.max(save.bestTime, this.elapsed);
@@ -3858,7 +4665,7 @@
         }, telemetrySample());
       }
       storeSave();
-      ui.resultTitle.textContent = retired ? (this.survivalCompleted ? tr("SURVIVAL COMPLETE") : tr("RUN BANKED")) : tr("CORE LOST");
+      ui.resultTitle.textContent = retired ? (this.survivalCompleted ? (this.mode === "waves" ? tr("VICTORY") : tr("SURVIVAL COMPLETE")) : tr("RUN BANKED")) : tr("CORE LOST");
       ui.resultSubtitle.textContent = tr("Fragments earned from combat time, ordinary kills and bosses. Spend them in Hangar.");
       ui.resultKills.textContent = this.kills;
       ui.resultTime.textContent = formatTime(this.elapsed);
@@ -3913,7 +4720,10 @@
           button.setAttribute("aria-pressed", selectedForPurchase ? "true" : "false");
           button.setAttribute("aria-label", affordable ? tr("{name}, {price} Matter", { name: def.name, price: price }) : tr("{name}, {price} Matter, not enough Matter", { name: def.name, price: price }));
           button.title = def.name + " · " + def.summary;
-          button.innerHTML = moduleGlyphHtml(type) + '<strong>' + buildModuleName(type) + '</strong><span class="catalog-cost">' + price + "</span>";
+          var priceFactor = game && game.priceFactors ? game.priceFactors[type] || 1 : 1;
+          var priceTrend = priceFactor > 1 ? ' price-up' : priceFactor < 1 ? ' price-down' : '';
+          button.innerHTML = moduleGlyphHtml(type) + '<strong>' + buildModuleName(type) + '</strong><span class="catalog-cost' + priceTrend + '">' + price +
+            (priceFactor > 1 ? ' ▲' : priceFactor < 1 ? ' ▼' : '') + "</span>";
           if (typeof wireCatalogDrag === "function") wireCatalogDrag(button, type);
           button.addEventListener("click", function () {
             selectedBuildModule = type;
@@ -3951,7 +4761,7 @@
       if (!result) return false;
       if (!game.testRange) game.matter = result.matter;
       if (playtestTelemetry && playtestTelemetry.recordUpgrade) playtestTelemetry.recordUpgrade(type, choice, result.option.cost, game.elapsed, { level: game.upgrades[type].level + 1, branch: game.upgrades[type].branch, path: game.upgrades[type].path, unitCost: result.option.unitCost, copies: copies });
-      game.weaponDefinitions[type] = runUpgrades.resolve(MODULES[type], game.upgrades[type]);
+      game.weaponDefinitions[type] = game.resolveWeaponDefinition(type);
       game.refreshFamilyTiles(type, false);
       game.recordProgress({ upgrades: 1 });
       trainingEvent("weapon_upgraded", { type: type, copies: copies, level: game.upgrades[type].level });
@@ -4200,7 +5010,8 @@
 
     function supportCoversCell(origin, x, y, target) {
       var dx = x - origin.x, dy = y - origin.y;
-      if (origin.type === "ember") return Math.abs(dx) + Math.abs(dy) === 1 && Boolean(target && receivesEmberCombo(target.type));
+      if (origin.type === "ember") return (game.cardMod("wideIgnition") ? Math.max(Math.abs(dx), Math.abs(dy)) === 1 : Math.abs(dx) + Math.abs(dy) === 1) &&
+        Boolean(target && receivesEmberCombo(target.type));
       if (origin.type === "cryo") return Math.abs(dx) + Math.abs(dy) === 1 && Boolean(target && receivesCryoCombo(target.type));
       if (origin.type === "reactor") return Math.abs(dx) <= 1 && Math.abs(dy) <= 1 && Boolean(dx || dy) && (!target || isWeaponType(target.type));
       if (origin.type === "bulkhead") return Math.abs(dx) <= 1 && Math.abs(dy) <= 1 && Boolean(dx || dy);
@@ -4349,6 +5160,7 @@
         var coverageLabel = coverage ? (coverage === 2 ? tr("Shield coverage") : tr("Shield coverage, recharging")) : (shieldPreview ? tr("New shield coverage preview") : tr("No shield coverage"));
         if (inRadius && origin.type !== "shield") coverageLabel += " · " + MODULES[origin.type].name + (origin.tile ? " support" : " preview");
         if (benefits.length) coverageLabel += " · Receives: " + benefits.map(function (benefit) { return benefit.label; }).join(", ");
+        if (cell.dataset.duoLabel) coverageLabel = cell.dataset.duoLabel + " · " + coverageLabel;
         cell.setAttribute("aria-label", cell.dataset.baseLabel + " · " + coverageLabel);
         cell.title = cell.classList.contains("upgrade-available") ? tr("Upgrade available · {coverage}", { coverage: coverageLabel }) : coverageLabel;
         cell.classList.toggle("preview-origin", Boolean(ghost || (origin && gx === origin.x && gy === origin.y) || buildInteraction.pendingCellKey === key));
@@ -4523,6 +5335,47 @@
       viewport.scrollTop += (target.top + target.bottom) / 2 - bounds.top - viewport.clientTop - viewport.clientHeight / 2;
     }
 
+    var duoByPair = null;
+    function duoForPair(a, b) {
+      if (!cardsApi) return null;
+      if (!duoByPair) {
+        duoByPair = {};
+        cardsApi.CARD_DEFS.forEach(function (def) { if (def.pair && !def.retired) duoByPair[cardsApi.pairKey(def.pair[0], def.pair[1])] = def; });
+      }
+      return duoByPair[cardsApi.pairKey(a, b)] || null;
+    }
+
+    function duoCardName(def) {
+      return cardsApi.describe({ id: def.id }, cardModuleName).name;
+    }
+
+    // Lime bars between installed duo partners: solid when the duo is owned, faint when it is only earned.
+    function buildDuoLinks(tile) {
+      if (game.mode !== "waves" || tile.type === "core") return null;
+      var html = "", names = [];
+      [[1, 0, "right"], [0, 1, "down"], [-1, 0, ""], [0, -1, ""]].forEach(function (step) {
+        var neighbor = game.ship.tiles.get(keyOf(tile.x + step[0], tile.y + step[1]));
+        var def = neighbor && duoForPair(tile.type, neighbor.type);
+        if (!def) return;
+        var owned = game.hasCard(def.id);
+        if (step[2]) html += '<span class="duo-link ' + step[2] + (owned ? ' owned' : '') + '" aria-hidden="true"></span>';
+        var name = duoCardName(def);
+        if (names.indexOf(name) < 0) names.push(name);
+      });
+      return names.length ? { html: html, title: names.map(function (name) { return tr("Duo link: {card}", { card: name }); }).join(" · ") } : null;
+    }
+
+    // Empty cells where the selected module would complete a duo that is not active yet.
+    function buildDuoHint(x, y, type, shipPairs) {
+      if (game.mode !== "waves") return null;
+      for (var i = 0; i < EMBER_COMBO_OFFSETS.length; i += 1) {
+        var neighbor = game.ship.tiles.get(keyOf(x + EMBER_COMBO_OFFSETS[i][0], y + EMBER_COMBO_OFFSETS[i][1]));
+        var def = neighbor && duoForPair(type, neighbor.type);
+        if (def && !game.duoActive(def.id) && !shipPairs.has(cardsApi.pairKey(def.pair[0], def.pair[1]))) return def;
+      }
+      return null;
+    }
+
     function renderBuildGrid() {
       if (!game) return;
       if (buildInteraction.owner !== game) clearBuildInteraction();
@@ -4562,6 +5415,7 @@
       ui.buildGrid.style.setProperty("--pc-cell", buildCellSize + "px");
       ui.buildGrid.style.gridTemplateColumns = "repeat(" + columns + ", " + buildCellSize + "px)";
       ui.buildGrid.innerHTML = "";
+      var shipPairs = game.mode === "waves" ? game.adjacentPairs() : null;
       for (var y = minY; y <= maxY; y += 1) {
         for (var x = minX; x <= maxX; x += 1) {
           var button = document.createElement("button");
@@ -4578,6 +5432,14 @@
             button.setAttribute("aria-label", tile.type === "core" ? tr("Core") : MODULES[tile.type].name);
             var color = tile.type === "core" ? "#ffffff" : MODULES[tile.type].color;
             button.innerHTML = '<span style="color:' + color + '">' + glyph + '</span><span class="cell-hp"><i style="width:' + clamp(tile.hp / tile.maxHp * 100, 0, 100) + '%"></i></span>';
+            if (game.flagshipActive() && game.flagshipTile === tile) button.innerHTML += '<span class="cell-flagship">' + cardSymbolHtml("crown") + '</span>';
+            if (game.isStrut(tile)) button.classList.add("strut");
+            var duoLinks = buildDuoLinks(tile);
+            if (duoLinks) {
+              button.innerHTML += duoLinks.html;
+              button.title = duoLinks.title;
+              button.dataset.duoLabel = duoLinks.title;
+            }
             if (readyFamilies[tile.type]) {
               button.classList.add("upgrade-available");
               button.innerHTML += '<span class="cell-upgrade-marker" aria-hidden="true">↑</span>';
@@ -4603,6 +5465,12 @@
             var placeable = structurallyValid && canAffordSelected;
             button.setAttribute("aria-label", installedSelection ? tr("Select a catalog module to attach at {x}, {y}", { x: x, y: y }) : placeable ? tr("Attach {name} at {x}, {y}", { name: selected.name, x: x, y: y }) : tr("Unavailable attachment at {x}, {y}", { x: x, y: y }));
             button.classList.add(placeable ? "valid" : (structurallyValid ? "unaffordable" : "blocked"));
+            var duoHint = structurallyValid && shipPairs ? buildDuoHint(x, y, selectedBuildModule, shipPairs) : null;
+            if (duoHint) {
+              button.classList.add("duo-hint");
+              button.title = tr("Forms a duo: {card}", { card: duoCardName(duoHint) });
+              button.dataset.duoLabel = button.title;
+            }
             button.dataset.action = installedSelection ? "none" : "attach";
             button.innerHTML = "<span>" + (placeable ? "+" : (structurallyValid ? "+" : "·")) + "</span>";
             button.setAttribute("aria-disabled", String(!placeable));
@@ -4654,9 +5522,17 @@
     }
 
     function openBuild() {
-      if (!game || game.state !== "playing" || game.finished) return;
+      if (!game || (game.state !== "playing" && game.state !== "intermission") || game.finished) return;
+      // Waves keep building to the break so the fight and the planning stay separate phases.
+      if (game.mode === "waves" && game.state === "playing") {
+        showToast(tr("Build opens between waves"));
+        return;
+      }
+      ui.buildEyebrow.textContent = game.mode === "waves" ? tr("Wave break") : tr("COMBAT PAUSED");
       resetMobileInput();
       dismissControlHint();
+      game.buildReturnState = game.state;
+      ui.waveOverlay.classList.add("hidden");
       game.state = "building";
       if (playtestTelemetry) playtestTelemetry.recordBuild(true, game.elapsed, { matter: game.matter, modules: game.ship.tiles.size });
       if (!moduleAvailable(selectedBuildModule)) selectedBuildModule = "cannon";
@@ -4672,11 +5548,12 @@
       if (!game || game.state !== "building") return;
       if (typeof clearBuildInteraction === "function") clearBuildInteraction();
       requestMobileFullscreen();
-      game.state = "playing";
+      game.state = game.buildReturnState === "intermission" ? "intermission" : "playing";
       if (playtestTelemetry) playtestTelemetry.recordBuild(false, game.elapsed, { matter: game.matter, modules: game.ship.tiles.size });
       game.lastFrame = performance.now();
       game.accumulator = 0;
       ui.buildOverlay.classList.add("hidden");
+      if (game.state === "intermission") openWaveOverlay();
       updateHud();
       audio.tone(300, .06, .02, "sine", 100);
     }
@@ -4958,7 +5835,7 @@
       if (game && game.state === "playing" && !game.finished) document.getElementById("controlHint").classList.add("hidden");
     }
 
-    function startRun() {
+    function startRun(mode) {
       if (rangeSession) { leaveRange(); return; }
       if (game && game.training) { leaveTraining(); return; }
       if (typeof clearBuildInteraction === "function") clearBuildInteraction();
@@ -4967,7 +5844,7 @@
       audio.stop();
       resetMobileInput();
       if (game && !game.finished) game.finishRun(false, true);
-      game = new Game();
+      game = new Game({ mode: mode === "waves" ? "waves" : "endless" });
       clearCombatPresentation();
       document.getElementById("controlHint").classList.remove("hidden");
       selectedBuildModule = selectedStarter;
@@ -4976,7 +5853,7 @@
       if (playtestTelemetry) {
         playtestTelemetry.beginRun({
           starterWeapon: selectedStarter,
-          mode: "survival",
+          mode: game.mode === "waves" ? "waves" : "survival",
           targetSeconds: null,
           coreId: game.coreDef.id,
           modulesLost: game.modulesLost,
@@ -4990,10 +5867,13 @@
           settings: save.settings,
           initialModules: game.ship.tiles.size
         }, telemetrySample());
+        // Wave 1 starts inside the constructor, before the run log exists.
+        if (game.mode === "waves") playtestTelemetry.event("wave_start", game.elapsed, { wave: game.wave, pressure: Math.round(game.pressureClock()), boss: "" });
       }
       ui.menu.classList.add("hidden");
       ui.hangarOverlay.classList.add("hidden");
       ui.milestoneOverlay.classList.add("hidden");
+      ui.waveOverlay.classList.add("hidden");
       ui.resultOverlay.classList.add("hidden");
       ui.buildOverlay.classList.add("hidden");
       ui.pauseOverlay.classList.add("hidden");
@@ -5013,6 +5893,7 @@
       audio.stop();
       clearCombatPresentation();
       ui.milestoneOverlay.classList.add("hidden");
+      ui.waveOverlay.classList.add("hidden");
       ui.resultOverlay.classList.add("hidden");
       ui.buildOverlay.classList.add("hidden");
       ui.pauseOverlay.classList.add("hidden");
@@ -5051,7 +5932,231 @@
       openHangar("armory");
     }
 
+    function focusWithoutScroll(element) {
+      if (element && typeof element.focus === "function") element.focus({ preventScroll: true });
+    }
+
+    function waveHudText() {
+      var def = waves.get(game.wave);
+      var vars = { wave: game.wave, total: waves.WAVE_COUNT, time: formatTime(Math.max(0, game.waveTimeLimit() - game.waveElapsed)), count: game.livingEnemyCount() };
+      if (game.wavePhase === "sweep" || game.wavePhase === "clearing") return game.wave > waves.WAVE_COUNT ? tr("WAVE {wave} · {count} LEFT", vars) : tr("WAVE {wave}/{total} · {count} LEFT", vars);
+      if (game.wave > waves.WAVE_COUNT) return def.duration ? tr("WAVE {wave} · {time}", vars) : tr("WAVE {wave} · BOSS", vars);
+      return def.duration ? tr("WAVE {wave}/{total} · {time}", vars) : tr("WAVE {wave}/{total} · BOSS", vars);
+    }
+
+    function cardRarityLabel(rarity) {
+      if (rarity === "doctrine") return tr("Doctrine");
+      if (rarity === "duo") return tr("Duo");
+      return rarity === "epic" ? tr("Epic") : rarity === "rare" ? tr("Rare") : tr("Common");
+    }
+
+    function cardModuleName(type) {
+      return MODULES[type].name;
+    }
+
+    // Line symbols for cards that are not about one module; module cards reuse the module art.
+    var CARD_SYMBOLS = {
+      damage: '<circle cx="12" cy="12" r="6.5"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/>',
+      rate: '<path d="M5 6l6 6-6 6M12 6l6 6-6 6"/>',
+      plate: '<path d="M12 3l7 3v5c0 5-3.2 8.2-7 10-3.8-1.8-7-5-7-10V6z"/>',
+      thrust: '<path d="M12 3l4 7h-3v5h-2v-5H8z"/><path d="M9 18c1 2 2 3 3 3s2-1 3-3"/>',
+      matter: '<path d="M12 3l7.8 4.5v9L12 21l-7.8-4.5v-9z"/><circle cx="12" cy="12" r="2.5"/>',
+      target: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><path d="M12 1v4M12 19v4"/>',
+      weld: '<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M12 8v8M8 12h8"/>',
+      burst: '<path d="M12 2v6M12 16v6M2 12h6M16 12h6M5 5l4 4M15 15l4 4M19 5l-4 4M9 15l-4 4"/>',
+      clock: '<circle cx="12" cy="12" r="8"/><path d="M12 7v5l3 2"/>',
+      wreck: '<rect x="9" y="5" width="10" height="10" rx="1" transform="rotate(20 14 10)"/><path d="M3 17h6M5 20h6M2 14h4"/>',
+      market: '<path d="M8 20V5M4 9l4-4 4 4M16 4v15M12 15l4 4 4-4"/>',
+      lean: '<rect x="9" y="9" width="6" height="6"/><path d="M3 8V3h5M16 3h5v5M21 16v5h-5M8 21H3v-5"/>',
+      arms: '<rect x="4" y="4" width="6" height="6"/><circle cx="17" cy="7" r="3"/><path d="M4 20l3-6 3 6z"/><path d="M14 17h6M17 14v6"/>',
+      crown: '<path d="M4 18h16l1-10-5 4-4-7-4 7-5-4z"/>',
+      spine: '<circle cx="5" cy="12" r="2"/><circle cx="19" cy="12" r="2"/><path d="M7 12l3-3 2 5 2-5 3 3"/>',
+      conduit: '<rect x="10" y="10" width="4" height="4"/><path d="M12 10V3M12 14v7M10 12H3M14 12h7"/><circle cx="12" cy="4" r="1" fill="currentColor"/>',
+      lattice: '<rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><path d="M10 10l4 4M14 10l-4 4"/>',
+      outrider: '<rect x="3" y="15" width="6" height="6"/><rect x="9" y="9" width="6" height="6"/><path d="M16 8l5-5M21 3h-4M21 3v4"/>'
+    };
+
+    function cardSymbolHtml(key) {
+      return CARD_SYMBOLS[key] ? '<svg class="card-symbol" viewBox="0 0 24 24" aria-hidden="true">' + CARD_SYMBOLS[key] + '</svg>' : "";
+    }
+
+    function cardIconHtml(pick, info) {
+      if (pick.family) return moduleGlyphHtml(pick.family);
+      if (info.pair) return moduleGlyphHtml(info.pair[0]) + moduleGlyphHtml(info.pair[1]);
+      if (info.icon && MODULES[info.icon]) return moduleGlyphHtml(info.icon);
+      return cardSymbolHtml(info.icon);
+    }
+
+    var ownedDetailId = "";
+    function showOwnedDetail(id, text) {
+      ownedDetailId = ownedDetailId === id ? "" : id;
+      ui.cardOwnedDetail.textContent = ownedDetailId ? text : "";
+      ui.cardOwnedDetail.classList.toggle("hidden", !ownedDetailId);
+    }
+
+    // Filled pips are Doctrines taken; the lit outline is the one being chosen now.
+    function renderDoctrinePips() {
+      var show = game.offerIsDoctrine;
+      ui.wavePanel.classList.toggle("doctrine-offer", show);
+      ui.doctrinePips.classList.toggle("hidden", !show);
+      ui.doctrinePips.innerHTML = "";
+      if (!show) return;
+      var owned = cardsApi.doctrineCount(game.cardPicks);
+      var current = game.cardPicked ? owned : owned + 1;
+      for (var slot = 1; slot <= cardsApi.DOCTRINE_CAP; slot += 1) {
+        var pip = document.createElement("span");
+        pip.className = "doctrine-pip" + (slot <= owned ? " filled" : "") + (!game.cardPicked && slot === current ? " next" : "");
+        ui.doctrinePips.appendChild(pip);
+      }
+      ui.doctrinePips.setAttribute("aria-label", tr("Doctrine {count} of {max}", { count: Math.min(current, cardsApi.DOCTRINE_CAP), max: cardsApi.DOCTRINE_CAP }));
+    }
+
+    function renderOwnedCards() {
+      ui.cardOwned.innerHTML = "";
+      var pairs = game.adjacentPairs();
+      var shown = 0;
+      game.cardPicks.forEach(function (pick) {
+        var info = cardsApi.describe(pick, cardModuleName);
+        if (info.kind === "stat") return;
+        var chip = document.createElement("button");
+        chip.type = "button";
+        chip.className = "card-chip kind-" + info.kind;
+        chip.textContent = info.name;
+        var detail = info.text;
+        if (info.pair && !pairs.has(cardsApi.pairKey(info.pair[0], info.pair[1]))) {
+          chip.classList.add("dormant");
+          detail = tr("Dormant · place {first} next to {second}", { first: cardModuleName(info.pair[0]), second: cardModuleName(info.pair[1]) }) + " · " + info.text;
+        }
+        chip.title = detail;
+        chip.classList.toggle("active", ownedDetailId === pick.id);
+        (function (id, text) {
+          chip.addEventListener("click", function () { showOwnedDetail(id, text); renderOwnedCards(); });
+        })(pick.id, detail);
+        ui.cardOwned.appendChild(chip);
+        shown += 1;
+      });
+      ui.cardOwned.classList.toggle("hidden", !shown);
+      if (!shown && ownedDetailId) showOwnedDetail(ownedDetailId, "");
+    }
+
+    function renderWaveOverlay() {
+      if (!game || !cardsApi) return;
+      var reward = game.lastWaveReward || { matter: 0 };
+      ui.waveEyebrow.textContent = tr("WAVE {wave} CLEARED", { wave: game.wave });
+      ui.waveTitle.textContent = game.cardSkipped ? tr("Card skipped") : game.cardPicked ? tr("Card added") : game.offerIsDoctrine ? tr("Choose a Doctrine") : tr("Choose a card");
+      ui.waveSummary.textContent = tr("+{reward} Matter · hull repaired {percent}% · {matter} Matter available", { reward: Math.round(reward.matter), percent: Math.round(WAVE_INTERMISSION_REPAIR * 100), matter: Math.floor(game.matter) });
+      ui.cardChoices.innerHTML = "";
+      ui.cardChoices.classList.toggle("four", game.cardOffer.length > 3);
+      ui.cardChoices.classList.toggle("two", game.cardOffer.length === 2);
+      ui.cardChoices.classList.toggle("one", game.cardOffer.length === 1);
+      renderDoctrinePips();
+      renderOwnedCards();
+      game.cardOffer.forEach(function (pick, index) {
+        var info = cardsApi.describe(pick, cardModuleName);
+        var stacks = cardsApi.stacksOf(game.cardPicks, cardsApi.pickKey(pick));
+        var button = document.createElement("button");
+        button.type = "button";
+        button.className = "wave-card rarity-" + info.rarity + (game.cardPickedIndex === index ? " picked" : "");
+        button.disabled = game.cardPicked;
+        var stackLabel = info.maxStacks > 1 ? tr("{count}/{max}", { count: stacks, max: info.maxStacks }) :
+          info.pair ? tr("{first} + {second}", { first: cardModuleName(info.pair[0]), second: cardModuleName(info.pair[1]) }) : "";
+        var icon = cardIconHtml(pick, info);
+        button.innerHTML = '<span class="wave-card-icon' + (info.pair ? ' pair' : '') + '">' + icon + '</span><span class="wave-card-rarity">' + cardRarityLabel(info.rarity) + '</span><strong>' + info.name +
+          '</strong><span class="wave-card-text">' + info.text + '</span><small class="wave-card-stack">' + stackLabel + "</small>";
+        button.addEventListener("click", function () {
+          if (!game || game.state !== "intermission" || !game.pickCard(index)) return;
+          audio.tone(420, .12, .04, "sine", 200);
+          renderWaveOverlay();
+          focusWithoutScroll(ui.nextWaveButton);
+        });
+        ui.cardChoices.appendChild(button);
+      });
+      var cost = game.freeRerolls > 0 ? 0 : cardsApi.rerollCost(game.wave, game.rerolls);
+      ui.cardRerollButton.textContent = cost ? tr("Reroll · {cost} Matter", { cost: cost }) : tr("Reroll · free");
+      ui.cardRerollButton.disabled = game.cardPicked || game.matter < cost || !game.cardOffer.length;
+      ui.cardSkipButton.textContent = tr("Skip · +{matter} Matter", { matter: cardsApi.skipReward(game.wave) });
+      ui.cardSkipButton.disabled = game.cardPicked || !game.cardOffer.length;
+      ui.nextWaveButton.textContent = tr("Start wave {wave}", { wave: game.wave + 1 });
+      ui.nextWaveButton.disabled = !game.cardPicked && game.cardOffer.length > 0;
+      updateHud();
+    }
+
+    function openWaveOverlay() {
+      resetMobileInput();
+      if (ownedDetailId) showOwnedDetail(ownedDetailId, "");
+      // A sweep toast from the last seconds of combat must not linger over the break.
+      clearTimeout(toastTimer);
+      ui.toast.classList.remove("show");
+      audio.stop();
+      ui.waveOverlay.classList.remove("hidden");
+      renderWaveOverlay();
+      var firstCard = ui.cardChoices.querySelector("button:not(:disabled)");
+      focusWithoutScroll(firstCard || ui.nextWaveButton);
+    }
+
+    function startNextWave() {
+      if (!game || game.state !== "intermission" || (!game.cardPicked && game.cardOffer.length)) return;
+      ui.waveOverlay.classList.add("hidden");
+      game.state = "playing";
+      game.lastFrame = performance.now();
+      game.accumulator = 0;
+      game.startWave(game.wave + 1);
+      updateHud();
+    }
+
+    function openVictoryOverlay() {
+      resetMobileInput();
+      audio.stop();
+      ui.milestoneReward.textContent = tr("{waves} waves · {time} · {bosses} bosses defeated", { waves: game.wave, time: formatTime(game.elapsed), bosses: game.bossesDefeated });
+      ui.milestoneOverlay.classList.remove("hidden");
+      focusWithoutScroll(ui.finishSurvivalButton);
+    }
+
+    var hudCardsSignature = "";
+    var hudCardStates = {};
+    // Active rule, duo and Doctrine cards stay visible in combat; a duo that loses its pair turns grey once.
+    function renderHudCards() {
+      if (!ui.hudCards) return;
+      var signature = "";
+      var special = [];
+      var linked = game && game.ownsDuo ? game.adjacentPairs() : null;
+      var dormant = function (def) { return def.kind === "duo" && !linked.has(cardsApi.pairKey(def.pair[0], def.pair[1])); };
+      if (game && game.mode === "waves" && cardsApi) {
+        for (var i = 0; i < game.cardPicks.length; i += 1) {
+          var def = cardsApi.BY_ID[game.cardPicks[i].id];
+          if (!def.kind) continue;
+          special.push(game.cardPicks[i]);
+          signature += def.id + (dormant(def) ? "-," : def.id === "phaseLattice" && game.latticeActive ? "*," : "+,");
+        }
+      }
+      if (signature === hudCardsSignature) return;
+      hudCardsSignature = signature;
+      var chips = special.map(function (pick) {
+        var info = cardsApi.describe(pick, cardModuleName);
+        return { id: pick.id, name: info.name, kind: info.kind, text: info.text, dormant: dormant(cardsApi.BY_ID[pick.id]), live: pick.id === "phaseLattice" && game.latticeActive };
+      });
+      ui.hudCards.innerHTML = "";
+      chips.forEach(function (chip) {
+        if (chip.dormant && hudCardStates[chip.id] === "active" && game.state === "playing") showToast(tr("{card} is dormant", { card: chip.name }));
+        hudCardStates[chip.id] = chip.dormant ? "dormant" : "active";
+        var element = document.createElement("span");
+        element.className = "card-chip kind-" + chip.kind + (chip.dormant ? " dormant" : "") + (chip.live ? " live" : "");
+        element.textContent = chip.name;
+        element.title = chip.text;
+        ui.hudCards.appendChild(element);
+      });
+      if (!chips.length) hudCardStates = {};
+      ui.hudCards.classList.toggle("hidden", !chips.length);
+    }
+
     function updateHud() {
+      renderHudCards();
+      if (game) {
+        var wavesRun = game.mode === "waves";
+        ui.buildButton.classList.toggle("hidden", wavesRun);
+        ui.mobileBuildButton.classList.toggle("hidden", wavesRun);
+        ui.buildControlHint.classList.toggle("hidden", wavesRun);
+      }
       if (!game) return;
       var core = game.ship.tiles.get("0,0");
       ui.hudMatter.textContent = Math.floor(game.matter);
@@ -5060,6 +6165,7 @@
       ui.hudModules.textContent = game.ship.tiles.size;
       ui.hudBossProgress.textContent = game.bossSpawned ? tr("BOSS {number}", { number: game.bossesDefeated + 1 }) :
         (Number.isFinite(game.nextBossAt) ? tr("BOSS {number} IN {time}", { number: game.bossesDefeated + 1, time: formatTime(Math.max(0, game.nextBossAt - game.elapsed)) }) : tr("HOLD UNTIL 10:00"));
+      if (game.mode === "waves") ui.hudBossProgress.textContent = waveHudText();
       if (game.testRange) ui.hudBossProgress.textContent = tr("TEST RANGE");
       if (core) {
         var healthRatio = core.hp / core.maxHp;
@@ -5753,6 +6859,78 @@
       }
     }
 
+    function drawDerelicts() {
+      if (!game || !game.derelicts.length) return;
+      game.derelicts.forEach(function (wreck) {
+        var screen = worldToScreen(wreck.x, wreck.y);
+        var fade = clamp(wreck.life, 0, 1);
+        var color = MODULES[wreck.type].color;
+        ctx.save();
+        ctx.globalAlpha = fade;
+        ctx.translate(screen.x, screen.y);
+        ctx.rotate(wreck.rotation);
+        if (moduleArt && moduleArt.available(wreck.type)) {
+          moduleArt.drawBase(ctx, wreck.type, 0, 0, TILE_SIZE);
+          moduleArt.drawEquipment(ctx, wreck.type, 0, 0, TILE_SIZE, wreck.aim - wreck.rotation);
+        }
+        // A pulsing frame marks wrecks that still fire.
+        ctx.globalAlpha = fade * (.45 + .3 * Math.sin(wreck.life * 8));
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1.5;
+        ctx.strokeRect(-TILE_SIZE * .5, -TILE_SIZE * .5, TILE_SIZE, TILE_SIZE);
+        ctx.restore();
+      });
+    }
+
+    // Struts read as hollow: the plate is dimmed and outlined so shots visibly pass through it.
+    function drawStrutMark(tile) {
+      var x = tile.x * TILE_SIZE, y = tile.y * TILE_SIZE, half = TILE_SIZE * .46;
+      ctx.save();
+      ctx.fillStyle = "rgba(6, 14, 22, .55)";
+      ctx.fillRect(x - half, y - half, half * 2, half * 2);
+      ctx.strokeStyle = "#b6c8d2";
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([5, 4]);
+      ctx.strokeRect(x - half + 2, y - half + 2, half * 2 - 4, half * 2 - 4);
+      ctx.restore();
+    }
+
+    function drawOutriderMark(tile) {
+      var x = tile.x * TILE_SIZE + TILE_SIZE * .3, y = tile.y * TILE_SIZE - TILE_SIZE * .3;
+      ctx.save();
+      ctx.strokeStyle = "#65e8ff";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(x - 6, y - 4); ctx.lineTo(x - 2, y); ctx.lineTo(x - 6, y + 4);
+      ctx.moveTo(x, y - 4); ctx.lineTo(x + 4, y); ctx.lineTo(x, y + 4);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function drawFlagshipMark(tile) {
+      var x = tile.x * TILE_SIZE, y = tile.y * TILE_SIZE - TILE_SIZE * .46;
+      ctx.save();
+      // Drawn at 1.6× so the crown reads at the default camera zoom.
+      ctx.translate(x, y);
+      ctx.scale(1.6, 1.6);
+      ctx.translate(-x, -y);
+      ctx.fillStyle = "#e7be67";
+      ctx.strokeStyle = "#2a1d06";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x - 7, y + 3);
+      ctx.lineTo(x - 7, y - 4);
+      ctx.lineTo(x - 3, y);
+      ctx.lineTo(x, y - 6);
+      ctx.lineTo(x + 3, y);
+      ctx.lineTo(x + 7, y - 4);
+      ctx.lineTo(x + 7, y + 3);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+    }
+
     function drawShip() {
       if (!game) return;
       var core = game.ship.tiles.get("0,0");
@@ -5810,6 +6988,9 @@
           ctx.fillRect(x - 15, y + 15, 30 * clamp(tile.hp / tile.maxHp, 0, 1), 2);
         }
       });
+      if (game.cardMod("hollowStrut")) game.ship.tiles.forEach(function (tile) { if (tile.type === "armor") drawStrutMark(tile); });
+      if (game.cardMod("outrider")) game.ship.tiles.forEach(function (tile) { if (tile.outrider) drawOutriderMark(tile); });
+      if (game.flagshipActive()) drawFlagshipMark(game.flagshipTile);
       shieldVfx.drawSurface(ctx, TILE_SIZE, game.elapsed, save.settings.reducedFlash);
       var zoom = Math.max(.35, game.camera.zoom || 1);
       ctx.save();
@@ -6049,6 +7230,17 @@
           ctx.beginPath();
           ctx.arc(effectPos.x, effectPos.y, effect.radius, 0, TAU);
           ctx.stroke();
+        } else if (effect.type === "frostLine") {
+          var frostEnd = worldToScreen(effect.x2, effect.y2, screenPointB);
+          ctx.globalAlpha = .55 * clamp(effect.life / (effect.maxLife || 1), 0, 1);
+          ctx.strokeStyle = effect.color;
+          ctx.lineWidth = 4;
+          ctx.setLineDash([10, 8]);
+          ctx.beginPath();
+          ctx.moveTo(effectPos.x, effectPos.y);
+          ctx.lineTo(frostEnd.x, frostEnd.y);
+          ctx.stroke();
+          ctx.setLineDash([]);
         } else if (effect.type === "beam") {
           var end = worldToScreen(effect.x2, effect.y2, screenPointB);
           ctx.globalAlpha = alpha * .38;
@@ -6168,6 +7360,7 @@
         drawGravityFields();
         drawEnemies();
         drawProjectiles(false);
+        drawDerelicts();
         drawShip();
         if (game.training && trainingSession) trainingSession.arena.draw(ctx, game, worldToScreen);
         if (game.testRange) rangeArena.draw(ctx, game, worldToScreen);
@@ -6565,7 +7758,17 @@
       console.info("Drift Bastion self-tests passed.");
     }
 
-    ui.startButton.addEventListener("click", startRun);
+    ui.startButton.addEventListener("click", function () { startRun("waves"); });
+    ui.startEndlessButton.addEventListener("click", function () { startRun("endless"); });
+    ui.cardRerollButton.addEventListener("click", function () { if (game && game.state === "intermission" && game.rerollCards()) renderWaveOverlay(); });
+    ui.cardSkipButton.addEventListener("click", function () {
+      if (!game || game.state !== "intermission" || !game.skipCard()) return;
+      renderWaveOverlay();
+      focusWithoutScroll(ui.nextWaveButton);
+    });
+    ui.waveBuildButton.addEventListener("click", openBuild);
+    ui.waveEndRunButton.addEventListener("click", function () { if (game && game.state === "intermission") game.finishRun(false, true); });
+    ui.nextWaveButton.addEventListener("click", startNextWave);
     ui.installButton.addEventListener("click", installFullscreenApp);
     ui.menuSettingsButton.addEventListener("click", openMenuSettings);
     ui.hangarMenuButton.addEventListener("click", function () { openHangar("upgrades"); });
@@ -6691,7 +7894,7 @@
       }
       if (["KeyW", "KeyA", "KeyS", "KeyD", "KeyB", "KeyP", "Escape"].indexOf(event.code) >= 0) dismissControlHint();
       if (event.code === "KeyB") {
-        if (game && game.state === "playing") openBuild();
+        if (game && (game.state === "playing" || game.state === "intermission")) openBuild();
         else if (game && game.state === "building") closeBuild();
       } else if ((event.code === "KeyP" || event.code === "Escape") && settingsOpenedFromMenu) {
         closePause();
@@ -7084,6 +8287,69 @@
       spawnEnemy: function (type, x, y) {
         if (!DEBUG || !game || !ENEMY_DEFS[type]) return false;
         return Boolean(game.spawnEnemy(type, x, y));
+      },
+      waveState: function () {
+        if (!game || game.mode !== "waves") return null;
+        return { wave: game.wave, phase: game.wavePhase, state: game.state, waveElapsed: game.waveElapsed, limit: game.waveTimeLimit(),
+          pressure: game.pressureClock(), offer: (game.cardOffer || []).map(cardsApi.pickKey), picks: game.cardPicks.map(cardsApi.pickKey),
+          picked: game.cardPicked, matter: game.matter, bossesDefeated: game.bossesDefeated, survivalCompleted: game.survivalCompleted,
+          doctrine: game.offerIsDoctrine, freeRerolls: game.freeRerolls, seenDuos: game.seenDuos.slice(), skipped: game.cardSkipped,
+          derelicts: game.derelicts.length, frostLines: game.frostLines.length, pairs: Array.from(game.adjacentPairs()),
+          flagship: game.flagshipActive() ? keyOf(game.flagshipTile.x, game.flagshipTile.y) : null, priceFactors: Object.assign({}, game.priceFactors) };
+      },
+      // Debug only: ends the current wave (kills the boss on boss waves) or jumps straight to a later wave.
+      endWave: function () {
+        if (!DEBUG || !game || game.mode !== "waves" || game.state !== "playing") return false;
+        if (game.boss && !game.boss.dead) game.damageEnemy(game.boss, game.boss.hp + (game.boss.shield || 0) + 1, game.boss.x, game.boss.y);
+        else game.beginSweep();
+        game.enemies.forEach(function (enemy) { if (enemy.type !== "boss") enemy.dead = true; });
+        game.compactEnemies();
+        return true;
+      },
+      // Debug only: card and layout setup for automated checks of rule, duo and doctrine cards.
+      grantCard: function (id, family) {
+        if (!DEBUG || !game || game.mode !== "waves" || !cardsApi || !cardsApi.BY_ID[id]) return false;
+        game.addCardPick(family ? { id: id, family: family } : { id: id });
+        return true;
+      },
+      placeModule: function (type, x, y) {
+        if (!DEBUG || !game || !MODULES[type] || game.ship.tiles.has(keyOf(x, y))) return false;
+        var tile = makeTile(type, x, y, false, game.coreDef.moduleHpMultiplier, game.training);
+        game.applyFamilyTileStats(tile, true);
+        game.ship.tiles.set(keyOf(x, y), tile);
+        game.purchasedCounts[type] += 1;
+        game.activePairs = game.adjacentPairs();
+        return true;
+      },
+      unlockModule: function (type) {
+        if (!DEBUG || !MODULES[type] || !Array.isArray(save.progression.purchasedModules)) return false;
+        if (save.progression.purchasedModules.indexOf(type) < 0) save.progression.purchasedModules.push(type);
+        return true;
+      },
+      destroyModule: function (x, y) {
+        if (!DEBUG || !game || !game.ship.tiles.has(keyOf(x, y)) || (!x && !y)) return false;
+        game.destroyTile(keyOf(x, y));
+        return true;
+      },
+      setInvulnerable: function (value) {
+        if (!DEBUG || !game) return false;
+        game.debugInvulnerable = Boolean(value);
+        return true;
+      },
+      // Debug only: runs the fixed-step simulation without animation frames (hidden tabs pause them).
+      advance: function (seconds) {
+        if (!DEBUG || !game) return false;
+        var steps = Math.ceil(Math.max(0, seconds) / FIXED_STEP);
+        for (var i = 0; i < steps && game.state === "playing" && !game.finished; i += 1) game.update(FIXED_STEP);
+        updateHud();
+        return true;
+      },
+      jumpToWave: function (wave) {
+        if (!DEBUG || !game || game.mode !== "waves" || game.state !== "intermission") return false;
+        game.wave = Math.max(1, Math.floor(wave) - 1);
+        game.cardPicked = true;
+        startNextWave();
+        return true;
       },
       buyMeta: buyMetaForTests
     };

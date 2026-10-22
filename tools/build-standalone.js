@@ -40,6 +40,9 @@ html = replaceExactly(html, '  <link rel="stylesheet" href="training.css">', `  
 html = replaceExactly(html, '  <script src="locales.js"></script>', `  <script>\n${safeInlineScript(read("locales.js"))}\n  </script>`);
 html = replaceExactly(html, '  <script src="i18n.js"></script>', `  <script>\n${safeInlineScript(read("i18n.js"))}\n  </script>`);
 html = replaceExactly(html, '  <script src="telemetry.js"></script>', `  <script>\n${telemetry}\n  </script>`);
+["waves.js", "cards.js"].forEach(file => {
+  html = replaceExactly(html, '  <script src="' + file + '"></script>', `  <script>\n${safeInlineScript(read(file))}\n  </script>`);
+});
 html = replaceExactly(html, '  <script src="progression.js"></script>', `  <script>\n${progression}\n  </script>`);
 html = replaceExactly(html, '  <script src="run-upgrades.js"></script>', `  <script>\n${upgrades}\n  </script>`);
 html = replaceExactly(html, '  <script src="campaign.js"></script>', `  <script>\n${campaign}\n  </script>`);

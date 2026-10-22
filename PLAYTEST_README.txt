@@ -9,6 +9,35 @@ W/S: thrust. A/D: turn. Hold left mouse on the battlefield to follow the cursor;
 release to coast. Weapons fire automatically.
 B: open/resume Build. P or Escape: pause. Escape closes the current layer first.
 
+CARD REDESIGN — 2026.10.22-cards-53
+Stat cards (damage, fire rate, hull...) stay as commons. New card kinds:
+- Rule cards change what counts as a neighbor: Wide Ignition, Cold Steel,
+  Bulkhead Relay, Open Shatter.
+- Duo cards appear once two module types sit edge-to-edge (Ember+Cryo,
+  Pulse+Arc, Laser+Cryo, Rail+Gravity); the first time they are guaranteed in
+  the offer. A duo sleeps while its pair is broken (grey chip at the break).
+- After boss waves 5/10/15 you pick a Doctrine instead (max 3 per run, one free
+  reroll): Castaway Protocol, Gray Market, Lean Hull, Combined Arms or Flagship.
+- Skip a card for a little Matter.
+- Build now opens only between waves (from the break screen); B does nothing mid-wave.
+- Layout cards: Arc Spine (arc between your two farthest weapons), Hollow Strut
+  (Armor Tiles can't be hit but stop blocking shots), Core Conduit (a spark
+  from the core fires weapons it passes and branches at Reactors), Phase Lattice (every 12s all modules
+  count as adjacent for 3s), Outrider (farthest weapon, 2+ cells out, fires twice) and
+  Return to Sender (Flak throws destroyed shots back).
+- Cards never name modules you have not licensed in the Hangar.
+Volatile Hulls, Glass Cannon and Overtime are no longer offered.
+
+WAVES & CARDS — 2026.10.21-waves-52
+Play now runs 20 waves. Each wave lasts 30–60s; when it ends, leftover enemies
+leave, you get bonus Matter, 30% hull repair and full shields, and pick 1 of 3
+cards (run modifiers: weapon damage/fire rate/range, hull, economy, and rare
+rule-changing cards). Reroll the offer for Matter. Build opens during the
+break. Waves 5/10/15 are boss waves; wave 20 is the final boss and
+beating it wins the run, with an option to continue into endless waves.
+The previous non-stop mode stays available as Endless mode in the menu.
+All numbers are provisional for playtesting.
+
 LANGUAGES — 2026.10.20-languages-51
 Bastion is playable in 16 languages: English, French, Italian, German,
 Spanish (Spain), Spanish (Latin America), Simplified Chinese, Traditional

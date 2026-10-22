@@ -24,6 +24,7 @@
   <div class="scanlines"></div>
 
   <div id="hud" class="hidden">
+    <div id="hudCards" class="hud-cards hidden" aria-label="Active cards"></div>
     <div class="hud-top">
       <div class="hud-stack">
         <div class="hud-chip hud-matter"><label>MATTER</label><b id="hudMatter">0</b></div>
@@ -42,7 +43,7 @@
         <span class="keyboard-control">Hold LMB to follow cursor · Release to coast</span>
         <span class="keyboard-control"><kbd>W / S</kbd> Thrust</span>
         <span class="keyboard-control"><kbd>A / D</kbd> Turn</span>
-        <span class="keyboard-control"><kbd>B</kbd> Build</span>
+        <span id="buildControlHint" class="keyboard-control"><kbd>B</kbd> Build</span>
         <span class="keyboard-control"><kbd>P / Esc</kbd> Pause</span>
         <span class="touch-control">Drag on empty space to steer</span>
       </div>
@@ -182,6 +183,7 @@
       </button>
       <div class="start-actions">
         <button id="startButton" class="primary play-button"><strong>Play</strong><span id="startRunMode" hidden></span></button>
+        <button id="startEndlessButton" class="secondary endless-button">Endless mode</button>
         <div class="training-entry-row"><button id="hangarMenuButton" class="secondary hangar-button">Hangar</button><button id="startTrainingButton" class="secondary training-entry">Training sector</button></div>
         <button id="installButton" class="secondary install-button hidden">Install Fullscreen</button>
       </div>
@@ -222,18 +224,37 @@
     </main>
   </div>
 
+  <div id="waveOverlay" class="overlay wave-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="waveTitle">
+    <main id="wavePanel" class="panel wave-panel">
+      <p id="waveEyebrow" class="eyebrow"></p>
+      <h2 id="waveTitle">Choose a card</h2>
+      <div id="doctrinePips" class="doctrine-pips hidden" role="img"></div>
+      <p id="waveSummary" class="subtitle"></p>
+      <div id="cardOwned" class="card-owned hidden"></div>
+      <p id="cardOwnedDetail" class="card-owned-detail hidden" aria-live="polite"></p>
+      <div id="cardChoices" class="card-choices"></div>
+      <div class="button-row wave-actions">
+        <button id="waveEndRunButton" class="secondary">End run</button>
+        <button id="cardRerollButton" class="secondary">Reroll</button>
+        <button id="cardSkipButton" class="secondary">Skip</button>
+        <button id="waveBuildButton" class="secondary">Build [B]</button>
+        <button id="nextWaveButton" class="primary">Start wave</button>
+      </div>
+    </main>
+  </div>
+
   <div id="milestoneOverlay" class="overlay hidden" role="dialog" aria-modal="true" aria-labelledby="milestoneTitle">
     <main class="panel milestone-panel">
-      <p class="eyebrow">10 MINUTES · THREE BOSSES</p>
-      <h2 id="milestoneTitle">Bastion survived</h2>
+      <p class="eyebrow">20 WAVES · FINAL BOSS</p>
+      <h2 id="milestoneTitle">Bastion victorious</h2>
       <p id="milestoneReward" class="milestone-reward"></p>
       <div class="milestone-copy">
-        <p>Bank your Fragments in Hangar, or face stronger waves with this ship.</p>
-        <p class="milestone-note">Keep your modules, upgrades and Matter. Your completion bonus stays earned even if the core falls later.</p>
+        <p>Bank your Fragments in Hangar, or keep fighting endless waves with this ship.</p>
+        <p class="milestone-note">Keep your modules, cards and Matter. Your victory stays recorded even if the core falls later.</p>
       </div>
       <div class="button-row">
         <button id="finishSurvivalButton" class="primary">End run</button>
-        <button id="continueSurvivalButton" class="secondary">Continue survival</button>
+        <button id="continueSurvivalButton" class="secondary">Continue endless</button>
       </div>
     </main>
   </div>
@@ -242,7 +263,7 @@
     <main class="panel build-panel">
       <header class="build-header">
         <div>
-          <p class="eyebrow">COMBAT PAUSED</p>
+          <p id="buildEyebrow" class="eyebrow">COMBAT PAUSED</p>
           <h2>Build</h2>
         </div>
         <div class="matter-wallet"><small>THIS RUN</small><div class="matter-large"><span id="buildMatter">0</span> MATTER</div></div>
@@ -352,6 +373,8 @@
   <script src="locales.js"></script>
   <script src="i18n.js"></script>
   <script src="telemetry.js"></script>
+  <script src="waves.js"></script>
+  <script src="cards.js"></script>
   <script src="progression.js"></script>
   <script src="progression-view.js"></script>
   <script src="run-upgrades.js"></script>

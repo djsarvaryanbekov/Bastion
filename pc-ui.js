@@ -28,11 +28,15 @@
   el("startButton").querySelector("strong").textContent = tr("Start run");
   document.querySelector(".start-actions").appendChild(button("pcRangeMenu", tr("Test range") + " <span>↗</span>", function () { api.startRange(); }));
   el("startTrainingButton").textContent = tr("Training");
-  var full = button("pcFullscreen", "⛶ " + tr("Fullscreen"), function () {
+  function toggleFullscreen(source) {
     var result = document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen({ navigationUI: "hide" });
-    if (result && result.catch) result.catch(function () { full.textContent = tr("Use F11 for fullscreen"); });
-  }, "pc-fullscreen secondary");
+    if (result && result.catch) result.catch(function () { source.textContent = tr("Use F11 for fullscreen"); });
+  }
+  var full = button("pcFullscreen", "⛶ " + tr("Fullscreen"), function () { toggleFullscreen(full); }, "pc-fullscreen secondary");
   root.appendChild(full);
+  // Esc leaves browser fullscreen mid-run, so Pause offers the way back.
+  var pauseFull = button("pauseFullscreen", "⛶ " + tr("Fullscreen"), function () { toggleFullscreen(pauseFull); }, "secondary");
+  el("pauseSettingsButton").insertAdjacentElement("afterend", pauseFull);
   el("advancedSettings").appendChild(el("debugBar"));
   var settings = el("settingsContent"), settingsScroll = element("div", "pc-settings-scroll"), settingsNav = element("nav", "pc-settings-nav");
   settingsNav.setAttribute("aria-label", tr("Settings sections"));
@@ -48,7 +52,11 @@
     settingsSection.appendChild(child);
   });
   settingsNav.appendChild(button("pcAdvancedSettings", tr("Advanced"), function () { el("advancedSettings").open = true; el("advancedSettings").scrollIntoView({block:"start"}); }, "secondary"));
-  document.addEventListener("fullscreenchange", function () { full.textContent = "⛶ " + (document.fullscreenElement ? tr("Windowed") : tr("Fullscreen")); });
+  document.addEventListener("fullscreenchange", function () {
+    var label = "⛶ " + (document.fullscreenElement ? tr("Windowed") : tr("Fullscreen"));
+    full.textContent = label;
+    pauseFull.textContent = label;
+  });
   el("buildButton").innerHTML = '<kbd>B</kbd> ' + tr("Build"); el("pauseButton").innerHTML = '<kbd>Esc</kbd> ' + tr("Pause");
   var nav = document.querySelector(".hangar-tabs");
   var cores = element("section", "hangar-panel hidden"); cores.id = "pcCoresPanel";
@@ -161,7 +169,7 @@
       else if (!el("pauseOverlay").classList.contains("hidden") && el("pauseOverlay").classList.contains("settings-view") && !api.presentation().menuSettings) { api.closeSettings(); event.preventDefault(); event.stopImmediatePropagation(); }
     }
     if (event.code === "Tab") {
-      var scope = ["pauseOverlay", "hangarOverlay", "buildOverlay", "resultOverlay", "menuOverlay"].map(el).find(function (node) { return !node.classList.contains("hidden"); });
+      var scope = ["pauseOverlay", "hangarOverlay", "buildOverlay", "waveOverlay", "milestoneOverlay", "resultOverlay", "menuOverlay"].map(el).find(function (node) { return !node.classList.contains("hidden"); });
       if (!scope) return;
       var focusable = Array.from(scope.querySelectorAll("button:not(:disabled), select, input, [tabindex='0']")).filter(function (node) { return node.getClientRects().length && !node.closest("[inert]"); });
       if (!full.classList.contains("hidden")) focusable.push(full);

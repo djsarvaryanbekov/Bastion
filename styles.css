@@ -87,6 +87,104 @@
     #pauseOverlay { z-index: 40; }
     .crash-overlay { z-index: 100; }
 
+    .wave-panel { width: min(980px, 96vw); text-align: center; }
+
+    .card-choices {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+      margin: 22px 0;
+    }
+
+    .wave-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      min-height: 230px;
+      padding: 18px 16px;
+      color: var(--text);
+      text-align: center;
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-top: 3px solid var(--muted);
+      cursor: pointer;
+    }
+
+    .wave-card:not(:disabled):hover, .wave-card:not(:disabled):focus-visible { border-color: var(--cyan); transform: translateY(-2px); }
+    .wave-card:disabled { cursor: default; opacity: .45; }
+    .wave-card.picked { opacity: 1; border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold); }
+    .wave-card.rarity-rare { border-top-color: var(--cyan); }
+    .wave-card.rarity-epic { border-top-color: var(--violet); }
+    .wave-card-icon { display: grid; place-items: center; width: 44px; height: 44px; flex: 0 0 auto; }
+    .wave-card-icon .module-glyph { width: 44px; height: 44px; }
+    .wave-card-stack { margin-top: auto; }
+    .wave-actions .primary:disabled { opacity: .35; filter: grayscale(1); }
+    .wave-card strong { font-size: 1.05rem; }
+
+    .wave-card-rarity, .wave-card-stack {
+      color: var(--muted);
+      font: 700 0.6875rem/1 ui-monospace, SFMono-Regular, Consolas, monospace;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    .wave-card.rarity-rare .wave-card-rarity { color: var(--cyan); }
+    .wave-card.rarity-epic .wave-card-rarity { color: var(--violet); }
+    .card-choices.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .card-choices.two { grid-template-columns: repeat(2, minmax(0, 300px)); justify-content: center; }
+    .card-choices.one { grid-template-columns: minmax(0, 300px); justify-content: center; }
+    .wave-card.rarity-duo { border-top-color: #b6ff6a; }
+    .wave-card.rarity-duo .wave-card-rarity { color: #b6ff6a; }
+    .wave-card.rarity-doctrine { border-top-color: var(--gold); }
+    .wave-card.rarity-doctrine .wave-card-rarity { color: var(--gold); }
+    .wave-card-icon.pair { width: 92px; gap: 4px; grid-auto-flow: column; }
+    .card-owned { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin-top: 12px; }
+    .panel.wave-panel { width: min(1040px, 96vw); height: auto; align-self: center; padding: 26px 32px 30px; }
+    .wave-panel .subtitle { margin: 10px auto 0; }
+    .wave-card:focus-visible, .pc-game .wave-card:focus-visible { outline: 2px solid var(--cyan); outline-offset: 3px; }
+    .catalog-cost.price-up, .pc-game .catalog-cost.price-up { color: #ff8a7a; }
+    .catalog-cost.price-down, .pc-game .catalog-cost.price-down { color: var(--green); }
+    .card-chip {
+      padding: 5px 10px;
+      color: var(--text);
+      font: 700 0.75rem/1.2 ui-monospace, SFMono-Regular, Consolas, monospace;
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+    }
+    .card-chip.kind-rule { border-color: var(--cyan); }
+    .card-chip.kind-duo { border-color: #b6ff6a; }
+    .card-chip.kind-doctrine { border-color: var(--gold); }
+    .card-chip.dormant { opacity: .45; border-style: dashed; }
+    button.card-chip, .pc-game .card-owned button.card-chip { cursor: pointer; min-height: 0; padding: 5px 10px; font: 700 .75rem/1.2 ui-monospace, SFMono-Regular, Consolas, monospace; letter-spacing: normal; text-transform: none; }
+    button.card-chip.active { background: rgba(101, 232, 255, .14); opacity: 1; }
+    .card-owned-detail { max-width: 640px; margin: 8px auto 0; color: var(--text); font-size: .875rem; line-height: 1.4; }
+    .card-symbol { width: 40px; height: 40px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; color: var(--muted); }
+    .wave-card.rarity-rare .card-symbol { color: var(--cyan); }
+    .wave-card.rarity-doctrine .card-symbol { color: var(--gold); }
+    .panel.wave-panel.doctrine-offer { border-top: 3px solid var(--gold); background: linear-gradient(180deg, rgba(231, 190, 103, .08), transparent 180px), var(--panel); }
+    .pc-game .panel.wave-panel.doctrine-offer { border-top: 3px solid var(--gold); }
+    .wave-panel.doctrine-offer h2 { color: var(--gold); }
+    .wave-panel.doctrine-offer .wave-card.rarity-doctrine { border-color: rgba(231, 190, 103, .45); border-top-color: var(--gold); box-shadow: inset 0 0 24px rgba(231, 190, 103, .06); }
+    .doctrine-pips { display: flex; justify-content: center; gap: 8px; margin-top: 10px; }
+    .doctrine-pip { width: 12px; height: 12px; border: 1px solid var(--gold); transform: rotate(45deg); opacity: .5; }
+    .doctrine-pip.filled { background: var(--gold); opacity: 1; }
+    .doctrine-pip.next { opacity: 1; box-shadow: 0 0 8px rgba(231, 190, 103, .8); }
+    .build-cell .cell-flagship { position: absolute; top: 3px; left: 50%; display: block; width: auto; height: auto; transform: translateX(-50%); z-index: 6; pointer-events: none; line-height: 0; }
+    .build-cell.strut { opacity: .6; border-style: dashed; }
+    .hud-cards .card-chip.live { background: rgba(101, 232, 255, .22); box-shadow: 0 0 8px rgba(101, 232, 255, .55); }
+    .cell-flagship .card-symbol { width: 18px; height: 18px; color: #2a1d06; fill: var(--gold); stroke-width: 1.2; }
+    .hud-cards { position: absolute; left: 2.5%; top: 78px; display: flex; flex-wrap: wrap; gap: 6px; max-width: 46%; pointer-events: none; }
+    .hud-cards .card-chip { padding: 3px 8px; font-size: .6875rem; background: rgba(4, 12, 27, .66); }
+    .build-cell.duo-hint, .pc-game .build-cell.duo-hint { border-color: #b6ff6a; box-shadow: inset 0 0 0 1px #b6ff6a; background: rgba(182, 255, 106, .06); }
+    .build-cell.duo-hint > span { color: #b6ff6a; }
+    .duo-link { position: absolute; z-index: 6; background: #b6ff6a; border-radius: 2px; opacity: .5; pointer-events: none; }
+    .duo-link.owned { opacity: 1; box-shadow: 0 0 6px rgba(182, 255, 106, .7); }
+    .duo-link.right { right: -10px; top: calc(50% - 3px); width: 18px; height: 6px; }
+    .duo-link.down { bottom: -10px; left: calc(50% - 3px); width: 6px; height: 18px; }
+    .wave-card-text { color: var(--muted); font-size: .875rem; line-height: 1.4; }
+    .wave-actions { justify-content: center; flex-wrap: wrap; }
+
     .crash-details {
       max-height: 180px;
       margin: 16px 0;

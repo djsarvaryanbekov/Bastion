@@ -132,6 +132,8 @@ vm.runInNewContext(fs.readFileSync("progression.js", "utf8"), sandbox, { filenam
 vm.runInNewContext(fs.readFileSync("progression-view.js", "utf8"), sandbox, { filename: "progression-view.js" });
 vm.runInNewContext(fs.readFileSync("run-upgrades.js", "utf8"), sandbox, { filename: "run-upgrades.js" });
 vm.runInNewContext(fs.readFileSync("campaign.js", "utf8"), sandbox, { filename: "campaign.js" });
+vm.runInNewContext(fs.readFileSync("waves.js", "utf8"), sandbox, { filename: "waves.js" });
+vm.runInNewContext(fs.readFileSync("cards.js", "utf8"), sandbox, { filename: "cards.js" });
 vm.runInNewContext(fs.readFileSync("upgrade-tree-view.js", "utf8"), sandbox, { filename: "upgrade-tree-view.js" });
 vm.runInNewContext(fs.readFileSync("test-range.js", "utf8"), sandbox, { filename: "test-range.js" });
 vm.runInNewContext(fs.readFileSync("combat-audio.js", "utf8"), sandbox, { filename: "combat-audio.js" });
@@ -213,7 +215,8 @@ if (sandbox.window.__driftBastion.getState().mobileInput.active) {
 gameCanvas.listeners.pointerdown({ pointerId: 8, pointerType: "mouse", clientX: 200, clientY: 200, preventDefault() {} });
 if (sandbox.window.__driftBastion.getState().mobileInput.active) throw new Error("Desktop mouse input incorrectly activated the floating joystick.");
 documentMock.getElementById("mobileBuildButton").listeners.click();
-if (sandbox.window.__driftBastion.getState().screen !== "building") throw new Error("Mobile build control did not open Build mode.");
+// Waves keep Build to the break; a mid-wave press must leave combat running.
+if (sandbox.window.__driftBastion.getState().screen !== "playing") throw new Error("Mobile build control opened Build mid-wave in a Waves run.");
 documentMock.getElementById("closeBuild").listeners.click();
 documentMock.getElementById("mobilePauseButton").listeners.click();
 if (sandbox.window.__driftBastion.getState().screen !== "paused") throw new Error("Mobile settings control did not pause combat.");

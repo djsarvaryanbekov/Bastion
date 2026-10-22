@@ -1,0 +1,147 @@
+# Backpack Battles: upgrade and positioning system study (for Bastion run cards)
+
+Researched 2026-10-21. Catalog: `../catalog/backpack-battles.csv` (499 rows, one per item, skill and chess piece in the wiki's item navbox).
+
+Backpack Battles (PlayWithFurcifer, Germany) is the closest mechanical peer to Bastion. Your power is a grid. Most items read their neighbours through **star (★) and diamond (◆) cells** printed around their footprint, and **recipes fuse adjacent items after a won round**. Early access opened 2024-03-08, 1.0 shipped 2025-06-13, and 1.1.0 (the Engineer class) followed on 2026-03-27. The latest version in the wiki's version index is 1.1.9b (2026-09-16).
+
+## Sources
+
+| Source | What it gave | Version / date seen |
+|---|---|---|
+| backpackbattles.wiki.gg item pages, fetched as HTML (the MediaWiki API returned 502). URL in the `source_url` column. | Infobox per item: rarity, cost, class, effect text, shop availability, **grid pattern** (Star / Cell / Diamond / Tertiary / Lightning cells), recipe and "used in", per-item version history | Live pages fetched 2026-10-21. Most item histories end around 1.0.x; the site footer of the Items page says last edit 2026-05-09 |
+| https://backpackbattles.wiki.gg/wiki/Recipe | 225 recipe rows: result, ingredients, catalyst column (44 rows use a catalyst), class | 2026-10-21 |
+| https://backpackbattles.wiki.gg/wiki/Game_Mechanics | Gold and HP per round, shop rarity odds per round, reroll cost, sale chance, buff and debuff definitions, star/diamond definition, subclass at round 8 | 2026-10-21 |
+| https://backpackbattles.wiki.gg/wiki/Version_History | Version and date index only. The patch pages themselves could not be fetched (see Gaps) | 2026-10-21 |
+| Wayback Machine snapshots of wiki pages, used only for items missing from the live fetch | Effect text from about 0.9.x (Jan 2025). Rows that use them say so in `source_url` | snapshots 2025-01-20 |
+| Steam discussions: star rule https://steamcommunity.com/app/2427700/discussions/0/4290313152638370831 · new-player basics https://steamcommunity.com/app/2427700/discussions/0/4290313152625938174 · bag overlap tip https://steamcommunity.com/app/2427700/discussions/0/3883851232917366966 | How players explain stars, bag overlap and recipe lines; confusion points | 2024 |
+| r/BackpackBattles: the top 100 posts by score, from one Pullpush archive request (reddit.com blocks direct fetches; Pullpush then rate-limited and states it does not serve agent scraping, so I stopped) | Player sentiment and patch posts; threads are linked inline below | 2023–2026 |
+| Aggregated Steam review sentiment: https://vaporlens.app/app/2427700/backpack_battles | Weighted praise and complaint themes | covers reviews up to 2025–26 |
+| Wikipedia https://en.wikipedia.org/wiki/Backpack_Battles · mein-mmo.de 1.0 coverage https://mein-mmo.de/90-prozent-positiv-auf-steam-indie-hit-backpack-battles/ · PCGamesN https://www.pcgamesn.com/backpack-battles/new-steam-hit | Sales (640k in the first month), structure (10 wins before 5 losses), 1.0 content (Mage, Adventurer), IGN 6/10 citing a thin item count (as reported by Wikipedia; I did not read the IGN review) | 2024–2025 |
+
+**Gaps (honest):**
+- I did not play the game. Everything here comes from the wiki, the community and review aggregates.
+- Reddit coverage is thin: only the 100 top-scored posts, with no comment threads. Most sentiment evidence comes from Steam threads and the vaporlens aggregate.
+- **Catalog re-captured 2026-10-22.** The first crawl (2026-10-21) hit HTTP 502 mid-way. A second pass captured all 499 rows live: 489 from the wiki's Cargo database export, 10 (late 1.0/1.1 items) from item pages. Their grids were read from page markup and are approximate. All 16 standard potions share one template grid (flagged in the rows). 304 rows have ★/◆/▲ cells and 8 have Engineer charge paths. The prose below was written from the first crawl and may predate some 1.1 values.
+- Patch-note pages (Patch_0.9.0, 1.0.0, 1.1.0) returned 502, and the Steam news hub renders client-side. The "Dev changes" section is therefore built from **per-item version histories on the wiki** (834 history rows) plus Reddit, not from the official patch-note prose.
+- The `effect_paraphrased` column is a **mechanical shorthand** of the in-game rule text (SoB = start of battle, ★/◆/▲ = star, diamond and tertiary neighbour cells, "foe" = opponent, "cycles X% quicker" = trigger-speed bonus, "sq" = charge squares). These are compact restatements of functional rules, not prose copies. The standout designs below are paraphrased by hand.
+- The `grid` pattern in `scaling` holds footprint, slot counts, compass placement, reach and the exact grid (from the Cargo export). Legend: `#` item cell, `*` star, `D` diamond, `T` tertiary, `L` Engineer charge path.
+- `downside` is partly heuristic (stamina cost, self-debuff wording, "once", footprint ≥6 cells), with hand checks on the standouts. Treat an empty value as "no obvious drawback in the rule text".
+
+## System structure
+
+**Run shape.** Up to 18 rounds. Each round is a shop phase, where you buy, sell, rotate and arrange, followed by an automatic 10–20 s fight against an **asynchronous snapshot of another player's backpack** at a similar record. You win the run at 10 wins and lose it at 5 losses. Survival mode can continue after 10 wins. Gold per round runs 13/13/15/10/11/11/12/**22** (round 8)/13/18/14…16. Your HP rises from 25 to 350 across the rounds (Game_Mechanics).
+
+**Grid and space.** Each class starts with 12–14 usable tiles of a 63-tile area. **Bags are items that create tiles**: Leather Bag 2×2, Fanny Pack 2 tiles (+10% speed to items inside), Stamina Sack, Potion Belt, class bags like the Ranger Bag (crit inside) and the Duffle Bag (battle rage inside), and Mage **Puzzlebags** shaped like tetrominoes. Items in Storage are inactive. Rotation is allowed. A bag's effect applies to an item if **any one of its cells sits inside the bag**, so players straddle an item across two bags to get both bonuses (Steam tip thread).
+
+**Neighbour language: printed slots, not generic adjacency.** Every item's tooltip shows its footprint plus surrounding **★ cells**. Some items also show **◆ cells** for a second, different requirement, and a few Mage items show a third **▲ "Tertiary"** type. The rule text names what must cover a ★ cell (for example "★ Weapons gain 1 damage" or "Triggers 10% faster for each ★ Food of a different type"). Key rules:
+- One neighbouring item counts **once per source item**, however many of the source's stars it covers. A Steam thread shows a player confused about why only some stars lit up. The community advice is to put a different item under every star.
+- Stars are part of the shape, so **rotating an item rotates its stars**. A Whetstone has two stars, one above and one below. A Hero Sword has a ring of 6. An Acorn Collar has all 8 around one cell. Wolf Emblem has a 7-wide row of stars flanked by 7-wide rows of diamonds.
+- **Empty star cells can be the payoff.** The Spear family destroys enemy Block per *free* star cell in front of its tip.
+- Some effects use **direction**. The Mage Hat reads rarity: Commons on one side, Rares on the other, Epics above and below. The Scale compares the gold value of its ★ side against its ◆ side. The Bag of Stones only affects stones "above" it.
+- In 212 of the 375 fully captured items (57%), the rule text references ★ or ◆. Positional play is the default in this game, not a niche.
+
+**How it is shown.** Tooltip slot icons on the footprint. Stars are reported to light up when satisfied: players describe yellow or green star states, and this needs in-game confirmation. A faint **line connects recipe partners in shop and backpack; it is blue for "these combine" and turns yellow when they are placed adjacent**. A Recipes book in the menu and shop shows silhouettes until each recipe is discovered.
+
+**Recipes.** Adjacent ingredients fuse **at the start of the next shop phase, and only after a won fight** (losing means no combine, per several guides). Right-clicking an item locks it against fusing. A **catalyst** item enables a fusion and survives it: the Cauldron upgrades any potion to its Strong version, Forging Hammer and Utility Pouch drive Berserker smithing, Mana Orb plus Dagger gives Spectral Dagger, and Fire (Flame) lights a Torch. There are 225 recipe rows. Most are 2-ingredient, some 3–5: Twine-bound Adventurer crafts, the 4× Stone Golem, and the four-Goobert Rainbow Goobert per class. Long chains are common (Wooden Sword → Hero Sword → Hero Longsword or Falcon Blade → Crossblades). Engineer adds an alternative trigger: selling or trading a **Cog** fuses items immediately, and the Box of Cogs disables automatic fusing.
+
+**Shop and rarity.** The shop shows 5 items. Rerolls cost 1 g for the first four, then 2 g. Right-click reserves an item through refreshes. Each item has a 10% chance to be on sale at half price. Selling returns half. Rarity tiers are Common, Rare, Epic, Legendary, Godly and Unique, with odds by round. Round 1 is 90/10/0/0/0. Round 6 is 29/40/20/10/1. Rounds 12–18 are 20% each across Common to Godly. Unique items have separate gates: "only one Unique", subclass items and treasure items. Several items **add items to the shop pool**: Box of Riches adds gemstones, Deck of Cards adds playing cards, Chess Board adds chess pieces, Dragon Nest adds dragon eggs, Frozen Flame adds Ice items, and Big Bowl of Treats adds forest pets. That makes "unlock a sub-pool" a recurring reward shape.
+
+**Classes and their identity mechanic.** Each class has its own shop pool plus Neutral items.
+- Ranger: luck, crit, pets and food.
+- Reaper: poison, debuffs, playing cards revealed in ★ order.
+- Berserker: battle rage, smithing via catalysts.
+- Pyromancer: Heat stacks, Flames, dragons.
+- Mage (1.0): mana, spells, **wizard chess** pieces that move and capture inside the backpack, tetromino Puzzlebags.
+- Adventurer (1.0): Twine-bound multi-item crafts, treasure, trade offers.
+- Engineer (1.1): **charges** that emitters send travelling through the grid in printed paths (`L` cells). An item under a charge speeds up, scaling with the distance travelled.
+
+**Subclass items (round 8).** At round 8 the shop offers the class's subclass items. You buy one Unique item that redefines the build, and each class has five. Captured examples:
+- Pyromancer: Dragon Nest (Scalewarden) makes eggs hatch faster and adds eggs to the shop. Frozen Flame (Cryomancer) adds Ice items. Dark Lantern (Ashbringer) halves your HP and reincarnates you. Friendly Fire (Firebender) hits Heat thresholds at 20/40/60. Burning Banner (Crusader).
+- Berserker: Anvil (Blacksmith) rewards crafted items. Wolf Emblem (Pack Leader). Deerwood Guardian (Chieftain). Brass Knuckles (Fighter). The Shaman item was not captured.
+- Ranger: Piercing Arrow (Hunter), Big Bowl of Treats (Beastmaster), Poison Ivy (Pathfinder), Mega Clover (Grovekeeper), Yggdrasil Leaf (Lifebinder).
+- Reaper: Cursed Dagger (Hexblade), Mr. Struggles (Witch), Nocturnal Lock Lifter (Vampiress), Snake (Venomancer).
+- Mage: Rainbow Potion (Magical Girl), Spirit Bells (Spectromancer).
+- Adventurer: Fedora (Archaeologist), Scale (Merchant), Mercury Elemental (Weaponmaster).
+- Engineer: Hypercube (Materials Scientist), Laboratory (Chemist), Mana Crystal (Artificer), Mecha Armor (Power Pilot).
+
+**Skills.** Skills are bought at round 3, round 10, or either (58 skills in the catalog). They mostly rewrite a family rule. Examples: "Acorn Collars have more ★ slots", "Daggers attack 40% faster", "Fanny Packs give +7% speed, Potion Belts give buffs". The wiki also shows a grid with star patterns for many skills (for example Echoing Battlecry, Arcane Vision). I did not verify how a skill sits in the backpack.
+
+**Combat model.** Items run on cooldowns, and weapons spend stamina. Buffs are stacking resources (Empower, Heat as +2% trigger speed per stack, Luck as accuracy, Mana, Regeneration, Spikes as thorns, Vampirism). Debuffs are Blind, Cold (−2% trigger speed per stack) and Poison. Fatigue ramps damage late in a fight. Many items are "Start of battle" snapshots, "Every N s" timers, "On hit" effects, threshold one-shots ("Health drops below 50%: … (once)"), or **resource spends** ("Use 7 Regeneration: gain 100 max HP (once)").
+
+## What players love
+
+- **The shop-phase tinkering is the game.** Players say most of their time goes into rearranging for better "item flow". Theory-crafting odd builds that work is cited as most of the fun (Steam discussions; vaporlens lists "fun and addictive" at weight 0.46, "build variety" 0.26 and "deep item crafting" 0.16).
+- **Stars make placement a readable puzzle.** The Steam explanation that a star wants a *different* item under each cell is a point players say turned confusion into "aha". A veteran called slots worth more than the item itself.
+- **Recipes as discovery.** People enjoy finding combos themselves. The recipe book's silhouettes and the blue-to-yellow line give a light hint without spoiling.
+- **Run-defining set pieces.** Highly upvoted posts celebrate degenerate engines that only exist because of placement, such as an "infinite heat build" whose poster "wasn't even mad to lose against it" (https://www.reddit.com/r/BackpackBattles/comments/1abgjuu/), and chess and Engineer novelty ("Chess is hard", https://www.reddit.com/r/BackpackBattles/comments/1qb823a/).
+- **Emergent tricks** that come from interacting rules get shared enthusiastically. One example: two Customer Cards plus reserving 4 of 5 shop slots double-upgrades the remaining slot (https://www.reddit.com/r/BackpackBattles/comments/1lnjok1/). Players also run community "Mechanics & Tricks" threads (https://www.reddit.com/r/BackpackBattles/comments/1mtyvy3/) and per-item daily discussions that redraw each item's star grid in ASCII (https://www.reddit.com/r/BackpackBattles/comments/1bus40c/). The grid pattern *is* the item's identity in community talk.
+- **No pay-to-win.** "ty devs" from a self-described refugee from The Bazaar's monetization (https://www.reddit.com/r/BackpackBattles/comments/1j49uyg/).
+
+## What players hate
+
+- **Matchmaking against asynchronous ghosts** feels unfair: "ignores lives", deliberate counter-builds, high-rolled opponents (vaporlens weights: broken matchmaking 0.18, ranked rigged 0.15, RNG dominates 0.14). Bastion is PvE, so this mostly doesn't transfer. The lesson that does transfer: **a single bad shop roll should not lock a run.**
+- **Steep learning curve and memorization** (0.12). There are 500+ items, the tutorial is thin and the wiki is needed (vaporlens rates wiki dependency 75/100). The star "one item counts once" rule is the classic confusion.
+- **Item bloat** ("too many useless items", 0.07) alongside a contrary complaint that a few builds dominate (Crit Ranger, Holy Spear named in reviews and Steam threads).
+- Balance swings: the patch cadence was weekly during early access, so builds that worked suddenly fall off ("my builds … suddenly fall off hard", Steam).
+- **Recipe-ingredient scarcity.** "Mana orbs build into too many things" (https://www.reddit.com/r/BackpackBattles/comments/1m614j6/) describes being handed a staff start and never seeing the second shared ingredient. When one common item feeds many recipes and buffs, missing it bricks the build.
+- **More items made targeting harder.** A day-one 1.0 reaction praised the new synergy tools but said the bigger shop pool made it harder to hit desired items while rolling (https://www.reddit.com/r/BackpackBattles/comments/1lb0d7a/). This is pool dilution.
+- **Rule wording traps.** A 60-hour player only then learned that "After 5s" fires once while "Every 5s" repeats (https://www.reddit.com/r/BackpackBattles/comments/1lz1d1y/). New players ask whether a half-inside item gets the bag bonus (it does; https://www.reddit.com/r/BackpackBattles/comments/1q9bav0/). Implicit spatial rules need explicit UI.
+- **Mobile port:** placing items precisely on a touchscreen was called near-impossible at launch (https://www.reddit.com/r/BackpackBattles/comments/1qvnx7m/). Grid precision is an input problem as much as a design one.
+
+## Dev changes (from per-item wiki histories)
+
+- **Star-slot count is the main balance dial for positional items.** Anvil went from 9 to 7 stars (0.9.6), then +1 (0.9.7), then −1 (0.9.8). Big Bowl of Treats got +4 star tiles (0.9.16), then −2 (0.9.20). Piggybank lost 2 affected slots (0.7.4). Lucky Piggy was set to exactly 2 stars with its bonus cut from 25% to 15% (0.8.2). Artifact Stone: Cold had stars reduced. Amulet of Alchemy got more stars (0.9.24). In other words, the dev tunes **how many neighbours can contribute** more often than the per-neighbour number.
+- **Continuous auras became Start-of-battle snapshots** (0.7.3: Whetstone, Hero Sword, Hero Longsword, Gloves of Haste). This makes buffs predictable and stops them being recomputed mid-fight.
+- **Empty-space rewards were narrowed.** Holy Armor was reworked from "Regeneration per empty slot" to "per adjacent Holy item" (0.4.3). Spear Block removal per free slot went 4 → 5 → 4 (0.2.1, 0.5.2). Only the Spear line kept the empty-space payoff, and its upgrades let themed items substitute for empty cells (Holy Spear counts Holy items, Molten Spear counts Fire items).
+- **Neighbour-type rewards replaced flat stats.** Bloody Dagger was reworked to heal per adjacent Vampiric item (0.4.3). Mrs. Struggles became "10% faster per ★ Dark item" (0.9.4). Piggybank added max HP per adjacent Start-of-battle item (0.7.3).
+- **Anti-stacking clauses instead of bans.** All Engineer cubes say that if another cube already advanced the same ★ item's cooldown, the advance is cut by 80%. Rope's speed bonus is capped at 50% shared across all Ropes. You can only have one Spirit Companion (unless you own Spirit Bells). Mana Orb's big payoff became "once" (0.9.12).
+- **Recipe and economy edits.** Hero Sword's recipe changed to Wooden Sword + Whetstone, with its neighbour bonus cut from 2 to 1 (0.9.29). Catalyst recipes like Cauldron → Strong potions keep a single enabler useful all run.
+- **Content waves added whole spatial sub-systems rather than more stat items.** 1.0 brought Mage chess (pieces moving inside the grid) and tetromino Puzzlebags. 1.1 brought Engineer charges travelling printed paths, plus a Backpack Swap mode (reported by gamegeeker.com, not verified on an official page).
+- From patch posts on Reddit:
+  - **1.0.6** "Pandamonium: added more ★ tiles" (https://www.reddit.com/r/BackpackBattles/comments/1m963in/), the star-count dial again.
+  - **0.9.5** cut badge appearance in the first 3 rounds to a flat 10% (from 25/3/3) and trimmed Wolf Badge speed 20% → 15% (https://www.reddit.com/r/BackpackBattles/comments/1c28ffw/). Badges grant other classes' pools, so access was gated early.
+  - **0.9.7** devnote: they were "mostly through the ripple effects of adding the new classes" and slowing to a less-than-weekly balance cadence (https://www.reddit.com/r/BackpackBattles/comments/1cdgwkp/).
+  - The subreddit runs **"Meta Status" reports** after each batch of balance changes. These are community-written, with a shared tier list, not official (https://www.reddit.com/r/BackpackBattles/comments/1k6vp1e/).
+
+## Standout positional designs, and why they work
+
+1. **Whetstone and Hero Sword: the two-star buffer.** A 1-cell Common with a star above and below gives +1 damage to each weapon there. It teaches the whole language in one item: shape, then stars, then a named target type, then rotation. Cheap, readable, and it scales with layout skill rather than gold. Its upgrade (Hero Sword) is *also* a weapon with a 6-star ring, so the buffer becomes a hub.
+2. **Spear family: reward the empty cell.** Damage against Block scales with **free** star cells along the spear's tip line. It is the only common item that wants space you could have filled. Its upgrades swap "empty" for a theme (Holy, Fire, Nature), so the item's identity carries into each class. It creates a real build tension: tight packing versus a clear lane.
+3. **Goobert line: count the neighbours' activity, not their stats.** "Every 5 activations of ★ items: heal." Fast neighbours make Goobert fire more, so it rewards the tempo of the cluster around it. Every class has its own Goobert variant, and the Rainbow Goobert is a 5-recipe capstone, which turns one pet into a long-term project.
+4. **Food "different-type" rule.** Each food triggers 10% faster per ★ food *of a different type* (not its own kind). This is an elegant anti-monoculture rule: diversity in the neighbourhood is the reward, which pushes players to mix rather than stack copies.
+5. **Villain Sword: tax the neighbours, feed yourself.** ★ melee weapons get −2 damage, and the sword gains +4 per ★ melee weapon. The same neighbour is both a cost and a benefit. That is a placement trade-off, not a free buff.
+6. **Sloth: slow now, explode later.** ★ items trigger 30% slower, but you gain max HP per ★ item, and at 25 s it "awakens" (10 of each buff plus a stun). The cost lands on the neighbours and the payoff arrives on a fight timer, so the player has to plan around fight length.
+7. **Scale (Adventurer, Merchant subclass): balance two sides.** It compares the gold value of the items on its ★ side against its ◆ side. It triggers faster per gold on the lighter side, and if the sides differ by 5 or less, both sides trigger 30% faster. This is a **symmetry** objective, unlike anything a plain stat buff offers.
+8. **Mage Hat: each side wants something different.** Commons on one side give Block, Rares on the other give Mana, and Epics above and below (the Tertiary ▲ cells) give damage resistance. One item turns a 3×3 neighbourhood into a three-part brief.
+9. **Engineer charges: buffs that travel.** Battery, Generator and Mana Crystal emit a charge that moves along a printed `L` path about one square every 2 s. The item under the charge triggers faster, scaling with **distance travelled** (+10% plus 5% per square for Battery). Port-O-Charger repeats emissions inside it at 150% travel speed. Layout becomes a circuit: long straight runs and what sits at the end of the line matter.
+10. **Rope: a chain reaction between two neighbours.** When the ★ item activates, the ◆ item triggers 10% faster for 6 s (capped at 50% shared across all ropes). It is a directional link: A drives B. The cap stops infinite stacking.
+11. **Repeater / Echoing Battlecry: replay the neighbours' opening.** At 12 s, repeat the Start-of-battle effects of the ★ items. Echoing Battlecry replays a random ★ opener every 14 s and speeds up per adjacent opener. This turns cheap "on start" items into mid-fight spikes, but only next to the right hub.
+12. **Gemstones: one item, three meanings by placement.** Each gem has a weapon-socket effect, an armor-or-other-socket effect, and a loose-in-backpack effect, with five quality tiers that fuse up when identical gems touch. Placement chooses the effect, so the same pickup stays relevant whatever your build.
+13. **Bags with inside-rules, plus the overlap trick.** A bag gives a rule to whatever is inside it: Fanny Pack +10% speed, Duffle Bag rage speed, Storage Coffin poison chance, Puzzlebox slow for 5 s then 50% faster. One cell inside is enough, so straddling two bags is skill expression.
+14. **Subclass item as a pool unlock.** Dragon Nest, Frozen Flame, Deck of Cards and Chess Board change *what the shop sells* as well as stats. A single pick redirects the rest of the run.
+
+## Ideas worth transforming for Bastion
+
+Bastion already has neighbour rules (Ember next to guns, Cryo next to Rail or Missile, Reactor and Bulkhead 3×3, Shield and Repair radius). What Backpack Battles adds is **printed, shaped slot patterns with named targets**, **costs paid by neighbours**, **empty-space rewards**, **travelling effects** and **fusion at the break**. Card ideas built on those, each grounded in a design above:
+
+1. **Slot-pattern cards (Whetstone / Hero Sword pattern).** A rare card "imprints" a chosen module with a visible ★ pattern: a 2-cell line fore and aft, a cross, or a diagonal X. Whatever covers a star gets a named bonus, such as "★ weapons +20% fire rate" or "★ armour reflects 10%". Show stars in Build as glowing cells and light them when satisfied. Copy BB's rule that one neighbour counts once. Rotation is free because the ship rotates but the grid doesn't. Hook: `validPlacement` preview plus `resolveWeaponDefinition`.
+2. **Clear-lane weapons (Spear).** "Lancer Protocol": a Rail or Cannon gains pierce and damage for each **empty** grid cell in its firing direction from the hull edge. In a drift ship this rewards protruding gun-arms and open lanes, which conflicts with Bulkhead packing. Losing modules mid-wave can *raise* this bonus, a nice comeback. Hook: count empty cells along the module's facing in `updateWeapons`.
+3. **Activity counter hub (Goobert).** A support module or card: "Every 25 shots fired by ★ weapons, emit a repair pulse / arc ring". Fast weapons around it fire it more, so it fits Bastion's auto-fire without a new stat. Rainbow-style capstone: if the four ★ cells hold four *different* families, the pulse also chills or ignites. Hook: shot counter in `fireAttack`.
+4. **Mixed-arsenal rule (Food).** "Diverse Battery": each weapon fires 6% faster per **distinct** weapon family edge-adjacent to it, not counting its own family. A cheap, readable push against stacking copies, and it combos with the existing Ember/Cryo pair rules.
+5. **Neighbour tax (Villain Sword / Sloth).** "Leech Core": adjacent weapons fire 25% slower, and this core gains +X damage per drained neighbour and fires a heavy shot. "Dormant Bulwark": adjacent modules fire 30% slower, the ship gets +15% max HP per neighbour, and at 25 s into the wave the bulwark wakes (shockwave plus knockback ring). Fits Bastion's wave timer, and swarm waves that run long pay off.
+6. **Symmetry card (Scale).** "Balanced Keel": compare the Matter value of modules left and right of the ship's centreline. If they differ by ≤ N Matter, turn rate and fire rate +15%, and each side's guns fire faster per Matter of imbalance toward the lighter side. Drift flight makes symmetry *felt* (handling) as well as numeric. Only Bastion, being a ship, can do this naturally.
+7. **Travelling charge (Engineer).** "Conduit": every 6 s the Reactor sends a pulse along its row and column, one cell per 0.4 s. Each module it passes overclocks briefly, and the bonus grows with distance travelled, so long spines are rewarded. Built from the existing arc and line VFX. Hook: `updateSupportModules`, plus a per-tile timed buff read in `weaponCooldownRate`.
+8. **Chain link (Rope).** "Relay Coupling": when a ★ module fires, its ◆ neighbour fires 15% faster for 4 s, with a 50% shared cap. Directional cards add a planning step without new art (draw a thin arrow in Build).
+9. **Repeat the opener (Repeater).** "Second Salvo": at the wave's midpoint (or when the sweep starts), adjacent modules re-run their wave-start effects: shield nodes re-pop, Ember flame bursts re-fire. Hook: `beginSweep`.
+10. **Placement-chosen meaning (Gemstones).** A Matter pickup "Prism Shard" that you place in Build. Next to a weapon it adds burn or chill on hit. Next to armour it gives damage reduction. On an empty cell (no module) it gives a passive aura. One drop stays useful for every build, and it gives designers a pool lever.
+11. **Fusion at the wave break (Recipes).** Two specific edge-adjacent modules fuse into a hybrid *after a cleared wave*: Ember + Flak → Napalm Flak, Cryo + Rail → Frost Lance. Show a dashed link line in Build (blue = would fuse, gold = adjacent), and let a right-click lock prevent it. A catalyst variant: a card "Forge" that fuses without being consumed. This matches BB's strongest loop: you plan placement now and get the reward after surviving.
+12. **Doctrine pick at wave ~8 (subclass item).** One Unique card that **adds new module types to the Build shop** and rewrites a family rule ("Cryo Doctrine: Ice modules offered; chilled enemies take +2% per Cryo module"). It mirrors BB's round-8 subclass. Save a few of the 20 waves' card picks for "pool unlocks" instead of stats.
+13. **Zones that buff what's inside (Bags).** "Armoured Frame": a 2×2 frame card overlays four grid cells, and modules with at least one cell inside get its rule (+fire rate, or +burn). A module straddling two frames gets both. Gives the Reactor/Bulkhead 3×3 idea a player-placed version, and swarm pressure from several directions makes frame placement matter.
+14. **Delayed payoff (Dragon eggs, Sloth timer).** "Incubator": a module that does nothing for 2 waves, then hatches into a Unique drone wing. Good for wave breaks and a reason to protect a specific cell (detachment risk).
+
+**Pitfalls to avoid, from BB's history:**
+- Use **slot count as the balance dial**.
+- Prefer start-of-wave snapshots over continuous recalculation where possible (cheaper, clearer).
+- Add **anti-stacking clauses** (shared caps, "−80% if already boosted") instead of hard bans.
+- Make the **"one neighbour counts once"** rule visible in the UI. It is BB's most repeated confusion.
+- Keep text short, because players already complain about memorization load. Bastion translates into 16 languages, so pattern and icon communication beats prose.

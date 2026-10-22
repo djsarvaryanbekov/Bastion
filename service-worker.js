@@ -1,6 +1,6 @@
 "use strict";
 
-var CACHE_NAME = "drift-bastion-v57-i18n";
+var CACHE_NAME = "drift-bastion-v58-waves";
 var APP_SHELL = [
   "./",
   "./index.html",
@@ -9,6 +9,8 @@ var APP_SHELL = [
   "./locales.js",
   "./i18n.js",
   "./telemetry.js",
+  "./waves.js",
+  "./cards.js",
   "./progression.js",
   "./progression-view.js",
   "./run-upgrades.js",
