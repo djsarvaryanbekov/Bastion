@@ -8,6 +8,17 @@ Download `outputs/Drift_Bastion_Playtest_Package.zip`, extract it, and open `Dri
 
 Matter buys modules and weapon upgrades within a run. Fragments fund permanent Hangar purchases. Browser saves and exported playtest logs stay local; exporting a log does not upload it.
 
+## Mobile
+
+`outputs/Bastion_Android.apk` is the phone build: landscape only, immersive fullscreen, English, Russian and Uzbek. `outputs/Drift_Bastion_Mobile.html` is the same build for a phone browser; Chrome enters fullscreen on the first tap, and a phone held upright is asked to turn sideways. Both keep their own saves, separate from the PC game.
+
+```sh
+npm run build:apk    # mobile HTML from the canonical PC HTML, then the APK
+npm run test:mobile  # landscape phone regression check
+```
+
+The export layers `mobile-v21.css`, `mobile-share.css`, `mobile-landscape.css` and `mobile-share.js` over the PC HTML (`tools/build-mobile-standalone.js`). The Android wrapper in `android/` builds with the SDK and JDK from Unity's Android module, without Gradle (`tools/build-android-apk.cjs`). Keep `android/playtest.keystore`: Android installs an update over an existing copy, keeping its saves, only when both are signed with the same key. It is not in Git because the repository is public; copy it by hand to any other machine that builds the APK. Without it the build creates a new key, and phones must uninstall the old copy first.
+
 ## Development
 
 Use Node.js 24 or later.

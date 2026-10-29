@@ -4,7 +4,12 @@ node_modules/
 /outputs/*
 !/outputs/Drift_Bastion_Playtest.html
 !/outputs/Drift_Bastion_Playtest_Package.zip
+!/outputs/Drift_Bastion_Mobile.html
+!/outputs/Bastion_Android.apk
 /%SystemDrive%/
+/android/build/
+# The repository is public: a published signing key would let anyone ship an "update" over installed copies.
+/android/*.keystore
 .env
 .env.*
 !.env.example

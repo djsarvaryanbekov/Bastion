@@ -1,0 +1,197 @@
+/* Mobile export only, loaded after mobile-v21.css and mobile-share.css. The game is played in landscape:
+   the Android app locks it, and a browser held upright shows .rotate-notice instead of the game. */
+
+.rotate-notice { display:none; }
+
+@media (hover:none) and (pointer:coarse) {
+  /* WebViews older than dvh support would otherwise fall back to the 16:9 desktop letterbox. */
+  #pcViewport { height:100vh; height:100dvh; }
+  /* Log export downloads a file, which the Android app cannot receive. */
+  body.app-shell .playtest-data { display:none!important; }
+  /* The phone layout is tuned for 100% text; larger UI text would push actions off a 360px-tall screen. */
+  :root { --ui-scale:1!important; }
+  body.mobile-share .setting-row:has(#uiScaleSelect) { display:none!important; }
+  body.mobile-share .settings-controls { display:none!important; }
+  body.mobile-share .pc-fullscreen.mobile-fs-off,
+  body.mobile-share #pauseFullscreen.mobile-fs-off { display:none!important; }
+  /* Hidden fullscreen toggles must not leave a half-width Close button behind. */
+  body.mobile-share #pauseOverlay.settings-view .pause-actions { display:flex!important; justify-content:center; }
+  body.mobile-share #pauseOverlay.settings-view .pause-actions button { flex:1 1 0; max-width:420px; }
+}
+
+@media (hover:none) and (pointer:coarse) and (orientation:portrait) {
+  body.mobile-share .rotate-notice {
+    position:fixed; inset:0; z-index:1000;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px;
+    padding:24px; background:#050814; color:#dceff4; text-align:center;
+  }
+  body.mobile-share .rotate-notice svg { width:84px; height:84px; color:#54d6ce; animation:rotate-notice-turn 2.4s ease-in-out infinite; }
+  body.mobile-share .rotate-notice p { max-width:260px; margin:0; font-size:15px; line-height:1.4; }
+  body.mobile-share.reduced-flash .rotate-notice svg { animation:none; transform:rotate(-90deg); }
+}
+
+@keyframes rotate-notice-turn {
+  0%, 20% { transform:rotate(0deg); }
+  55%, 100% { transform:rotate(-90deg); }
+}
+
+@media (hover:none) and (pointer:coarse) and (orientation:landscape) {
+  /* ---------- Menu ---------- */
+  body.mobile-share .pc-menu-mark { display:none; }
+  body.mobile-share .start-wallet { flex-direction:column; align-items:flex-end; gap:2px; }
+  body.mobile-share .start-wallet small { display:block; font-size:9px; letter-spacing:.14em; color:var(--muted); }
+
+  /* ---------- HUD ---------- */
+  body.mobile-share .hud-chip label { font-size:9px!important; }
+
+  /* ---------- Hangar: section tabs become a left rail, panels keep the full height ---------- */
+  body.mobile-share .hangar-screen {
+    display:grid!important;
+    grid-template-columns:clamp(108px,16vw,150px) minmax(0,1fr)!important;
+    grid-template-rows:auto minmax(0,1fr)!important;
+    column-gap:12px!important;
+    padding-bottom:env(safe-area-inset-bottom)!important;
+  }
+  body.mobile-share .hangar-header { grid-column:1 / -1; grid-row:1; }
+  body.mobile-share .hangar-tabs {
+    grid-column:1; grid-row:2; align-self:start;
+    display:flex!important; flex-direction:column;
+    width:auto; margin:8px 0 0!important; padding:0!important;
+    gap:4px!important; border:0!important; background:none; overflow:visible!important;
+  }
+  body.mobile-share .hangar-tab {
+    grid-template-columns:minmax(0,1fr)!important;
+    place-items:center start;
+    min-height:44px!important; padding:8px 12px!important;
+    text-align:left;
+  }
+  body.mobile-share .hangar-tab strong { grid-column:1; font-size:12px; line-height:1.2; }
+  body.mobile-share .hangar-tab.selected { box-shadow:inset 3px 0 0 #6bd4d1; }
+  body.mobile-share .hangar-panel { grid-column:2; grid-row:2; }
+  body.mobile-share .armory-details { overflow-y:auto!important; overscroll-behavior:contain; }
+  body.mobile-share .systems-selector small { font-size:9px!important; }
+  body.mobile-share .pc-hangar-context span { font-size:9px!important; }
+
+  /* ---------- Build ---------- */
+  body.mobile-share .build-stage { position:relative; }
+  body.mobile-share .build-preview-status {
+    position:absolute!important; left:8px; right:8px; bottom:8px; z-index:5;
+    min-height:0!important; padding:5px 9px!important;
+    border-radius:6px; background:rgba(8,19,29,.92);
+    font-size:11px!important; line-height:1.35; pointer-events:none;
+  }
+  body.mobile-share .build-preview-status.is-empty { display:none!important; }
+  body.mobile-share .pc-build-zoom button { min-width:34px; }
+  /* One vertical library list: grouped rows in the narrow column put every module after the first of its group out of reach. */
+  body.mobile-share .build-panel:not(.pc-tree-open) .catalog-group-items { flex-direction:column!important; }
+  body.mobile-share .build-panel:not(.pc-tree-open) .catalog-card { flex:0 0 auto!important; width:auto!important; }
+  body.mobile-share .build-panel:not(.pc-tree-open) .catalog-group-title { display:block!important; margin:8px 2px 4px; padding:0; font-size:9px; letter-spacing:.14em; color:#87a5b2; }
+  body.mobile-share .build-panel:not(.pc-tree-open) .catalog-group:first-child .catalog-group-title { margin-top:0; }
+  body.mobile-share .catalog-wrap>.build-section-label { font-size:9px!important; }
+  body.mobile-share .catalog-card strong { font-size:10.5px!important; }
+  body.mobile-share .catalog-card .catalog-cost { font-size:10px!important; }
+  body.mobile-share .build-selection .module-role { font-size:9px!important; }
+  body.mobile-share .pc-tree-open .pc-family-card { flex-wrap:nowrap!important; flex-basis:156px!important; width:156px!important; }
+  body.mobile-share .pc-tree-open .pc-family-label strong { font-size:11px!important; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  body.mobile-share .pc-tree-open .pc-family-label small { font-size:9px!important; }
+
+  /* ---------- Training ---------- */
+  body.mobile-share .training-hud { top:calc(6px + env(safe-area-inset-top)); }
+
+  /* ---------- Test range: the open lab panel (280px + 12px margin) owns the right side ---------- */
+  body.mobile-share #pcViewport:has(#pcRangePanel:not(.hidden):not(.mobile-range-collapsed)) .health-shell { left:calc((100% - 292px) / 2); }
+  body.mobile-share #pcViewport:has(#pcRangePanel:not(.hidden):not(.mobile-range-collapsed)) #mobileBuildButton { visibility:hidden; }
+}
+
+/* Phones: every height-critical surface has to fit 360-430px without hiding its main action. */
+@media (hover:none) and (pointer:coarse) and (orientation:landscape) and (max-height:500px) {
+  /* ---------- Hangar ---------- */
+  body.mobile-share #hangarWeaponsPanel>.hangar-section-title,
+  body.mobile-share #starterBrief { display:none!important; }
+  body.mobile-share #weaponPicker .pick-button { min-height:108px!important; }
+  body.mobile-share .armory-details>h3 { font-size:16px!important; }
+  body.mobile-share .armory-detail-description { font-size:12px!important; line-height:1.35!important; }
+  /* The detail panel scrolls on short screens; its purchase stays on screen and text scrolls beneath it. */
+  body.mobile-share .research-detail .research-purchase { position:sticky; bottom:0; z-index:2; box-shadow:0 12px 0 #132936; }
+  body.mobile-share .research-header>div:first-child { display:none!important; }
+  body.mobile-share .research-header { flex-direction:row!important; align-items:center!important; padding:0 0 6px!important; }
+  body.mobile-share .research-controls { flex:1 1 auto; }
+
+  /* ---------- Build: one header row instead of two ---------- */
+  body.mobile-share.pc-game:not(.training-in-build) .build-header {
+    grid-template-columns:auto minmax(0,1fr) auto auto!important;
+    grid-template-rows:auto!important;
+    padding:calc(5px + env(safe-area-inset-top)) max(9px,env(safe-area-inset-right)) 5px max(9px,env(safe-area-inset-left))!important;
+  }
+  body.mobile-share.pc-game:not(.training-in-build) .pc-build-tabs { grid-column:2; grid-row:1; justify-self:center; width:min(100%,340px); }
+  body.mobile-share.pc-game:not(.training-in-build) .matter-wallet { grid-column:3; grid-row:1; }
+  body.mobile-share.pc-game:not(.training-in-build) #closeBuild { grid-column:4; grid-row:1; }
+  body.mobile-share.pc-game:not(.training-in-build) .pc-build-tabs button { min-height:34px!important; }
+  body.mobile-share .build-panel:not(.pc-tree-open) .pc-build-guide { margin:6px 6px 0!important; padding:4px 8px!important; }
+  body.mobile-share .pc-build-guide button { min-height:32px!important; }
+  body.mobile-share .build-grid-wrap { padding:6px!important; }
+  body.mobile-share .build-grid { padding:6px!important; }
+  body.mobile-share .pc-tree-open .build-upgrade-panel { padding:6px 8px!important; }
+  body.mobile-share .pc-tree-open .build-content { grid-template-rows:64px minmax(0,1fr)!important; }
+  body.mobile-share .pc-tree-open .pc-family-card { min-height:50px!important; padding:6px 8px!important; }
+  /* The tree gets the full height: zoom controls float over the map, the family strip already names the module. */
+  body.mobile-share .pc-tree-open .research-workspace { position:relative; }
+  body.mobile-share .pc-tree-open .research-header { position:absolute!important; z-index:4; top:6px; left:6px; padding:0!important; pointer-events:none; }
+  body.mobile-share .pc-tree-open .research-controls { pointer-events:auto; gap:4px!important; }
+  body.mobile-share .pc-tree-open .research-controls button { min-height:32px!important; }
+  body.mobile-share .pc-tree-open .research-pan-hint,
+  body.mobile-share .pc-tree-open .research-detail .research-art { display:none!important; }
+  /* Tight spacing lets the run-upgrade detail fit without scrolling, so the pinned purchase covers nothing. */
+  body.mobile-share .pc-tree-open .research-detail { padding:8px 10px!important; }
+  body.mobile-share .pc-tree-open .research-detail>* { margin-top:0!important; margin-bottom:5px!important; }
+  body.mobile-share .pc-tree-open .research-detail>:last-child { margin-bottom:0!important; }
+  body.mobile-share .pc-tree-open .research-detail h3 { font-size:15px!important; line-height:1.25; }
+  body.mobile-share .pc-tree-open .research-detail .research-state,
+  body.mobile-share .pc-tree-open .research-detail .research-cost { font-size:11px!important; line-height:1.35!important; }
+  body.mobile-share .pc-tree-open .research-stat-list { padding:2px 0!important; }
+  body.mobile-share .pc-tree-open .research-stat-row { padding:4px 0!important; }
+  body.mobile-share .pc-tree-open .research-detail .research-purchase { padding:9px 10px!important; }
+
+  /* ---------- Wave break: header, cards and actions always fit; only the card row may scroll ---------- */
+  body.mobile-share .panel.wave-panel {
+    display:flex; flex-direction:column;
+    width:100%!important; max-width:none; height:100%!important; max-height:none!important;
+    padding:calc(8px + env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left))!important;
+    overflow:hidden!important;
+  }
+  body.mobile-share .wave-panel>.eyebrow { margin:0; font-size:10px; }
+  body.mobile-share .wave-panel h2 { margin:2px 0 0; font-size:18px; line-height:1.2; }
+  body.mobile-share .wave-panel .subtitle { margin:3px auto 0!important; font-size:12px; line-height:1.3; }
+  body.mobile-share .doctrine-pips { margin-top:4px; }
+  body.mobile-share .card-owned { flex:0 0 auto; margin-top:6px; }
+  body.mobile-share .card-owned-detail { margin-top:4px; font-size:12px; }
+  body.mobile-share .card-choices {
+    flex:1 1 auto; min-height:0; margin:8px 0; gap:10px;
+    align-content:center;
+    overflow-y:auto; overscroll-behavior:contain;
+  }
+  body.mobile-share .wave-card { min-height:0; padding:10px 10px 8px; gap:4px; }
+  body.mobile-share .wave-card-icon { width:30px; height:30px; }
+  body.mobile-share .wave-card-icon.pair { width:64px; }
+  body.mobile-share .wave-card-icon .module-glyph { width:30px; height:30px; }
+  body.mobile-share .wave-card .card-symbol { width:28px; height:28px; }
+  body.mobile-share .wave-card strong { font-size:15px; line-height:1.2; }
+  body.mobile-share .wave-card-text { font-size:12px; line-height:1.3; }
+  body.mobile-share .wave-card-rarity,
+  body.mobile-share .wave-card-stack { font-size:10px; }
+  body.mobile-share .wave-actions { flex:0 0 auto; gap:6px; margin:0; }
+  body.mobile-share .wave-actions button { min-height:40px; padding:6px 12px; font-size:12px; white-space:nowrap; }
+
+  /* ---------- Victory ---------- */
+  body.mobile-share .milestone-panel { padding:16px 24px!important; max-height:calc(100% - 16px)!important; }
+  body.mobile-share .milestone-panel .eyebrow { margin:0; }
+  body.mobile-share .milestone-panel h2 { margin:4px 0 6px!important; font-size:24px!important; }
+  body.mobile-share .milestone-reward { font-size:15px!important; }
+  body.mobile-share .milestone-panel p { margin:0 0 6px; font-size:13px; line-height:1.4; }
+
+  /* ---------- Results ---------- */
+  body.mobile-share .result-panel { padding:calc(10px + env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))!important; }
+  body.mobile-share .pc-results-scroll { padding:0 8px 8px!important; }
+  body.mobile-share .result-title { margin:4px 0!important; }
+  body.mobile-share .result-stats { margin:8px 0!important; padding:6px 0!important; }
+}
