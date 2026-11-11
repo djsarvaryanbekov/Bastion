@@ -2858,6 +2858,50 @@ body.pc-game.pc-ui-pending #pcViewport { visibility:hidden; }
 .pc-game .research-detail .research-purchase:disabled { background:#172a34; color:#8397a3; border-color:var(--line); cursor:default; }
 .pc-game .selection-price .copy-price-breakdown { display:block; margin:6px 0 0; font-size:.72rem; line-height:1.5; white-space:normal; }
 
+/* Interaction feel: every control answers hover with a small move and press with a push-in.
+   Colour changes stay as they were; this adds motion, which the PC UI had only on wave cards. */
+.pc-game button.primary, .pc-game button.secondary, .pc-game button.catalog-card, .pc-game button.systems-selector, .pc-game button.pc-family-card,
+.pc-game button.research-node, .pc-game button.result-purchase-card, .pc-game button.hangar-tab, .pc-game button.corner-button, .pc-game .menu-loadout,
+.pc-game #pauseButton, .pc-game #pcFullscreen, .pc-game #pcLayoutTab, .pc-game #pcUpgradesTab {
+  transition:background .13s, color .13s, border-color .13s, transform .12s ease, box-shadow .12s ease, filter .12s ease;
+}
+.pc-game button.systems-selector, .pc-game button.pc-family-card { cursor:pointer; }
+
+/* Action buttons lift on hover and push in on press. */
+.pc-game button.primary:hover:not(:disabled), .pc-game button.secondary:hover:not(:disabled), .pc-game #pauseButton:hover:not(:disabled),
+.pc-game #pcFullscreen:hover:not(:disabled), .pc-game button.corner-button:hover:not(:disabled) { transform:translateY(-1px); }
+.pc-game button.primary:hover:not(:disabled) { box-shadow:0 6px 18px rgba(84, 214, 206, .22); }
+.pc-game button.primary:active:not(:disabled), .pc-game button.secondary:active:not(:disabled), .pc-game #pauseButton:active:not(:disabled),
+.pc-game #pcFullscreen:active:not(:disabled), .pc-game button.corner-button:active:not(:disabled) { transform:translateY(1px) scale(.985); box-shadow:none; }
+.pc-game button.primary:active:not(:disabled) { background:#3fb9b1; border-color:#3fb9b1; }
+
+/* Rows in a list slide toward their detail panel; cards in a tree lift. */
+.pc-game button.catalog-card:hover:not(:disabled), .pc-game button.systems-selector:hover:not(:disabled), .pc-game button.pc-family-card:hover:not(:disabled),
+.pc-game button.result-purchase-card:hover:not(:disabled), .pc-game .menu-loadout:hover:not(:disabled) { transform:translateX(4px); }
+.pc-game button.hangar-tab:hover:not(:disabled) { transform:translateX(3px); }
+.pc-game button.research-node:hover:not(:disabled) { transform:translateY(-2px); box-shadow:0 8px 18px rgba(0, 0, 0, .35); }
+.pc-game button.catalog-card:active:not(:disabled), .pc-game button.systems-selector:active:not(:disabled), .pc-game button.pc-family-card:active:not(:disabled),
+.pc-game button.result-purchase-card:active:not(:disabled), .pc-game .menu-loadout:active:not(:disabled), .pc-game button.hangar-tab:active:not(:disabled),
+.pc-game button.research-node:active:not(:disabled) { transform:scale(.985); box-shadow:none; filter:brightness(.92); }
+
+/* Build grid: a cell you can buy into grows a little under the pointer and dips when pressed. */
+.pc-game .build-cell { transition:transform .1s ease, border-color .12s, background .12s, box-shadow .12s; }
+.pc-game .build-cell.valid:hover { transform:scale(1.05); z-index:3; }
+.pc-game .build-cell.valid:active, .pc-game .build-cell.occupied:active { transform:scale(.95); }
+.pc-game .build-cell.occupied:not(.core):hover { filter:brightness(1.12); }
+
+/* Purchase feedback: the new module lands, the wallet counts down, a refused purchase shakes the wallet. */
+@keyframes bastion-module-landed { 0% { transform:scale(1.28); filter:brightness(1.9); } 60% { transform:scale(.96); } 100% { transform:scale(1); filter:none; } }
+@keyframes bastion-wallet-spent { 0% { transform:scale(1.28); color:#fff3d6; } 100% { transform:scale(1); } }
+@keyframes bastion-wallet-refused { 0%, 100% { transform:translateX(0); } 20% { transform:translateX(-7px); } 40% { transform:translateX(6px); } 60% { transform:translateX(-4px); } 80% { transform:translateX(3px); } }
+.pc-game .build-cell.just-placed { animation:bastion-module-landed .32s ease-out; z-index:4; }
+.pc-game #buildMatter { display:inline-block; transform-origin:0 60%; }
+.pc-game #buildMatter.spent { animation:bastion-wallet-spent .34s ease-out; }
+.pc-game .matter-wallet.refused { animation:bastion-wallet-refused .34s ease-out; }
+.pc-game .matter-wallet.refused #buildMatter { color:var(--red); }
+.pc-game select, .pc-game input[type="search"], .pc-game input[type="text"] { transition:border-color .13s, background .13s; }
+.pc-game select:hover:not(:disabled), .pc-game input[type="search"]:hover, .pc-game input[type="text"]:hover { border-color:#54d6ce; }
+
 </style>
 </head>
 <body class="pc-game pc-ui-pending">
@@ -3348,7 +3392,7 @@ window.BastionLocales = {"de":{" cells":" Felder","+10% Matter; each further Sip
 
   var STORAGE_KEY = "drift-bastion-playtest-v1";
   var SCHEMA_VERSION = 2;
-  var GAME_BUILD = "2026.11.12-visuals-54";
+  var GAME_BUILD = "2026.11.12-ui-feel-55";
   var SAMPLE_INTERVAL = 5;
   var MAX_RUNS = 30;
   var MAX_STORAGE_BYTES = 1500000;
@@ -8987,6 +9031,29 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
       buildEnemySpriteCache();
     }
 
+    // Replays a one-shot CSS animation even when the class is already present.
+    function replayAnimation(element, className) {
+      if (!element || !element.classList) return;
+      element.classList.remove(className);
+      void element.offsetWidth;
+      element.classList.add(className);
+    }
+
+    var shownBuildMatter = null;
+    // The wallet counts down with a short pulse, so a purchase is felt as well as read.
+    function showBuildMatter() {
+      var matter = Math.floor(game.matter);
+      ui.buildMatter.textContent = matter;
+      if (shownBuildMatter !== null && matter < shownBuildMatter) replayAnimation(ui.buildMatter, "spent");
+      shownBuildMatter = matter;
+    }
+
+    function refuseBuildPurchase() {
+      // Node checks run against a minimal DOM stub without closest(); the shake is presentation only.
+      var wallet = typeof ui.buildMatter.closest === "function" ? ui.buildMatter.closest(".matter-wallet") : null;
+      replayAnimation(wallet, "refused");
+    }
+
     function showToast(message) {
       ui.toast.classList.remove("success");
       ui.toast.textContent = message;
@@ -12926,7 +12993,7 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
         card.appendChild(track);
         ui.upgradeList.appendChild(card);
         track.scrollTop = Math.max(0, (track.scrollHeight - track.clientHeight) / 2);
-      ui.buildMatter.textContent = Math.floor(game.matter);
+      showBuildMatter();
     }
 
     var buildInteraction = { owner: null, selectedKey: null, drag: null, preview: null, pendingCellKey: null, suppressClickUntil: 0 };
@@ -13021,6 +13088,7 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
       var price = modulePrice(type);
       if (game.matter < price) {
         showToast(tr("NOT ENOUGH MATTER"));
+        refuseBuildPurchase();
         return false;
       }
       if (!validPlacement(x, y, type)) {
@@ -13042,6 +13110,7 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
       buildInteraction.selectedKey = null;
       buildInteraction.pendingCellKey = null;
       finishBuildChange();
+      replayAnimation(ui.buildGrid.querySelector('.build-cell[data-x="' + x + '"][data-y="' + y + '"]'), "just-placed");
       return true;
     }
 
@@ -13609,7 +13678,7 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
         : canAffordSelected
         ? tr("Drag {name} to the ship, or select a + cell.", { name: selected.name })
         : tr("Selected for inspection. Earn {count} more Matter to attach {name}.", { count: missingMatter, name: selected.name });
-      ui.buildMatter.textContent = Math.floor(game.matter);
+      showBuildMatter();
       renderBuildModuleDetails();
       renderRunUpgrades();
       updateBuildPreview();
@@ -13620,6 +13689,8 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
 
     function openBuild() {
       if (!game || (game.state !== "playing" && game.state !== "intermission") || game.finished) return;
+      // A new visit starts from the current balance, so only spending inside it pulses the wallet.
+      shownBuildMatter = null;
       // Waves keep building to the break so the fight and the planning stay separate phases.
       if (game.mode === "waves" && game.state === "playing") {
         showToast(tr("Build opens between waves"));

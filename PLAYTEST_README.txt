@@ -9,6 +9,15 @@ W/S: thrust. A/D: turn. Hold left mouse on the battlefield to follow the cursor;
 release to coast. Weapons fire automatically.
 B: open/resume Build. P or Escape: pause. Escape closes the current layer first.
 
+UI RESPONSE — 2026.11.12-ui-feel-55
+- Every button now answers the pointer: it lifts or slides a little on hover and
+  pushes in when pressed. Before, primary buttons showed nothing when pressed.
+- Build: the module you buy lands with a short flash, the Matter number pulses
+  as it goes down, and a purchase you cannot afford shakes the wallet.
+- Rows in the module library and the Hangar slide toward their detail panel on
+  hover; upgrade-tree nodes lift.
+No rule, price or layout changed.
+
 VISUAL PASS — 2026.11.12-visuals-54
 - Background: a deep-blue rock field with dark clouds and star dust behind the
   grid. It moves only with the camera, slowly, so it reads as far away.

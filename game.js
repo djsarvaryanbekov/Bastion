@@ -907,6 +907,29 @@
       buildEnemySpriteCache();
     }
 
+    // Replays a one-shot CSS animation even when the class is already present.
+    function replayAnimation(element, className) {
+      if (!element || !element.classList) return;
+      element.classList.remove(className);
+      void element.offsetWidth;
+      element.classList.add(className);
+    }
+
+    var shownBuildMatter = null;
+    // The wallet counts down with a short pulse, so a purchase is felt as well as read.
+    function showBuildMatter() {
+      var matter = Math.floor(game.matter);
+      ui.buildMatter.textContent = matter;
+      if (shownBuildMatter !== null && matter < shownBuildMatter) replayAnimation(ui.buildMatter, "spent");
+      shownBuildMatter = matter;
+    }
+
+    function refuseBuildPurchase() {
+      // Node checks run against a minimal DOM stub without closest(); the shake is presentation only.
+      var wallet = typeof ui.buildMatter.closest === "function" ? ui.buildMatter.closest(".matter-wallet") : null;
+      replayAnimation(wallet, "refused");
+    }
+
     function showToast(message) {
       ui.toast.classList.remove("success");
       ui.toast.textContent = message;
@@ -4846,7 +4869,7 @@
         card.appendChild(track);
         ui.upgradeList.appendChild(card);
         track.scrollTop = Math.max(0, (track.scrollHeight - track.clientHeight) / 2);
-      ui.buildMatter.textContent = Math.floor(game.matter);
+      showBuildMatter();
     }
 
     var buildInteraction = { owner: null, selectedKey: null, drag: null, preview: null, pendingCellKey: null, suppressClickUntil: 0 };
@@ -4941,6 +4964,7 @@
       var price = modulePrice(type);
       if (game.matter < price) {
         showToast(tr("NOT ENOUGH MATTER"));
+        refuseBuildPurchase();
         return false;
       }
       if (!validPlacement(x, y, type)) {
@@ -4962,6 +4986,7 @@
       buildInteraction.selectedKey = null;
       buildInteraction.pendingCellKey = null;
       finishBuildChange();
+      replayAnimation(ui.buildGrid.querySelector('.build-cell[data-x="' + x + '"][data-y="' + y + '"]'), "just-placed");
       return true;
     }
 
@@ -5529,7 +5554,7 @@
         : canAffordSelected
         ? tr("Drag {name} to the ship, or select a + cell.", { name: selected.name })
         : tr("Selected for inspection. Earn {count} more Matter to attach {name}.", { count: missingMatter, name: selected.name });
-      ui.buildMatter.textContent = Math.floor(game.matter);
+      showBuildMatter();
       renderBuildModuleDetails();
       renderRunUpgrades();
       updateBuildPreview();
@@ -5540,6 +5565,8 @@
 
     function openBuild() {
       if (!game || (game.state !== "playing" && game.state !== "intermission") || game.finished) return;
+      // A new visit starts from the current balance, so only spending inside it pulses the wallet.
+      shownBuildMatter = null;
       // Waves keep building to the break so the fight and the planning stay separate phases.
       if (game.mode === "waves" && game.state === "playing") {
         showToast(tr("Build opens between waves"));

@@ -73,6 +73,15 @@ Promoted to the main HTML at the user's request ("Yes, promote it"), then commit
 - **Verified:** `npm run check`, `npm test`, `npm run test:i18n`; enemy-art and attack-vfx browser checks; main HTML opened at 1920x1080. With GPU rendering the frame time equals the previous build (60 fps cap, Intel UHD); with software rendering the background roughly doubles it.
 - **Not done:** human playtest of this build; the ZIP package and itch.io still hold an older build; `outputs/PLAYTEST_README.txt` (the package copy) is not updated.
 
+## Update 2026-11-12 — UI response pass (build `2026.11.12-ui-feel-55`), merged into `main`
+The user asked for a full review of how the UI answers the player (hover, press), with the Build screen in particular, and then a merge into `main`.
+- **Review:** `research/ui-feel-2026-11-12/REVIEW.md` with `audit.json` (62 controls on 12 screens, hover and pressed states forced through the debugger) and screenshots.
+- **Found:** no pressed state on any primary button; colour-only responses everywhere except wave cards; no purchase feedback inside Build; missing hand cursor on some rows.
+- **Changed (presentation only):** last section of `pc-workspaces.css` (hover lift or slide, press push-in, Build cell grow, landing, wallet pulse and shake); `replayAnimation`, `showBuildMatter`, `refuseBuildPurchase` in `game.js`.
+- **Not built:** the Build screen layout issues listed in the review (no buy button, "+" on unaffordable cells, bare prices, small ship, tiny help line). They need mockups to choose from first.
+- **Verified:** the audit re-run finds an animated hover and press response on every button; a real-pointer run of Build confirms the landing, the wallet pulse and the refusal shake; `npm run check`, `npm test`, `npm run test:i18n`. Not judged by a person.
+- **Git:** committed on `feat/waves-and-cards` and merged into `main` locally. `main` was pushed only if the user said "git push" afterwards.
+
 ## In progress — card redesign through research
 - New user skill: **`game-mechanic-research`** (`C:\Users\User\.claude\skills\game-mechanic-research`) — find similar games, mine their fan wikis/communities for the complete catalog + what players love/hate, then design original variants through the game's pillars. Use it.
 - Research folder: `research/cards-2026-10-21/`
