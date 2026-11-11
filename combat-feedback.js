@@ -4,7 +4,8 @@
 
   function impact(game, x, y, angle, shielded, quality, reducedFlash) {
     if (game.effects.length > limit(quality) - 5) return;
-    var color = shielded ? "#70dcd4" : "#f3b486";
+    // Hot near-white: the old orange sparks disappeared against orange hulls.
+    var color = shielded ? "#70dcd4" : "#fff0cf";
     var count = quality > 0 ? 2 : 3;
     for (var i = 0; i < count; i++) {
       var direction = angle + (Math.random() - .5) * 1.8;
@@ -13,7 +14,7 @@
       spark.vx = Math.cos(direction) * speed;
       spark.vy = Math.sin(direction) * speed;
       spark.angle = direction;
-      spark.width = reducedFlash ? 4 : 7;
+      spark.width = reducedFlash ? 5 : 9;
     }
     if (shielded) {
       var ripple = game.spawnEffect("shockwave", x, y, .19, color);
@@ -26,9 +27,9 @@
     var heavy = enemy.type === "boss" || enemy.type === "core";
     var space = Math.max(0, limit(quality) - game.effects.length);
     if (!space) return;
-    var blast = game.spawnEffect("shockwave", enemy.x, enemy.y, heavy ? .8 : .32, heavy ? "#efbd79" : "#ea9874");
+    var blast = game.spawnEffect("shockwave", enemy.x, enemy.y, heavy ? .8 : .32, heavy ? "#efbd79" : "#ffe2ad");
     blast.maxRadius = enemy.radius * (heavy ? 2.7 : 1.8);
-    blast.width = heavy ? 3 : 1.5;
+    blast.width = heavy ? 3 : 2.2;
     var count = enemy.type === "core" ? 0 : Math.min(quality > 0 ? 2 : 3, Math.max(0, space - 1));
     var facing = Number.isFinite(enemy.visualRotation) ? enemy.visualRotation : enemy.rotation || 0;
     var span = art && art.displaySize(enemy.type, enemy.radius) || enemy.radius * 2.4;
@@ -68,7 +69,7 @@
     context.globalAlpha = alpha * (reducedFlash ? .65 : .9);
     if (effect.type === "hitSpark") {
       context.strokeStyle = effect.color;
-      context.lineWidth = 1.5;
+      context.lineWidth = 2;
       context.beginPath();
       context.moveTo(x, y);
       context.lineTo(x - Math.cos(effect.angle) * effect.width, y - Math.sin(effect.angle) * effect.width);

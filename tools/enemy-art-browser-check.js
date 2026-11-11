@@ -10,6 +10,7 @@ const root = path.resolve(__dirname, "..");
 const file = path.resolve(process.argv[2] || path.join(root, "outputs/Drift_Bastion_Playtest.html"));
 const output = path.resolve(process.argv[3] || path.join(root, "outputs/enemy-art-qa"));
 const types = ["scout", "drone", "hunter", "raptor", "orbiter", "brute", "bulwark", "bolter", "gunner", "bomber", "splitter", "sniper", "colossus", "mini"];
+const bossArtTypes = ["bossRing", "bossPursuer", "bossStorm"];
 const expectedEarlyVisualScales = { scout: 1.45, drone: 1.15, hunter: 2.25 };
 
 (async function () {
@@ -22,7 +23,7 @@ const expectedEarlyVisualScales = { scout: 1.45, drone: 1.15, hunter: 2.25 };
     await page.goto(pathToFileURL(file).href + "?debug=1");
     assert.equal(await page.evaluate(function () { return document.body.classList.contains("pc-ui-pending"); }), false, "PC UI must finish initialization before the viewport is shown");
     const decoded = await page.evaluate(function () { return window.DriftEnemyArt.ready; });
-    assert.equal(decoded.length, types.length);
+    assert.equal(decoded.length, types.length + bossArtTypes.length);
     assert.ok(decoded.every(Boolean), "Every enemy sprite must decode");
     const payload = await page.evaluate(function (enemyTypes) {
       var art = window.DriftEnemyArt;

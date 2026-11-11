@@ -9,6 +9,21 @@ W/S: thrust. A/D: turn. Hold left mouse on the battlefield to follow the cursor;
 release to coast. Weapons fire automatically.
 B: open/resume Build. P or Escape: pause. Escape closes the current layer first.
 
+VISUAL PASS — 2026.11.12-visuals-54
+- Background: a deep-blue rock field with dark clouds and star dust behind the
+  grid. It moves only with the camera, slowly, so it reads as far away.
+- Bosses are drawn as sprites: Siege Ring, Pursuer and Storm Ring. The Pursuer
+  turns to face its attack. Boss behaviour is unchanged.
+- Card break: the cards are a hand over the battlefield and show the module they
+  affect. Keys 1-4 pick a card. "Buy modules" replaces the Build button, shows
+  your Matter and pulses when you can afford a module.
+- Enemy shots (Sniper, Bolter, Gunner) are one pink colour with a bright core, so
+  they no longer look like your own fire.
+- Your Cannon, Scatter, Missile, Cryo and Rail shots are drawn larger; hit sparks
+  and kill bursts are brighter. Hitboxes, speed and damage are unchanged.
+- Bulwark: its 45 shield is now part of its health (85 -> 130 HP) and the ring
+  around it is gone. It is exactly as tough as before.
+
 CARD REDESIGN — 2026.10.22-cards-53
 Stat cards (damage, fire rate, hull...) stay as commons. New card kinds:
 - Rule cards change what counts as a neighbor: Wide Ignition, Cold Steel,

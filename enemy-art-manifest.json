@@ -12,5 +12,8 @@
   "splitter": { "source": "enemies/raw/splitter-v1.png", "crop": [0, 0, 1254, 1254], "scale": 2.0, "forward": -90 },
   "sniper": { "source": "enemies/raw/sniper-v1.png", "crop": [390, 10, 875, 1200], "scale": 2.55, "forward": -90 },
   "colossus": { "source": "enemies/raw/colossus-v1.png", "crop": [0, 0, 1254, 1254], "scale": 2.0, "forward": -90 },
-  "mini": { "source": "enemies/raw/mini-v1.png", "crop": [0, 0, 1254, 1254], "scale": 1.9, "forward": -90 }
+  "mini": { "source": "enemies/raw/mini-v1.png", "crop": [0, 0, 1254, 1254], "scale": 1.9, "forward": -90 },
+  "bossRing": { "source": "bosses/siege-ring/raw/siege-ring-v1.png", "crop": [0, 0, 1024, 1024], "scale": 1.2, "forward": 0, "maxSize": 384 },
+  "bossPursuer": { "source": "bosses/pursuer/raw/pursuer-v2.png", "crop": [0, 0, 1254, 1254], "scale": 1.15, "forward": -90, "maxSize": 384 },
+  "bossStorm": { "source": "bosses/storm-ring/raw/storm-ring-v4.png", "crop": [0, 0, 1024, 1024], "scale": 1.3, "forward": 0, "maxSize": 384 }
 }

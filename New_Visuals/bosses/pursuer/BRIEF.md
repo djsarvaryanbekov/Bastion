@@ -100,3 +100,25 @@ manual attack and phase controls, not an encounter simulation or a balance
 playtest. Phase-two lighting is a proposal; it does not simulate the changed
 attack sequence. Existing game code and the main HTML were not edited for
 this study.
+
+## Update 2026-11-11
+
+- A second take, [raw/pursuer-v3.png](raw/pursuer-v3.png), was generated with the image tool in the Claude session (model `gpt_image_2_6`, references: Colossus v1 and Pursuer v2; job `1a870b38-0c9d-4fa6-ac5c-c4505bfb31c7`). It is bulkier, with a wider prow. Comparison: [technical/v2-vs-v3-on-game-background.png](technical/v2-vs-v3-on-game-background.png).
+- **No candidate is selected.** v2 is wired into the test build `outputs/experiments/2026-11-11-space-vfx/` provisionally, only to prove the facing logic. The release HTML still draws the vector triangle.
+- The separate presentation facing asked for above now exists in the test build: `boss.visualFacing` in `updateBoss` eases toward the locked aim while an attack is charging or a dash is running, and toward the ship otherwise. `rotation`, the dash lane and all attack logic are untouched.
+- Manifest entry: `bossPursuer` in `enemy-art-manifest.json` (scale 1.15, forward -90, export up to 384 px). Swapping in another version is a one-line change to its `source`.
+- Checked in the test build at 1920×1080 during a dash wind-up: the nose points along the warning lane (`outputs/experiments/2026-11-11-space-vfx/review/boss-pursuer-dash-windup.png`). The idle, dash, volley and phase lighting described in the presentation contract are not implemented.
+
+## Engine clarity — 2026-11-11
+
+The user asked whether the two rear cylinders on v2 are weapons or thrusters. They are the engines from the brief, but their dark barrel tips read as guns pointing away from the target.
+
+[raw/pursuer-v4.png](raw/pursuer-v4.png) is v2 edited for that one problem: the rear cylinders end in wide engine bells with an amber-lit interior, and a small emitter port with an amber light is added to the prow so the forward volley has a visible source. Hull, colours and proportions are otherwise v2. Image tool in the Claude session, reference: v2 only; job `180f8a5f-fb39-4fbd-a38a-8ea4f54008d1`. Comparison: [technical/v2-vs-v4-engines-on-game-background.png](technical/v2-vs-v4-engines-on-game-background.png).
+
+Caveat: the engine bells are drawn slightly from behind rather than strictly from above. Not selected; the test build still uses v2.
+
+## Decision — 2026-11-11
+
+- The user **selected v2**. It stays in the test build (no longer provisional). The release HTML still draws the vector triangle.
+- v4 is rejected: its engine bells are drawn from an angle, which breaks the strict top-down rule (no isometric, no 3D look).
+- Still open: on v2 the rear cylinders can read as guns. Any fix must stay strictly top-down.

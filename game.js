@@ -10,6 +10,8 @@
     var enemyArt = window.DriftEnemyArt || null;
     var shipHandling = window.DriftShipHandling;
     var shieldVfx = window.DriftShieldVfx.create();
+    // Optional: node checks load the game without the presentation-only backdrop.
+    var spaceBackdrop = window.DriftSpaceBackdrop ? window.DriftSpaceBackdrop.create() : null;
     var FIXED_STEP = 1 / 30;
     var MAX_SIMULATION_STEPS = 3;
     var SPATIAL_CELL_SIZE = 110;
@@ -19,6 +21,13 @@
     var MAX_ASSAULT_RANGED_ESCORTS = 6;
     var HEAVY_RANGED_ESCORT_START = 480;
     var ADDITIONAL_COPY_COST_SCALE = 1.20;
+    var KILL_BURST_COLOR = "#ffdfae";
+    // Drawn size of the Rail Lance bolt (was halo 7, core 2, tail 34); its hitbox is unchanged.
+    var RAIL_SHOT = { haloWidth: 10, coreWidth: 3, tail: 46 };
+    // Boss variants with artwork; a variant without an entry falls back to the vector hull.
+    // "directional" hulls have a front and use the boss's presentation facing instead of its spin.
+    var BOSS_ART_TYPES = { ring: { art: "bossRing" }, pursuer: { art: "bossPursuer", directional: true }, storm: { art: "bossStorm" } };
+    var BOSS_FACING_RESPONSE = 7;
     var EMBER_BURST_DURATION = .2;
     var EMBER_COMBO_BURN_DAMAGE = 3;
     var EMBER_COMBO_BURN_DURATION = 1.5;
@@ -58,7 +67,9 @@
     var STRAGGLER_PULL_SPEED = 240;
     var META_PURCHASE_CAP = 25;
     var CORE_COLORS = { standard: "#ffffff", striker: "#ff9b6a", bulwark: "#8ac7ff", salvager: "#a8ff70" };
-    var SHOT_COLORS = { hostile: "#ff7359", hostileCore: "#fff1cf", hostileRim: "#29151d" };
+    // Ordinary enemy shots and attack warnings share one colour that neither hulls nor player fire use.
+    var SHOT_COLORS = { hostile: "#ff4d8d", hostileCore: "#fff1cf", hostileRim: "#29151d" };
+    var HOSTILE_CORE_RATIO = .45;
 
     var MODULES = {
       armor: {
@@ -206,7 +217,7 @@
       raptor: { name: tr("Raptor"), hp: 48, speed: 340, radius: 14, halfLength: 18, halfWidth: 10, damage: 16, reward: 4, color: "#ff3ea5", sides: 3, turnRate: .22 },
       orbiter: { name: tr("Orbiter"), hp: 34, speed: 118, radius: 13, halfLength: 14, halfWidth: 14, damage: 9, reward: 2, color: "#54dfff", sides: 4 },
       brute: { name: tr("Brute"), hp: 62, speed: 102, radius: 19, halfLength: 18, halfWidth: 25, damage: 18, reward: 3, color: "#a987ff", sides: 24, directChase: true },
-      bulwark: { name: tr("Bulwark"), hp: 85, speed: 74, radius: 21, halfLength: 20, halfWidth: 24, damage: 18, reward: 4, color: "#9b83ff", sides: 6, shield: 45, directChase: true },
+      bulwark: { name: tr("Bulwark"), hp: 130, speed: 74, radius: 21, halfLength: 20, halfWidth: 24, damage: 18, reward: 4, color: "#9b83ff", sides: 6, directChase: true },
       bolter: { name: tr("Bolt Drone"), hp: 22, speed: 78, radius: 12, halfLength: 17, halfWidth: 11, muzzleOffset: 17, damage: 5, reward: 2, color: "#72d8ff", sides: 4 },
       gunner: { name: tr("Gunner"), hp: 40, speed: 64, radius: 14, halfLength: 15, halfWidth: 23, muzzleOffset: 16, damage: 9, reward: 3, color: "#65e8ff", sides: 4 },
       bomber: { name: tr("Bomber"), hp: 38, speed: 104, radius: 15, halfLength: 19, halfWidth: 12, damage: 26, reward: 3, color: "#ffd45c", sides: 5, blastRadius: 2.25 },
@@ -1942,6 +1953,7 @@
         color: ["#ff637c", "#ff9b55", "#a987ff"][variantIndex],
         sides: variant === "pursuer" ? 3 : (variant === "storm" ? 8 : 12),
         combatPhase: 1,
+        visualFacing: angle + Math.PI,
         fireClock: 1.2,
         attackCharge: 0,
         attackChargeMax: 0,
@@ -2639,13 +2651,13 @@
       enemy.fireClock = enemy.type === "sniper" ? 2.1 : (enemy.type === "gunner" ? 1.4 : 1.8);
       if (enemy.type === "sniper") {
         var sniperMuzzle = enemyMuzzlePosition(enemy, enemy.lockedAimX, enemy.lockedAimY);
-        this.fireEnemyProjectile(sniperMuzzle.x, sniperMuzzle.y, enemy.lockedAimX, enemy.lockedAimY, enemy.damage, 400, "sniperShot", enemy.color, 5);
+        this.fireEnemyProjectile(sniperMuzzle.x, sniperMuzzle.y, enemy.lockedAimX, enemy.lockedAimY, enemy.damage, 400, "sniperShot", SHOT_COLORS.hostile, 5);
         audio.tone(190, .09, .026, "square", -55);
         return;
       }
       if (enemy.type === "bolter") {
         var bolterMuzzle = enemyMuzzlePosition(enemy, enemy.lockedAimX, enemy.lockedAimY);
-        this.fireEnemyProjectile(bolterMuzzle.x, bolterMuzzle.y, enemy.lockedAimX, enemy.lockedAimY, enemy.damage, 290, "bolterShot", enemy.color, 3);
+        this.fireEnemyProjectile(bolterMuzzle.x, bolterMuzzle.y, enemy.lockedAimX, enemy.lockedAimY, enemy.damage, 290, "bolterShot", SHOT_COLORS.hostile, 3);
         audio.tone(280, .06, .018, "square", -45);
         return;
       }
@@ -2655,7 +2667,7 @@
         var gunnerAimX = Math.cos(shotAngle);
         var gunnerAimY = Math.sin(shotAngle);
         var gunnerMuzzle = enemyMuzzlePosition(enemy, gunnerAimX, gunnerAimY);
-        this.fireEnemyProjectile(gunnerMuzzle.x, gunnerMuzzle.y, gunnerAimX, gunnerAimY, enemy.damage, 325, "gunnerShot", enemy.color, 3.5);
+        this.fireEnemyProjectile(gunnerMuzzle.x, gunnerMuzzle.y, gunnerAimX, gunnerAimY, enemy.damage, 325, "gunnerShot", SHOT_COLORS.hostile, 3.5);
       }
     };
 
@@ -2709,6 +2721,11 @@
       boss.x += boss.vx * movementTime;
       boss.y += boss.vy * movementTime;
       boss.rotation += dt * .55;
+      // Presentation only: a hull with a front looks along its locked attack, otherwise at the ship.
+      // Attack logic keeps using rotation and the locked aim, never this value.
+      var facingTarget = charging || boss.attackCharge > 0 ? Math.atan2(boss.lockedAimY, boss.lockedAimX) : Math.atan2(ny, nx);
+      var facingDelta = Math.atan2(Math.sin(facingTarget - boss.visualFacing), Math.cos(facingTarget - boss.visualFacing));
+      boss.visualFacing += facingDelta * (1 - Math.exp(-BOSS_FACING_RESPONSE * dt));
       boss.hitFlash = Math.max(0, boss.hitFlash - dt);
       boss.age += dt;
       if (charging) {
@@ -3761,7 +3778,7 @@
         trainingEvent("target_destroyed", { id: enemy.trainingTarget.id, group: enemy.trainingTarget.group, upgraded: Boolean(this.upgrades.cannon && this.upgrades.cannon.level > 0) });
       }
       if (playtestTelemetry) playtestTelemetry.recordEnemyKill(enemy.type, earnedMatter);
-      this.burst(enemy.x, enemy.y, "#e9ad82", 5, 120);
+      this.burst(enemy.x, enemy.y, KILL_BURST_COLOR, 5, 120);
       if (enemy.type === "splitter") {
         for (var i = 0; i < 2; i += 1) {
           var angle = i * Math.PI + Math.random() * .5;
@@ -5982,9 +5999,28 @@
 
     function cardIconHtml(pick, info) {
       if (pick.family) return moduleGlyphHtml(pick.family);
-      if (info.pair) return moduleGlyphHtml(info.pair[0]) + moduleGlyphHtml(info.pair[1]);
+      if (info.pair) return moduleGlyphHtml(info.pair[0]) + '<span class="wave-card-plus" aria-hidden="true">+</span>' + moduleGlyphHtml(info.pair[1]);
       if (info.icon && MODULES[info.icon]) return moduleGlyphHtml(info.icon);
       return cardSymbolHtml(info.icon);
+    }
+
+    // One diamond per stack the card can hold; filled ones are already owned.
+    function cardPipsHtml(stacks, maxStacks) {
+      var html = '<span class="wave-card-pips" aria-hidden="true">';
+      for (var pip = 0; pip < Math.max(1, maxStacks); pip += 1) html += '<i' + (pip < stacks ? ' class="on"' : '') + '></i>';
+      return html + '</span>';
+    }
+
+    // True when the player can pay for at least one more module copy right now.
+    function canAffordAnyModule() {
+      return Object.keys(MODULES).some(function (type) {
+        return moduleAvailable(type) && modulePrice(type) <= game.matter;
+      });
+    }
+
+    function renderBuyModulesButton() {
+      ui.waveBuildButton.classList.toggle("can-buy", canAffordAnyModule());
+      ui.waveBuildButton.innerHTML = '<span class="buy-label">' + tr("Buy modules") + '</span><span class="buy-matter">' + Math.floor(game.matter) + '</span><kbd>B</kbd>';
     }
 
     var ownedDetailId = "";
@@ -6061,8 +6097,8 @@
         var stackLabel = info.maxStacks > 1 ? tr("{count}/{max}", { count: stacks, max: info.maxStacks }) :
           info.pair ? tr("{first} + {second}", { first: cardModuleName(info.pair[0]), second: cardModuleName(info.pair[1]) }) : "";
         var icon = cardIconHtml(pick, info);
-        button.innerHTML = '<span class="wave-card-icon' + (info.pair ? ' pair' : '') + '">' + icon + '</span><span class="wave-card-rarity">' + cardRarityLabel(info.rarity) + '</span><strong>' + info.name +
-          '</strong><span class="wave-card-text">' + info.text + '</span><small class="wave-card-stack">' + stackLabel + "</small>";
+        button.innerHTML = '<span class="wave-card-key" aria-hidden="true">' + (index + 1) + '</span><span class="wave-card-icon' + (info.pair ? ' pair' : '') + '">' + icon + '</span><span class="wave-card-rarity">' + cardRarityLabel(info.rarity) + '</span><strong>' + info.name +
+          '</strong><span class="wave-card-text">' + info.text + '</span>' + cardPipsHtml(stacks, info.maxStacks) + '<small class="wave-card-stack">' + stackLabel + "</small>";
         button.addEventListener("click", function () {
           if (!game || game.state !== "intermission" || !game.pickCard(index)) return;
           audio.tone(420, .12, .04, "sine", 200);
@@ -6078,6 +6114,7 @@
       ui.cardSkipButton.disabled = game.cardPicked || !game.cardOffer.length;
       ui.nextWaveButton.textContent = tr("Start wave {wave}", { wave: game.wave + 1 });
       ui.nextWaveButton.disabled = !game.cardPicked && game.cardOffer.length > 0;
+      renderBuyModulesButton();
       updateHud();
     }
 
@@ -6208,11 +6245,14 @@
       ctx.fillRect(0, 0, viewWidth, viewHeight);
       var cameraX = game ? game.camera.x : Math.sin(time * .00008) * 120;
       var cameraY = game ? game.camera.y : Math.cos(time * .00006) * 90;
+      // The backdrop brings its own star dust, so the streaking stars are drawn only where it is absent.
+      var backdropDrawn = Boolean(spaceBackdrop) && !(game && game.training) && spaceBackdrop.draw(ctx, viewWidth, viewHeight, cameraX, cameraY);
       var velocityX = game ? game.ship.vx : 0;
       var velocityY = game ? game.ship.vy : 0;
       var speed = Math.hypot(velocityX, velocityY);
       var trailLength = save.settings.reducedFlash ? 0 : Math.min(14, speed * .045);
-      for (var i = 0; i < stars.length; i += 1) {
+      var starCount = backdropDrawn ? 0 : stars.length;
+      for (var i = 0; i < starCount; i += 1) {
         var star = stars[i];
         var near = i % 3 === 0;
         var parallax = near ? .65 + star.depth * .35 : star.depth * .18;
@@ -6494,6 +6534,26 @@
       ctx.restore();
     }
 
+    // Returns false when this boss has no artwork yet, so the caller falls back to the vector hull.
+    function drawBossSprite(boss, pos) {
+      var bossArt = BOSS_ART_TYPES[boss.variant];
+      if (!bossArt || !enemyArt || !enemyArt.available(bossArt.art)) return false;
+      ctx.globalAlpha = 1;
+      ctx.shadowBlur = 0;
+      enemyArt.draw(ctx, bossArt.art, pos.x, pos.y, boss.radius, bossArt.directional ? boss.visualFacing : boss.rotation);
+      if (boss.hitFlash > 0) {
+        // Softer than the small-enemy outline: at boss size a full white ring would hide the hull.
+        ctx.globalAlpha = clamp(boss.hitFlash / .1, 0, 1) * .5;
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(pos.x, pos.y, boss.radius, 0, TAU);
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+      return true;
+    }
+
     function drawEnemies() {
       if (!game) return;
       var qualityTier = currentQualityTier();
@@ -6557,6 +6617,7 @@
             continue;
           }
         }
+        if (enemy.type === "boss" && drawBossSprite(enemy, pos)) continue;
         ctx.shadowBlur = simplifiedEffects ? 0 : (enemy.type === "boss" ? 16 : 0);
         ctx.shadowColor = enemy.color;
         ctx.strokeStyle = enemy.color;
@@ -7071,11 +7132,18 @@
       ctx.stroke();
       ctx.globalAlpha = 1;
       ctx.fillStyle = projectile.color;
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, projectile.radius, 0, TAU);
+      ctx.fill();
+      ctx.fillStyle = SHOT_COLORS.hostileCore;
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, projectile.radius * HOSTILE_CORE_RATIO, 0, TAU);
+      ctx.fill();
+      // The dark rim is drawn last so a shot keeps its edge over bright effects.
       ctx.strokeStyle = SHOT_COLORS.hostileRim;
       ctx.lineWidth = 1.2;
       ctx.beginPath();
       ctx.arc(pos.x, pos.y, projectile.radius, 0, TAU);
-      ctx.fill();
       ctx.stroke();
       if (piercing) {
         ctx.strokeStyle = "#ffffff";
@@ -7131,15 +7199,15 @@
         } else if (projectile.kind === "rail") {
           var railAngle = Math.atan2(projectile.vy, projectile.vx);
           ctx.shadowBlur = 0;
-          ctx.lineWidth = 7;
-          ctx.globalAlpha = .28;
+          ctx.lineWidth = RAIL_SHOT.haloWidth;
+          ctx.globalAlpha = .32;
           ctx.beginPath();
-          ctx.moveTo(pos.x - Math.cos(railAngle) * 34, pos.y - Math.sin(railAngle) * 34);
+          ctx.moveTo(pos.x - Math.cos(railAngle) * RAIL_SHOT.tail, pos.y - Math.sin(railAngle) * RAIL_SHOT.tail);
           ctx.lineTo(pos.x + Math.cos(railAngle) * 8, pos.y + Math.sin(railAngle) * 8);
           ctx.stroke();
           ctx.globalAlpha = 1;
           ctx.strokeStyle = "#ffffff";
-          ctx.lineWidth = 2;
+          ctx.lineWidth = RAIL_SHOT.coreWidth;
           ctx.stroke();
         } else if (projectile.kind === "cryo") {
           polygonPath(ctx, pos.x, pos.y, 5, 6, 0);
@@ -7629,7 +7697,7 @@
       bossTimingProbe.spawnAssaultWave = function () {};
       bossTimingProbe.updateSpawner(0);
       expect(bossTimingProbe.bossWarningShown && bossTimingProbe.assaultClock === 1, "Boss warning must retain pending approach groups while their clocks slow down.");
-      expect(ENEMY_DEFS.drone.sides === 0 && ENEMY_DEFS.bulwark.shield > 0, "Reference-inspired enemy silhouettes are incomplete.");
+      expect(ENEMY_DEFS.drone.sides === 0 && ENEMY_DEFS.bulwark.sides === 6 && !ENEMY_DEFS.bulwark.shield, "Reference-inspired enemy silhouettes are incomplete; Bulwark durability is plain HP.");
       expect(ENEMY_DEFS.hunter.speed === 250 && ENEMY_DEFS.hunter.turnRate === .48 && ENEMY_DEFS.mini.speed === 205, "Triangle interceptor tuning is incorrect.");
       expect(ENEMY_DEFS.raptor.speed === 340 && ENEMY_DEFS.raptor.turnRate === .22 && ENEMY_DEFS.raptor.damage === 16, "Raptor elite tuning is incorrect.");
       expect(ENEMY_DEFS.drone.directChase && ENEMY_DEFS.scout.directChase && ENEMY_DEFS.brute.directChase, "Core swarm bodies must steer directly at the ship.");
@@ -7893,6 +7961,12 @@
         keys[event.code] = true;
       }
       if (["KeyW", "KeyA", "KeyS", "KeyD", "KeyB", "KeyP", "Escape"].indexOf(event.code) >= 0) dismissControlHint();
+      var cardKey = /^(?:Digit|Numpad)([1-4])$/.exec(event.code);
+      if (cardKey && game && game.state === "intermission" && !game.cardPicked && !ui.waveOverlay.classList.contains("hidden")) {
+        var cardButton = ui.cardChoices.children[Number(cardKey[1]) - 1];
+        if (cardButton) cardButton.click();
+        return;
+      }
       if (event.code === "KeyB") {
         if (game && (game.state === "playing" || game.state === "intermission")) openBuild();
         else if (game && game.state === "building") closeBuild();

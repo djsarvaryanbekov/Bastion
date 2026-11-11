@@ -4,6 +4,10 @@
   var TAU = Math.PI * 2;
   var MAX_MUZZLES = 64;
   var TRAIL_SAMPLES = 10;
+  // Drawn size only: hitboxes, speed and damage live in game.js and are not touched here.
+  // Sized up from 18/12/18x27/23 so the player's fire stays visible inside a large swarm.
+  var SHOT_SIZE = { cannon: 25, scatter: 17, missileWidth: 22, missileHeight: 33, cryo: 28 };
+  var MUZZLE_SCALE = 1.4;
   var projectileTypes = ["cannon", "scatter", "missile", "cryo"];
   var muzzleTypes = projectileTypes.concat(["rail", "flak"]);
   var sheets = Object.create(null);
@@ -124,7 +128,7 @@
         }
       }
       ctx.globalAlpha = reducedFlash ? .78 : 1;
-      stamp(ctx, "missile", frame, pos.x, pos.y, 18, 27, angle);
+      stamp(ctx, "missile", frame, pos.x, pos.y, SHOT_SIZE.missileWidth, SHOT_SIZE.missileHeight, angle);
       if (projectile.coldPayload) {
         ctx.save(); ctx.translate(pos.x, pos.y); ctx.rotate(angle);
         ctx.fillStyle = "#dcfaff";
@@ -134,9 +138,9 @@
         ctx.closePath(); ctx.fill(); ctx.restore();
       }
     } else if (projectile.kind === "cryo") {
-      stamp(ctx, "cryo", frame, pos.x, pos.y, 23, 23, angle);
+      stamp(ctx, "cryo", frame, pos.x, pos.y, SHOT_SIZE.cryo, SHOT_SIZE.cryo, angle);
     } else if (projectile.kind === "scatter") {
-      stamp(ctx, "scatter", frame, pos.x, pos.y, 12, 12, angle);
+      stamp(ctx, "scatter", frame, pos.x, pos.y, SHOT_SIZE.scatter, SHOT_SIZE.scatter, angle);
     } else if (projectile.incendiary) {
       ctx.translate(pos.x, pos.y);
       ctx.rotate(angle);
@@ -152,7 +156,7 @@
       ctx.moveTo(-2, 0); ctx.lineTo(4, 0);
       ctx.stroke();
     } else {
-      stamp(ctx, "cannon", frame, pos.x, pos.y, 18, 18, angle);
+      stamp(ctx, "cannon", frame, pos.x, pos.y, SHOT_SIZE.cannon, SHOT_SIZE.cannon, angle);
     }
     ctx.restore();
     return true;
@@ -251,7 +255,7 @@
       }
       ctx.fillStyle = muzzle.type === "cryo" || muzzle.shatter || muzzle.coldPayload ? "#d8f6ff" : muzzle.type === "cannon" ? "#d4faff" : muzzle.type === "rail" ? "#ffb5ed" : "#ffe1b3";
       ctx.beginPath();
-      ctx.ellipse(2, 0, muzzle.type === "scatter" ? 11 : 7, muzzle.type === "scatter" ? 5 : 2.7, 0, 0, TAU);
+      ctx.ellipse(2 * MUZZLE_SCALE, 0, (muzzle.type === "scatter" ? 11 : 7) * MUZZLE_SCALE, (muzzle.type === "scatter" ? 5 : 2.7) * MUZZLE_SCALE, 0, 0, TAU);
       ctx.fill();
       ctx.restore();
     }

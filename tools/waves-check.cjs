@@ -172,7 +172,7 @@ game.wave = 11;
 const scout = game.spawnEnemy("scout", game.ship.x + 300, game.ship.y);
 assert.ok(Math.abs(scout.maxHp - 12 * scale11.hp) < 1e-9 && Math.abs(scout.damage - 4 * scale11.damage) < 1e-9 && Math.abs(scout.reward - 1 * scale11.reward) < 1e-9, "Wave 11 scout is scaled");
 const bulwark = game.spawnEnemy("bulwark", game.ship.x - 300, game.ship.y);
-assert.ok(Math.abs(bulwark.maxShield - 45 * scale11.hp) < 1e-9, "Enemy shields scale with HP");
+assert.ok(Math.abs(bulwark.maxHp - 130 * scale11.hp) < 1e-9 && !bulwark.maxShield, "Bulwark durability is plain HP (former 85 HP + 45 shield) and scales with the wave");
 const endlessScout = endless.spawnEnemy("scout", 300, 0);
 assert.equal(endlessScout.maxHp, 12, "Endless enemies keep fixed stats");
 

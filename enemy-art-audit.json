@@ -418,5 +418,95 @@
       202,
       256
     ]
+  },
+  "bossRing": {
+    "source": "bosses/siege-ring/raw/siege-ring-v1.png",
+    "sha256": "5fe95ed1ae56142bab2e058ce4be89ed64e136893eb739e838081bd870502837",
+    "sourceSize": [
+      1024,
+      1024
+    ],
+    "sourceCrop": [
+      0,
+      0,
+      1024,
+      1024
+    ],
+    "opaqueBoundsInsideCrop": [
+      32,
+      33,
+      992,
+      989
+    ],
+    "finalCropInsideSource": [
+      24,
+      25,
+      1000,
+      997
+    ],
+    "exportSize": [
+      384,
+      382
+    ]
+  },
+  "bossPursuer": {
+    "source": "bosses/pursuer/raw/pursuer-v2.png",
+    "sha256": "13fbafba4e82fed4c44b179b45982d77ede393e14b44769a463ea0a80d9c902f",
+    "sourceSize": [
+      1254,
+      1254
+    ],
+    "sourceCrop": [
+      0,
+      0,
+      1254,
+      1254
+    ],
+    "opaqueBoundsInsideCrop": [
+      104,
+      132,
+      1150,
+      1124
+    ],
+    "finalCropInsideSource": [
+      96,
+      124,
+      1158,
+      1132
+    ],
+    "exportSize": [
+      384,
+      364
+    ]
+  },
+  "bossStorm": {
+    "source": "bosses/storm-ring/raw/storm-ring-v4.png",
+    "sha256": "329760cf047fd1a2b4cecd6332c0849d1cd6a4c4632d8f33d7c1a7a2a6500815",
+    "sourceSize": [
+      1024,
+      1024
+    ],
+    "sourceCrop": [
+      0,
+      0,
+      1024,
+      1024
+    ],
+    "opaqueBoundsInsideCrop": [
+      46,
+      56,
+      979,
+      974
+    ],
+    "finalCropInsideSource": [
+      38,
+      48,
+      987,
+      982
+    ],
+    "exportSize": [
+      384,
+      378
+    ]
   }
 }

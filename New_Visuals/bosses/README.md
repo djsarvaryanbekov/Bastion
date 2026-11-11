@@ -21,5 +21,13 @@ chat for Pursuer, attach the actual selected image for every revision, and
 preserve all raw versions. Record the chat URL and measured image properties
 beside each saved candidate.
 
-Siege Ring and Storm Ring will follow after the first boss establishes a
-selected visual direction.
+## Siege Ring
+
+Three review candidates were generated on 2026-11-11 with the image tool in the
+Claude session, using the Colossus and Pursuer v2 sprites as references. None
+is selected or integrated. See [siege-ring/BRIEF.md](siege-ring/BRIEF.md).
+
+## Storm Ring
+
+Three review candidates were generated on 2026-11-11 the same way. None is
+selected or integrated. See [storm-ring/BRIEF.md](storm-ring/BRIEF.md).

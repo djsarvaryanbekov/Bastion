@@ -61,6 +61,18 @@ Research is complete: 13 games, with catalogs and notes for each. Added Cobalt C
   - Core Conduit sparks branch sideways once per pulse at each Reactor.
 - **Requirement gates:** duo pairs must be licensed; new `minWeapons` requirement. A test checks fresh-save offers over 300 rolls. The debug self-tests pass in the browser.
 
+## Update 2026-11-12 — visual pass (build `2026.11.12-visuals-54`)
+Promoted to the main HTML at the user's request ("Yes, promote it"), then committed and pushed on "git push".
+- **Audit and research:** `research/game-audit-2026-11-11/AUDIT.md` (visual, loop and mechanics audit with the user's decisions), `research/controls-2026-11-11/` (dash and manual-aim research; nothing built), `research/backgrounds-2026-11-11/references.md`.
+- **Background:** `space-backdrop.js`, modelled on Space Scavenger: blue field, dark clouds, star dust, faceted rock clusters, grid kept on top. Drawn in code, moves only with the camera at 7-18% of its speed. The streaking stars remain only in Training. Check: `tools/space-backdrop-check.cjs`.
+- **Bosses:** sprites through the enemy-art pipeline (`enemy-art-manifest.json`: `bossRing`, `bossPursuer`, `bossStorm`; optional `maxSize`). `BOSS_ART_TYPES` and `drawBossSprite` in `game.js`; `boss.visualFacing` is presentation only. Sources and briefs in `New_Visuals/bosses/`.
+- **Card break:** hand layout in `styles.css` (desktop only), card pips and key hints, number keys 1-4, "Buy modules" button (`renderBuyModulesButton`, one new translated string).
+- **Combat readability:** ordinary enemy shots and warnings use `SHOT_COLORS.hostile` (pink) with a bright core; brighter hit sparks and kill bursts; larger player shot sprites (`SHOT_SIZE` in `attack-vfx.js`, `RAIL_SHOT` in `game.js`).
+- **Bulwark:** 85 HP + 45 shield became 130 HP; no shield ring. `waves-check` and the built-in self-test were updated.
+- **Rejected by the user, do not re-propose:** engine flames on the ship, Matter shards flying to the core, edge arrows for enemy groups, five alternative art styles, simplified boss redraws, and every background before the Space Scavenger one. Design changes (loadout cap, dash, manual weapons, merge tiers) are parked as ideas only.
+- **Verified:** `npm run check`, `npm test`, `npm run test:i18n`; enemy-art and attack-vfx browser checks; main HTML opened at 1920x1080. With GPU rendering the frame time equals the previous build (60 fps cap, Intel UHD); with software rendering the background roughly doubles it.
+- **Not done:** human playtest of this build; the ZIP package and itch.io still hold an older build; `outputs/PLAYTEST_README.txt` (the package copy) is not updated.
+
 ## In progress — card redesign through research
 - New user skill: **`game-mechanic-research`** (`C:\Users\User\.claude\skills\game-mechanic-research`) — find similar games, mine their fan wikis/communities for the complete catalog + what players love/hate, then design original variants through the game's pillars. Use it.
 - Research folder: `research/cards-2026-10-21/`

@@ -74,7 +74,8 @@ radii.length = 0;
 api.drawProjectiles(true);
 assert.ok(paints.some((paint) => paint.color === api.colors.hostileRim));
 [hostile, sniper, bossShot].forEach((shot) => assert.ok(paints.some((paint) => paint.color === shot.color)));
-assert.deepEqual(radii, [3.5, 5, 7, 4],
+// Each shot draws its body, a bright core at 45% of the body, then the rim on the body radius.
+assert.deepEqual(radii, [3.5, 3.5 * .45, 3.5, 5, 5 * .45, 5, 7, 4, 4 * .45, 4],
   "Hostile bullets must keep original sizes and the sniper's original white-ring silhouette.");
 
 paints.length = 0;
