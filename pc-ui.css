@@ -17,7 +17,9 @@ body.pc-game.pc-ui-pending #pcViewport { visibility:hidden; }
 .pc-game .eyebrow { color:#86aeaF; letter-spacing:.22em; font-size:.7rem; font-weight:600; }
 .pc-game h1,.pc-game h2,.pc-game h3 { font-family:"Segoe UI",Arial,sans-serif; letter-spacing:.015em; text-shadow:none; }
 .pc-game .scanlines,.pc-game #mobileControls,.pc-game .touch-control,.pc-game #installButton { display:none!important; }
-.pc-game .overlay { position:absolute; inset:0; width:100%; height:100%; padding:0; background:rgba(6,15,24,.86); backdrop-filter:blur(6px); align-items:stretch; justify-content:stretch; }
+/* No backdrop blur: the game canvas redraws every frame, so a full-screen blur over it was recomputed
+   every frame and held the Build screen near 30 fps. A slightly denser tint hides the field instead. */
+.pc-game .overlay { position:absolute; inset:0; width:100%; height:100%; padding:0; background:rgba(6,15,24,.9); backdrop-filter:none; align-items:stretch; justify-content:stretch; }
 @keyframes pc-panel-enter { from { opacity:0; } to { opacity:1; } }
 .pc-game .overlay:not(.hidden)>.panel,
 .pc-game #menuOverlay:not(.hidden)>.start-screen,
@@ -71,7 +73,7 @@ body.pc-game.pc-ui-pending #pcViewport { visibility:hidden; }
 .pc-game #hud { position:absolute; inset:0; padding:0; pointer-events:none; }
 .pc-game .hud-top { position:absolute; left:2.5%; right:2.5%; top:22px; gap:20px; }
 .pc-game .hud-stack { display:flex; flex-wrap:nowrap; gap:25px; align-items:center; }
-.pc-game .hud-chip { background:none; border:0; border-left:1px solid #3f5663; border-radius:0; box-shadow:none; padding:0 0 0 20px; min-width:80px; }
+.pc-game .hud-chip { background:none; backdrop-filter:none; border:0; border-left:1px solid #3f5663; border-radius:0; box-shadow:none; padding:0 0 0 20px; min-width:80px; }
 .pc-game .hud-chip label { font-size:.6rem; color:#a5b8c3; letter-spacing:.11em; }
 .pc-game .hud-chip b { font-size:1.1rem; color:var(--text); font-weight:550; }
 .pc-game .hud-matter b { color:var(--gold); }

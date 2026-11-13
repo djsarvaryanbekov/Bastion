@@ -9,6 +9,33 @@ W/S: thrust. A/D: turn. Hold left mouse on the battlefield to follow the cursor;
 release to coast. Weapons fire automatically.
 B: open/resume Build. P or Escape: pause. Escape closes the current layer first.
 
+MISSILE BLAST — 2026.11.13-missile-58
+- Missile Pod explosions are rebuilt after Nova Drift's: a faint red sphere shows
+  exactly how far the blast reaches and fades over a second; inside it a white-hot
+  blob stretches, splits and cools to pink, with a few flying specks.
+- The moving stars now leave short fading tails pointing back from the ship.
+
+FIXES — 2026.11.12-fixes-57
+- Cards: clicking a card selects it; you can change your mind (click or keys 1-4)
+  until you press Start wave. The chosen card is applied when the wave starts.
+- Card screen fits short screens (for example 1080p at 150% Windows scaling):
+  the heading no longer covers the top bar, the cards are smaller there, and
+  End run no longer touches the button bar.
+- Build screen no longer lags: the blur behind it is gone and the paused
+  battlefield is not redrawn under it.
+- One kind of star: the background's own star dust is removed. Every moving
+  star now passes faster than the rocks, so none seems to drift forward.
+- Missile Pod and other area weapons show their blast radius in Build.
+- Upgrade values show at most two decimals (1.7 -> 1.48).
+
+BACKGROUND FIX — 2026.11.12-bg-56
+- The moving, streaking stars are back.
+- No more light around the ship: the background no longer brightens the centre
+  of the screen or darkens its edges.
+- A visible pattern of darker and lighter cloud runs through the blue, moving
+  together with the rocks.
+- Fewer rocks, in looser clusters.
+
 UI RESPONSE — 2026.11.12-ui-feel-55
 - Every button now answers the pointer: it lifts or slides a little on hover and
   pushes in when pressed. Before, primary buttons showed nothing when pressed.

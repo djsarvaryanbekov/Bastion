@@ -95,7 +95,7 @@
       missile: {
         id: "missile", name: tr("Missile Pod"), glyph: "M", color: "#ffd96a",
         baseCost: 42, scale: 1.22, hp: 45, mass: 1.2,
-        range: 520, cooldown: 1.7, damage: 32,
+        range: 520, cooldown: 1.7, damage: 32, blastRadius: 74,
         summary: tr("Homing shots with splash damage."),
         description: tr("Slow homing projectile with a small blast radius. An edge-adjacent Cryo adds a cold payload: blasts slow survivors by 25% for one second.")
       },
@@ -886,6 +886,8 @@
     }
 
     function resize() {
+      // Resizing clears the canvas, so the frame under the Build screen must be drawn again.
+      drawnUnderBuild = false;
       var qualityTier = currentQualityTier();
       dpr = Math.min(qualityTier > 1 ? 1 : (qualityTier > 0 ? 1.25 : 1.5), window.devicePixelRatio || 1);
       var viewport = document.getElementById("pcViewport");
@@ -3178,6 +3180,8 @@
       }
     };
 
+    var MISSILE_BLAST_LIFE = 1;
+
     Game.prototype.explodeBlast = function (projectile, radius, color, particleCount, weaponType) {
       var candidates = this.radiusCandidates ? this.radiusCandidates(projectile.x, projectile.y, radius) : this.enemies;
       for (var i = 0; i < candidates.length; i += 1) {
@@ -3189,7 +3193,8 @@
         this.damageEnemy(enemy, projectile.damage * falloff);
         if (weaponType === "missile" && projectile.coldPayload) this.applyMissileChill(enemy);
       }
-      var blastEffect = this.spawnEffect("ring", projectile.x, projectile.y, .28, color);
+      // A missile blast stays a little longer so its full area can be read.
+      var blastEffect = this.spawnEffect("ring", projectile.x, projectile.y, weaponType === "missile" ? MISSILE_BLAST_LIFE : .28, color);
       blastEffect.radius = 5;
       blastEffect.maxRadius = radius;
       blastEffect.weaponType = weaponType || null;
@@ -5430,13 +5435,16 @@
         readyFamilies[tile.type] = runUpgrades.options(tile.type, game.upgrades[tile.type], upgradePricingCopies(tile.type), effectiveBranchLicenses()).some(function (option) { return !option.locked && (game.testRange || option.cost <= game.matter); });
       });
       var selected = MODULES[selectedBuildModule];
+      // Area weapons show their blast size, so the ring drawn on impact has a stated meaning.
+      var selectedBlast = (game.weaponDefinitions[selectedBuildModule] || selected).blastRadius;
+      var blastLine = selectedBlast ? '<p class="selection-blast">' + tr("Blast radius") + ' · ' + Math.round(selectedBlast) + '</p>' : '';
       var selectedPrice = modulePrice(selectedBuildModule);
       var canAffordSelected = game.matter >= selectedPrice;
       var missingMatter = Math.ceil(selectedPrice - game.matter);
       var inheritedUpgradeCost = game.testRange ? 0 : runUpgrades.investment(selectedBuildModule, game.upgrades[selectedBuildModule]);
       var copyPriceBreakdown = inheritedUpgradeCost > 0 ? '<small class="copy-price-breakdown">' +
         tr("{base} base + {upgrades} upgrades", { base: selectedPrice - inheritedUpgradeCost, upgrades: inheritedUpgradeCost }) + '</small>' : '';
-      ui.buildSelection.innerHTML = moduleGlyphHtml(selectedBuildModule) + '<div><span class="module-role">' + tr("Buy one copy") + '</span><strong>' + selected.name + '</strong><p>' + selected.summary + '</p></div><div class="selection-price' + (canAffordSelected ? '' : ' short') + '">' + tr("{price} MATTER", { price: selectedPrice }) + copyPriceBreakdown + '<small>' + (canAffordSelected ? tr("READY TO ATTACH") : tr("Available: {count} Matter", { count: Math.floor(game.matter) })) + '</small></div>';
+      ui.buildSelection.innerHTML = moduleGlyphHtml(selectedBuildModule) + '<div><span class="module-role">' + tr("Buy one copy") + '</span><strong>' + selected.name + '</strong><p>' + selected.summary + '</p>' + blastLine + '</div><div class="selection-price' + (canAffordSelected ? '' : ' short') + '">' + tr("{price} MATTER", { price: selectedPrice }) + copyPriceBreakdown + '<small>' + (canAffordSelected ? tr("READY TO ATTACH") : tr("Available: {count} Matter", { count: Math.floor(game.matter) })) + '</small></div>';
       ui.buildSelection.title = selected.description;
       var minX = 0;
       var maxX = 0;
@@ -6102,8 +6110,17 @@
       if (!shown && ownedDetailId) showOwnedDetail(ownedDetailId, "");
     }
 
+    // A card click only selects it, so the player can change their mind until the next wave starts.
+    // The selection belongs to one offer: a reroll or a new break makes a new offer array and clears it.
+    var cardSelection = { offer: null, index: -1 };
+
+    function selectedCardIndex() {
+      return game && !game.cardPicked && cardSelection.offer === game.cardOffer ? cardSelection.index : -1;
+    }
+
     function renderWaveOverlay() {
       if (!game || !cardsApi) return;
+      var selected = selectedCardIndex();
       var reward = game.lastWaveReward || { matter: 0 };
       ui.waveEyebrow.textContent = tr("WAVE {wave} CLEARED", { wave: game.wave });
       ui.waveTitle.textContent = game.cardSkipped ? tr("Card skipped") : game.cardPicked ? tr("Card added") : game.offerIsDoctrine ? tr("Choose a Doctrine") : tr("Choose a card");
@@ -6119,15 +6136,17 @@
         var stacks = cardsApi.stacksOf(game.cardPicks, cardsApi.pickKey(pick));
         var button = document.createElement("button");
         button.type = "button";
-        button.className = "wave-card rarity-" + info.rarity + (game.cardPickedIndex === index ? " picked" : "");
+        button.className = "wave-card rarity-" + info.rarity + (game.cardPickedIndex === index || selected === index ? " picked" : "");
         button.disabled = game.cardPicked;
+        button.setAttribute("aria-pressed", String(selected === index));
         var stackLabel = info.maxStacks > 1 ? tr("{count}/{max}", { count: stacks, max: info.maxStacks }) :
           info.pair ? tr("{first} + {second}", { first: cardModuleName(info.pair[0]), second: cardModuleName(info.pair[1]) }) : "";
         var icon = cardIconHtml(pick, info);
         button.innerHTML = '<span class="wave-card-key" aria-hidden="true">' + (index + 1) + '</span><span class="wave-card-icon' + (info.pair ? ' pair' : '') + '">' + icon + '</span><span class="wave-card-rarity">' + cardRarityLabel(info.rarity) + '</span><strong>' + info.name +
           '</strong><span class="wave-card-text">' + info.text + '</span>' + cardPipsHtml(stacks, info.maxStacks) + '<small class="wave-card-stack">' + stackLabel + "</small>";
         button.addEventListener("click", function () {
-          if (!game || game.state !== "intermission" || !game.pickCard(index)) return;
+          if (!game || game.state !== "intermission" || game.cardPicked) return;
+          cardSelection = { offer: game.cardOffer, index: index };
           audio.tone(420, .12, .04, "sine", 200);
           renderWaveOverlay();
           focusWithoutScroll(ui.nextWaveButton);
@@ -6140,7 +6159,7 @@
       ui.cardSkipButton.textContent = tr("Skip · +{matter} Matter", { matter: cardsApi.skipReward(game.wave) });
       ui.cardSkipButton.disabled = game.cardPicked || !game.cardOffer.length;
       ui.nextWaveButton.textContent = tr("Start wave {wave}", { wave: game.wave + 1 });
-      ui.nextWaveButton.disabled = !game.cardPicked && game.cardOffer.length > 0;
+      ui.nextWaveButton.disabled = !game.cardPicked && game.cardOffer.length > 0 && selected < 0;
       renderBuyModulesButton();
       updateHud();
     }
@@ -6159,7 +6178,8 @@
     }
 
     function startNextWave() {
-      if (!game || game.state !== "intermission" || (!game.cardPicked && game.cardOffer.length)) return;
+      if (!game || game.state !== "intermission") return;
+      if (!game.cardPicked && game.cardOffer.length && !game.pickCard(selectedCardIndex())) return;
       ui.waveOverlay.classList.add("hidden");
       game.state = "playing";
       game.lastFrame = performance.now();
@@ -6266,36 +6286,55 @@
       return transformedX >= -margin && transformedX <= viewWidth + margin && transformedY >= -margin && transformedY <= viewHeight + margin;
     }
 
+    // Far stars must move faster than the rock backdrop (0.18 of the camera): slower ones look as if
+    // they travel forward with the ship when seen against the rocks.
+    var FAR_STAR_PARALLAX = .22;
+    // Near stars get a tail pointing back from the ship's heading, bright at the star and fading out,
+    // so the field streams past the ship instead of reaching ahead of it (user feedback 2026-11-12).
+    var STAR_TAIL_MAX = 14;
+    var STAR_TAIL_PER_SPEED = .045;
+    var STAR_TAIL_FADE = [.9, .5, .2];
+
+    function drawStarTail(x, y, directionX, directionY, length, alpha) {
+      var pieces = STAR_TAIL_FADE.length;
+      for (var piece = 0; piece < pieces; piece += 1) {
+        ctx.globalAlpha = alpha * STAR_TAIL_FADE[piece];
+        ctx.beginPath();
+        ctx.moveTo(x + directionX * length * piece / pieces, y + directionY * length * piece / pieces);
+        ctx.lineTo(x + directionX * length * (piece + 1) / pieces, y + directionY * length * (piece + 1) / pieces);
+        ctx.stroke();
+      }
+    }
+
     function drawBackground(time) {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.fillStyle = game && game.training ? "#081b1d" : backgroundGradient;
       ctx.fillRect(0, 0, viewWidth, viewHeight);
       var cameraX = game ? game.camera.x : Math.sin(time * .00008) * 120;
       var cameraY = game ? game.camera.y : Math.cos(time * .00006) * 90;
-      // The backdrop brings its own star dust, so the streaking stars are drawn only where it is absent.
-      var backdropDrawn = Boolean(spaceBackdrop) && !(game && game.training) && spaceBackdrop.draw(ctx, viewWidth, viewHeight, cameraX, cameraY);
+      if (spaceBackdrop && !(game && game.training)) spaceBackdrop.draw(ctx, viewWidth, viewHeight, cameraX, cameraY);
       var velocityX = game ? game.ship.vx : 0;
       var velocityY = game ? game.ship.vy : 0;
       var speed = Math.hypot(velocityX, velocityY);
-      var trailLength = save.settings.reducedFlash ? 0 : Math.min(14, speed * .045);
-      var starCount = backdropDrawn ? 0 : stars.length;
-      for (var i = 0; i < starCount; i += 1) {
+      var trailLength = save.settings.reducedFlash ? 0 : Math.min(STAR_TAIL_MAX, speed * STAR_TAIL_PER_SPEED);
+      var tailX = speed > 0 ? -velocityX / speed : 0;
+      var tailY = speed > 0 ? -velocityY / speed : 0;
+      for (var i = 0; i < stars.length; i += 1) {
         var star = stars[i];
         var near = i % 3 === 0;
-        var parallax = near ? .65 + star.depth * .35 : star.depth * .18;
+        var parallax = near ? .65 + star.depth * .35 : FAR_STAR_PARALLAX + star.depth * .2;
         var sx = (star.x - cameraX * parallax) % viewWidth;
         var sy = (star.y - cameraY * parallax) % viewHeight;
         if (sx < 0) sx += viewWidth;
         if (sy < 0) sy += viewHeight;
         ctx.globalAlpha = star.alpha;
         ctx.fillStyle = i % 7 === 0 ? "#65e8ff" : "#b9d8e6";
-        if (near && trailLength > 1) {
+        if (near && trailLength * parallax > 1) {
           ctx.strokeStyle = ctx.fillStyle;
           ctx.lineWidth = star.size;
-          ctx.beginPath();
-          ctx.moveTo(sx + velocityX / speed * trailLength, sy + velocityY / speed * trailLength);
-          ctx.lineTo(sx, sy);
-          ctx.stroke();
+          var headX = sx + star.size / 2, headY = sy + star.size / 2;
+          drawStarTail(headX, headY, tailX, tailY, trailLength * parallax, star.alpha);
+          ctx.globalAlpha = star.alpha;
         }
         ctx.fillRect(sx, sy, star.size, star.size);
       }
@@ -7494,6 +7533,7 @@
     }
 
     var crashed = false;
+    var drawnUnderBuild = false;
 
     // An exception inside the loop would otherwise repeat every frame and freeze the game silently.
     function frame(now) {
@@ -7584,7 +7624,10 @@
           lastHudUpdate = now;
         }
       }
-      var rendered = shouldRenderFrame(now);
+      // The desktop Build screen covers the paused battlefield, so one frame drawn under it is enough.
+      var underBuild = Boolean(game) && game.state === "building" && document.body.classList.contains("pc-game");
+      var rendered = !(underBuild && drawnUnderBuild) && shouldRenderFrame(now);
+      drawnUnderBuild = underBuild && (drawnUnderBuild || rendered);
       if (rendered) {
         render(now);
         telemetryMinimumRenderFps = Math.min(telemetryMinimumRenderFps, smoothedRenderFps);

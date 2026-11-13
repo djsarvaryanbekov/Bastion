@@ -42,13 +42,16 @@ function recordingContext() {
   assert.equal(working.draw(context, 1920, 1080, 0, 0), true);
   const builtOnce = made.length;
   const firstFrame = context.calls.drawImage;
-  assert.ok(builtOnce > 10, 'Clouds, dust, rock sprites and the two field layers are built.');
-  assert.ok(firstFrame >= 4, 'Field, clouds, dust and vignette are blitted.');
+  assert.ok(builtOnce > 10, 'Clouds and rock sprites are built.');
+  assert.ok(firstFrame >= 1, 'Clouds are blitted.');
   assert.equal(working.draw(context, 1920, 1080, 4000, -2500), true);
   assert.equal(made.length, builtOnce, 'Nothing is rebuilt on later frames.');
   assert.equal(context.globalAlpha, 1, 'The backdrop restores the alpha it changed.');
   assert.equal(working.draw(context, 1280, 720, 0, 0), true);
-  assert.equal(made.length, builtOnce + 2, 'Only the two screen-sized field layers are rebuilt after a resize.');
+  assert.equal(made.length, builtOnce, 'Nothing is fixed to the screen, so a resize rebuilds nothing.');
 }
+
+// The game's stars must all move faster than this layer, or slow ones seem to drift forward against it.
+assert.ok(backdrop.PARALLAX > 0 && backdrop.PARALLAX < .22, 'The backdrop stays slower than the slowest star.');
 
 console.log('space-backdrop-check passed');

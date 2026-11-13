@@ -7,29 +7,24 @@
   "use strict";
 
   // The battlefield backdrop, modelled on Space Scavenger's (research/backgrounds-2026-11-11):
-  //   - a deep blue field with dark smoky clouds and near-black corners;
-  //   - a dense dust of tiny pale stars;
-  //   - clusters of dark rocks built from facets, each facet lit a little differently, with soft edges;
-  //   - a few larger, darker, blurrier rocks behind them.
-  // Everything moves only with the camera, at a fraction of its speed, so it reads as distant.
-  // The game draws its own grid on top.
+  //   - an even deep-blue field with a mottled pattern of darker and lighter cloud;
+  //   - loose clusters of dark rocks built from facets, with soft edges, and a few larger blurred ones behind.
+  // Nothing is fixed to the screen: no spotlight or vignette, so there is no glow around the ship.
+  // Cloud and near rocks share one slow rate, so they move together as one distant layer.
+  // The game draws its own moving stars and grid on top; the backdrop has no stars of its own.
   var TAU = Math.PI * 2;
 
-  var FIELD_WASH = [0, 24, 74];
-  var FIELD_WASH_ALPHA = .5;
-  var VIGNETTE_COLOR = [0, 1, 6];
-  var VIGNETTE_ALPHA = .5;
+  // An even tint over the game's navy; it has no centre, so it cannot read as a light around the ship.
+  var FIELD_TINT = "rgba(0,24,74,.34)";
+  var BACKDROP_PARALLAX = .18;
 
-  // Clouds are painted once at low resolution and stretched, which is what makes them soft.
-  var CLOUD_TILE = 256;
-  var CLOUD_STRETCH = 8;
-  var CLOUD_PARALLAX = .07;
-  var CLOUD_COLOR = [0, 0, 0];
-  var CLOUD_MAX_ALPHA = .42;
-
-  var DUST_TILE = 1024;
-  var DUST_PARALLAX = .09;
-  var DUST_COUNT = 1200;
+  // The pattern tile is painted at full resolution: stretching a low-alpha tile produced stripes.
+  var CLOUD_TILE = 768;
+  var CLOUD_STRETCH = 2;
+  var CLOUD_DARK = [0, 2, 10];
+  var CLOUD_DARK_ALPHA = .55;
+  var CLOUD_LIGHT = [34, 82, 150];
+  var CLOUD_LIGHT_ALPHA = .2;
 
   var ROCK_SPRITE = 128;
   var ROCK_SHAPES = 18;
@@ -38,8 +33,8 @@
   var ROCK_LIGHT = [10, 20, 46];
   var LIGHT_X = -.62, LIGHT_Y = -.78;
 
-  var FAR_LAYER = { parallax: .11, cell: 560, chance: .7, minRocks: 1, maxRocks: 3, spread: 240, minSize: 120, maxSize: 210, alpha: .5, blur: 4, salt: 300 };
-  var NEAR_LAYER = { parallax: .18, cell: 360, chance: .9, minRocks: 4, maxRocks: 10, spread: 200, minSize: 36, maxSize: 96, alpha: 1, blur: 1.1, salt: 500 };
+  var FAR_LAYER = { parallax: .14, cell: 700, chance: .45, minRocks: 1, maxRocks: 2, spread: 220, minSize: 110, maxSize: 190, alpha: .45, blur: 4, salt: 300 };
+  var NEAR_LAYER = { parallax: BACKDROP_PARALLAX, cell: 520, chance: .6, minRocks: 2, maxRocks: 7, spread: 170, minSize: 34, maxSize: 88, alpha: 1, blur: 1.1, salt: 500 };
 
   function hash(x, y, salt) {
     var h = (x * 374761393 + y * 668265263 + salt * 1274126177) | 0;
@@ -63,39 +58,32 @@
     return top + (bottom - top) * sy;
   }
 
+  function smoothStep(edge0, edge1, value) {
+    var t = Math.max(0, Math.min(1, (value - edge0) / (edge1 - edge0)));
+    return t * t * (3 - 2 * t);
+  }
+
+  // High noise becomes dark smoke, low noise becomes a lighter blue haze, the middle stays open field.
   function paintClouds(context) {
     var image = context.createImageData(CLOUD_TILE, CLOUD_TILE);
     var data = image.data;
     for (var y = 0; y < CLOUD_TILE; y += 1) {
       for (var x = 0; x < CLOUD_TILE; x += 1) {
         var u = x / CLOUD_TILE, v = y / CLOUD_TILE;
-        var value = tileNoise(u * 4, v * 4, 4, 701) * .55 + tileNoise(u * 8, v * 8, 8, 702) * .3 + tileNoise(u * 16, v * 16, 16, 703) * .15;
-        // Only the upper part of the noise becomes cloud, leaving open blue between the patches.
-        var density = Math.max(0, Math.min(1, (value - .46) / .3));
-        density = density * density * (3 - 2 * density);
+        var value = tileNoise(u * 3, v * 3, 3, 701) * .5 + tileNoise(u * 6, v * 6, 6, 702) * .3 + tileNoise(u * 14, v * 14, 14, 703) * .2;
+        var dark = smoothStep(.5, .72, value);
+        var light = smoothStep(.44, .26, value);
+        var color = dark > 0 ? CLOUD_DARK : CLOUD_LIGHT;
+        var alpha = dark > 0 ? dark * CLOUD_DARK_ALPHA : light * CLOUD_LIGHT_ALPHA;
         var index = (y * CLOUD_TILE + x) * 4;
-        data[index] = CLOUD_COLOR[0];
-        data[index + 1] = CLOUD_COLOR[1];
-        data[index + 2] = CLOUD_COLOR[2];
-        data[index + 3] = Math.round(density * CLOUD_MAX_ALPHA * 255);
+        data[index] = color[0];
+        data[index + 1] = color[1];
+        data[index + 2] = color[2];
+        // Random rounding turns 8-bit steps into invisible grain instead of contour lines.
+        data[index + 3] = Math.floor(alpha * 255 + Math.random());
       }
     }
     context.putImageData(image, 0, 0);
-  }
-
-  function paintDust(context) {
-    context.clearRect(0, 0, DUST_TILE, DUST_TILE);
-    for (var i = 0; i < DUST_COUNT; i += 1) {
-      var x = hash(i, 1, 801) * DUST_TILE;
-      var y = hash(i, 2, 802) * DUST_TILE;
-      var kind = hash(i, 3, 803);
-      var brightness = hash(i, 4, 804);
-      // Most specks are barely there; a few are clear points of light.
-      var alpha = .1 + brightness * brightness * .55;
-      var size = brightness > .93 ? 2.2 : (brightness > .6 ? 1.5 : 1);
-      context.fillStyle = kind < .68 ? "rgba(150,196,232," + alpha + ")" : (kind < .9 ? "rgba(92,214,204," + alpha + ")" : "rgba(236,244,255," + alpha + ")");
-      context.fillRect(x, y, size, size);
-    }
   }
 
   function facetColor(centroidX, centroidY, centerX, centerY, tilt, seed) {
@@ -157,7 +145,6 @@
     options = options || {};
     var createCanvas = options.createCanvas || function () { return document.createElement("canvas"); };
     var assets = null, assetsFailed = false;
-    var wash = null, vignette = null, fieldWidth = 0, fieldHeight = 0;
 
     function newCanvas(size) {
       var canvas = createCanvas();
@@ -179,8 +166,6 @@
       try {
         var clouds = newCanvas(CLOUD_TILE);
         paintClouds(clouds.getContext("2d"));
-        var dust = newCanvas(DUST_TILE);
-        paintDust(dust.getContext("2d"));
         var near = [], far = [];
         for (var shape = 0; shape < ROCK_SHAPES; shape += 1) {
           var crisp = newCanvas(ROCK_SPRITE);
@@ -188,7 +173,7 @@
           near.push(softened(crisp, NEAR_LAYER.blur));
           far.push(softened(crisp, FAR_LAYER.blur));
         }
-        assets = { clouds: clouds, dust: dust, near: near, far: far };
+        assets = { clouds: clouds, near: near, far: far };
       } catch (error) {
         // No 2D canvas (test harness): the game keeps its plain background.
         assets = null;
@@ -236,67 +221,22 @@
       context.globalAlpha = 1;
     }
 
-    // A screen-sized layer of one colour whose alpha follows a radial falloff.
-    // Canvas gradients are dithered with a fixed pattern; stacked on the game's own gradient they add up
-    // to visible stripes. Random per-pixel rounding here turns that into fine, invisible grain.
-    function paintFalloff(width, height, color, centerY, alphaAt) {
-      var canvas = createCanvas();
-      canvas.width = width;
-      canvas.height = height;
-      var context = canvas.getContext("2d");
-      var image = context.createImageData(width, height);
-      var data = image.data;
-      var centerX = width * .5;
-      centerY *= height;
-      var index = 0;
-      for (var y = 0; y < height; y += 1) {
-        var dy = y - centerY;
-        for (var x = 0; x < width; x += 1) {
-          var dx = x - centerX;
-          data[index] = color[0];
-          data[index + 1] = color[1];
-          data[index + 2] = color[2];
-          data[index + 3] = Math.floor(alphaAt(Math.sqrt(dx * dx + dy * dy)) * 255 + Math.random());
-          index += 4;
-        }
-      }
-      context.putImageData(image, 0, 0);
-      return canvas;
-    }
-
-    function prepareField(width, height) {
-      if (wash && fieldWidth === width && fieldHeight === height) return;
-      var washRadius = Math.max(width, height) * .62;
-      wash = paintFalloff(width, height, FIELD_WASH, .46, function (distance) {
-        var t = Math.min(1, distance / washRadius);
-        return t < .6 ? FIELD_WASH_ALPHA * (1 - t / .6 * .55) : FIELD_WASH_ALPHA * .45 * (1 - (t - .6) / .4);
-      });
-      var vignetteStart = Math.min(width, height) * .42;
-      var vignetteEnd = Math.max(width, height) * .72;
-      vignette = paintFalloff(width, height, VIGNETTE_COLOR, .5, function (distance) {
-        return VIGNETTE_ALPHA * Math.max(0, Math.min(1, (distance - vignetteStart) / (vignetteEnd - vignetteStart)));
-      });
-      fieldWidth = width;
-      fieldHeight = height;
-    }
-
     // Returns false when nothing could be drawn (no 2D canvas), so the caller keeps its plain background.
     function draw(context, width, height, cameraX, cameraY) {
       if (typeof context.drawImage !== "function") return false;
       var built = buildAssets();
       if (!built) return false;
-      prepareField(Math.round(width), Math.round(height));
-      context.drawImage(wash, 0, 0, width, height);
-      drawTiled(context, built.clouds, CLOUD_TILE * CLOUD_STRETCH, cameraX * CLOUD_PARALLAX, cameraY * CLOUD_PARALLAX, width, height);
-      drawTiled(context, built.dust, DUST_TILE, cameraX * DUST_PARALLAX, cameraY * DUST_PARALLAX, width, height);
+      context.fillStyle = FIELD_TINT;
+      context.fillRect(0, 0, width, height);
+      var offsetX = cameraX * BACKDROP_PARALLAX, offsetY = cameraY * BACKDROP_PARALLAX;
+      drawTiled(context, built.clouds, CLOUD_TILE * CLOUD_STRETCH, offsetX, offsetY, width, height);
       drawRocks(context, FAR_LAYER, built.far, width, height, cameraX, cameraY);
       drawRocks(context, NEAR_LAYER, built.near, width, height, cameraX, cameraY);
-      context.drawImage(vignette, 0, 0, width, height);
       return true;
     }
 
     return { draw: draw };
   }
 
-  return Object.freeze({ create: create });
+  return Object.freeze({ create: create, PARALLAX: BACKDROP_PARALLAX });
 });

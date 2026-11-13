@@ -76,7 +76,7 @@
 .research-range { width:100%; padding:11px; font-size:.7rem!important; margin:4px 0 14px; }
 @media(max-width:1400px),(max-height:800px) { .pc-game #pauseOverlay.settings-view #settingsContent { grid-template-columns:200px minmax(0,1fr); gap:24px; }.pc-game .setting-row { padding:16px; } }
 .systems-stats { display:grid; grid-template-columns:1fr auto; gap:13px; margin:0; padding:18px 0; border-block:1px solid var(--line); font-size:.76rem; }.systems-stats dt { color:#91aebb; }.systems-stats dd { margin:0; color:var(--cyan); font-variant-numeric:tabular-nums; }
-.pc-game .research-node strong { font-size:14px; }.research-node small { font-size:9px; }.research-node-cost { font-size:11px; }
+.pc-game .research-node strong { font-size:14px; min-width:0; hyphens:auto; overflow-wrap:break-word; }.research-node small { font-size:9px; }.research-node-cost { font-size:11px; }
 .research-pan-hint { width:100%; text-align:right; font-size:.6rem; color:#8eaebb; }
 .research-detail .research-art { float:right; width:80px; height:80px; margin:0 0 10px 15px; }.research-detail .research-art .module-icon { width:80px; height:80px; }.research-detail>.research-state { clear:both; }.research-detail>.eyebrow { display:block; padding-top:8px; }.pc-game .research-detail .research-range { margin-top:18px; }
 .pc-game .settings-grid { border:0; border-radius:0; background:none; }
@@ -161,3 +161,4 @@
 .pc-game .matter-wallet.refused #buildMatter { color:var(--red); }
 .pc-game select, .pc-game input[type="search"], .pc-game input[type="text"] { transition:border-color .13s, background .13s; }
 .pc-game select:hover:not(:disabled), .pc-game input[type="search"]:hover, .pc-game input[type="text"]:hover { border-color:#54d6ce; }
+.pc-game .build-selection p.selection-blast { margin-top:4px; color:#dae5ec; font-weight:600; }

@@ -82,6 +82,28 @@ The user asked for a full review of how the UI answers the player (hover, press)
 - **Verified:** the audit re-run finds an animated hover and press response on every button; a real-pointer run of Build confirms the landing, the wallet pulse and the refusal shake; `npm run check`, `npm test`, `npm run test:i18n`. Not judged by a person.
 - **Git:** committed on `feat/waves-and-cards` and merged into `main` locally. `main` was pushed only if the user said "git push" afterwards.
 
+## Update 2026-11-13 — Missile Pod blast (build `2026.11.13-missile-58`)
+The user asked for the missile blast to show its radius, rejected painted and generated fireballs, and chose Nova Drift's explosions as the reference (Steam screenshot, then its launch trailer frame by frame).
+- `missile-blast-vfx.js` (new, wired through `attack-vfx.js`, `index.html`, `tools/build-standalone.js`, `package.json` check): a faint sphere at the damage radius that swells slightly and fades; a metaball blob simulated per blast on a 72x72 grid (lobes drift apart unevenly, white-hot then pink); a swelling inner sphere; flickering sparkle; specks with drag. Missile blast effect life is 1 s (`MISSILE_BLAST_LIFE` in `game.js`); damage is unchanged.
+- References and measurements: `research/missile-blast-2026-11-12/REFERENCES.md`; comparisons in `outputs/experiments/2026-11-12-missile-blast/`. The two trailer videos in `research/missile-blast-2026-11-12/video/` (~270 MB) are reference only and must not be committed.
+- Stars: near stars' tails point opposite the ship's velocity and fade (`drawStarTail` in `game.js`), per user feedback that the old lines looked like tentacles reaching forward.
+- Verified: `npm run check`, `npm test`, attack-VFX browser check; 8 Missile Pods into 60 enemies at 150% scaling hold 60 fps, same as build 57. Not committed.
+'s Opera screenshots (build `2026.11.12-fixes-57`)
+The user's screen is 1920x1080 at 150% Windows scaling, so the page is 1280x720 CSS px; the card screen was only ever checked at 1920x1080 at 100%.
+- Cards (`game.js`): a click selects (`cardSelection`, tied to the offer array, so a reroll or a new break clears it); `startNextWave` applies the selection with `pickCard`. Skip stays immediate. The game rules (`pickCard`, one card per break) are unchanged.
+- Layout (`styles.css`): the break heading starts below the HUD; smaller hand under 860 px and 660 px of height; tighter button bar under 1500 px of width; the flight hint is hidden during the break; side cards no longer dip under the bar.
+- Lag (`pc-ui.css`, `game.js`): full-screen overlays had `backdrop-filter: blur(6px)` over a canvas redrawn every frame (Build at ~30 fps at 100%, worse at 150%); the blur is removed and the canvas is drawn once under the desktop Build screen. Build idle now holds 60 fps at both scales. Battle frame time is the same as the build before the visual pass.
+- Stars: the backdrop's dust tile is removed; far stars move at 0.22-0.42 of the camera, faster than the rocks (0.18), so none appears to travel forward.
+- Missile: `blastRadius: 74` is now on the module (the value it already used), so Build shows "Blast radius" for area weapons and the upgrade tree shows 74 -> 100.
+- `run-upgrades.js`: before/after values round to two decimals.
+- Verified: `npm run check`, `npm test`, `npm run test:i18n`, attack-VFX and enemy-art browser checks, card/Build/tree script at 1280x720 @1.5 in the installed Chrome. Not committed.
+
+## Update 2026-11-12 — background fix (build `2026.11.12-bg-56`)
+User feedback on the rock-field background, with two screenshots: the moving stars were gone, the field looked like "a light around the ship", there was no visible cloud pattern, and there were too many rocks.
+- `game.js`: the game's own streaking stars are drawn again on top of the backdrop.
+- `space-backdrop.js`: the screen-centred blue wash and the edge vignette are removed (they made the spotlight); an even tint replaces them. The cloud tile is two-tone (dark smoke and lighter blue haze), painted at 768 px and dithered so it does not band, and it moves at the same rate as the near rocks and dust (0.18 of the camera). Fewer rocks per cluster and fewer clusters; dust is thinner.
+- Verified in the installed Google Chrome at 1920x1080 and with `npm run check`, `npm test`. Not committed.
+
 ## In progress — card redesign through research
 - New user skill: **`game-mechanic-research`** (`C:\Users\User\.claude\skills\game-mechanic-research`) — find similar games, mine their fan wikis/communities for the complete catalog + what players love/hate, then design original variants through the game's pillars. Use it.
 - Research folder: `research/cards-2026-10-21/`

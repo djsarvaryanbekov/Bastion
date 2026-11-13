@@ -165,7 +165,9 @@
   AttackVfx.prototype.effect = function (ctx, effect, pos, reducedFlash) {
     if (!this.enabled || effect.type !== "ring") return false;
     var type = effect.weaponType;
-    if (["pulse", "flak", "missile"].indexOf(type) < 0 || !available(type === "missile" ? "flak" : type)) return false;
+    if (["pulse", "flak", "missile"].indexOf(type) < 0) return false;
+    var missileBlast = type === "missile" && root.DriftMissileBlastVfx;
+    if (!missileBlast && !available(type === "missile" ? "flak" : type)) return false;
     var alpha = clamp(effect.life / effect.maxLife);
     var age = 1 - alpha;
     ctx.save();
@@ -181,6 +183,9 @@
     } else if (type === "flak") {
       radialStamp(ctx, "flak", age * 8, pos.x, pos.y, Math.min(150, effect.maxRadius * 1.2));
       if (effect.incendiary && root.DriftFireVfx) root.DriftFireVfx.airburst(ctx, effect, pos, reducedFlash);
+    } else if (missileBlast) {
+      // Drawn to the real damage radius (effect.maxRadius), not grown from a point like Flak.
+      root.DriftMissileBlastVfx.draw(ctx, pos, age, effect.maxRadius, reducedFlash, effect.x, effect.y);
     } else {
       var blastRadius = Math.max(5, effect.radius);
       radialStamp(ctx, "flak", age * 8, pos.x, pos.y, Math.min(effect.maxRadius * 2, blastRadius * 2.3));

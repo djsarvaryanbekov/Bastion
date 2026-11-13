@@ -129,7 +129,7 @@ function describeChange(base, state, choice) {
  function value(key,n) {
   if(key==='spread'||key==='volleySpread'||key==='coneAngle')return Number((n*180/Math.PI).toFixed(2))+'°';
   if(key==='cooldownBonus'||key==='matterBonus'||key==='slowFactor')return Number((n*100).toFixed(2))+'%';
-  return String(Number(n.toFixed(4)));
+  return String(Number(n.toFixed(2)));
  }
  return Object.keys(after).filter(function(k){return before[k]!==after[k]&&(statLabels[k]||effects[k]);}).map(function(k){
   if(effects[k])return after[k]?effects[k]:tr('Removed: {effect}',{effect:effects[k]});
