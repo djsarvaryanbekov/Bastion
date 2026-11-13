@@ -99,6 +99,23 @@ The user asked for a full test of UI, every module, core gameplay and performanc
   - Touch routes in `training-browser` run only with `--touch` (the phone build is archived). Its profiles are 1280×800 and 1280×720 @150%.
 - A real bug surfaced in `module-art-browser`'s missing-art check: with no module art, the menu threw errors (`pc-ui.js`, `pc-research.js`, `pc-systems.js`, `game.js` `drawHero` / `icon`). It was the same in build 58. Guarded, then the main HTML was rebuilt. Backup of 59 is in `outputs/experiments/2026-11-13-qa-perf/backup-59/`.
 
+## Update 2026-11-13 — tuning pass from user feedback (build `2026.11.13-tuning-63`)
+- **Mouse:** holding LMB is constant full forward gas; the cursor only steers. There is no braking at a side cursor and no reverse, and the ship still coasts on release (`game.js` `updateMovement`). Tests: `ship-handling-check.cjs`, `mouse-input-check.cjs`.
+- **Outrider ("Дозорный"):**
+  - Distance is now counted in rings around the core, so diagonal neighbours are 1 cell out, not 2.
+  - It needs at least 4 cells, only one weapon gets it, and the echo deals 40% (was 60%).
+  - Changes are in `cards.js` TUNING and `refreshLayoutCards`.
+- **Missile blast:** the sparkle, specks and inner sphere are removed; the outer sphere is at 50% opacity, and the blob and glow are 30% smaller. The missile in flight is 18×27 (was 22×33).
+- **Shield barrier:** stronger fill, outline and outer glow; same shape and animation (`shield-vfx.js`).
+- **HUD:**
+  - The PC core HP label no longer wraps in Russian; the box grows from a 210 px minimum. The user accepted this.
+  - Doctrine chips are hidden from the combat HUD; rule and duo chips stay.
+- **Doctrines parked (build `2026.11.13-no-doctrines-64`):** the user asked to remove them for now and keep them for later.
+  - `cards.js` has `doctrinesEnabled = false`. All five doctrine cards and their effects stay in the code, but no break offers them, and boss breaks give a normal card offer instead.
+  - To bring them back, set it to `true`. Tests use `setDoctrinesEnabled` to keep the Doctrine flow covered.
+  - The user found Lean Hull too close to the cores; redesign it before re-enabling.
+- Backups of builds 61 and 62 are in `outputs/experiments/2026-11-13-qa-perf/`. Not committed.
+
 ## Update 2026-11-13 — player balance data v3 (build `2026.11.13-balance-data-61`)
 The user asked to remake the JSON balance data players export (proposal approved with "Yes, build it"). Delivery is still a manual export (Settings → advanced → Export). Auto-upload was not built: it needs a server and player consent, so it is the user's decision.
 - **Attribution in `game.js`:**

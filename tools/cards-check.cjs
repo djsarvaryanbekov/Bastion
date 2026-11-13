@@ -140,6 +140,10 @@ for (let seed = 1; seed <= 400; seed += 1) {
 }
 assert.ok(seenDuoAppears < 200, "A seen duo returns to the weighted pool: " + seenDuoAppears);
 
+// Doctrines are parked: no offer holds them until they are switched back on.
+assert.equal(Cards.doctrinesEnabled(), false);
+assert.deepEqual(Cards.roll({ wave: 5, doctrine: true, picks: [], rng: seeded(1) }), [], "Parked Doctrines are never offered");
+Cards.setDoctrinesEnabled(true);
 // Doctrine offers: three doctrines, exclusions respected, nothing owned repeats.
 for (let seed = 1; seed <= 200; seed += 1) {
   const offer = Cards.roll({ wave: 5, doctrine: true, picks: [], rng: seeded(seed) });
@@ -148,6 +152,7 @@ for (let seed = 1; seed <= 200; seed += 1) {
   const later = Cards.roll({ wave: 10, doctrine: true, picks: [{ id: "flagship" }, { id: "castaway" }], rng: seeded(seed) });
   assert.ok(!later.some(pick => ["flagship", "castaway", "combinedArms"].includes(pick.id)), "Owned and excluded doctrines stay out");
 }
+Cards.setDoctrinesEnabled(false);
 assert.equal(Cards.doctrineCount([{ id: "flagship" }, { id: "calibration", family: "cannon" }, { id: "leanHull" }]), 2);
 assert.equal(Cards.DOCTRINE_CAP, 3);
 

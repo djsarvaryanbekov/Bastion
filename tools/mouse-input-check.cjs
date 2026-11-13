@@ -27,9 +27,10 @@ function simulate({ fps = 60, zoom = 1, offset = 200, initialVelocity = 0, secon
   return game.ship;
 }
 assert.ok(simulate({ initialVelocity: 230, offset: -200, seconds: .4 }).vx > 0, 'Reversing cannot bypass the turn');
-assert.equal(simulate({ initialVelocity: 230, offset: 0 }).vx, simulate({ initialVelocity: 230, mode: 'keyboard' }).vx, 'Center uses shared drag');
-assert.equal(simulate({ offset: 10 }).vx, 0, 'Dead zone stays still');
-assert.ok(simulate({ offset: 35 }).vx < simulate({ offset: 80 }).vx, 'Progressive speed');
+// Holding the mouse is constant forward gas; the cursor only steers.
+assert.equal(simulate({ initialVelocity: 230, offset: 0 }).vx, simulate({ initialVelocity: 230, mode: 'keyboard', keys: { KeyW: true } }).vx, 'Cursor on the ship keeps full gas');
+assert.equal(simulate({ offset: 10 }).angle, Math.PI / 2, 'Dead zone does not steer');
+assert.equal(simulate({ offset: 35 }).vx, simulate({ offset: 80 }).vx, 'Gas does not depend on cursor distance');
 assert.equal(simulate({ zoom: .42, offset: 60 }).vx, simulate({ zoom: 1, offset: 60 }).vx, 'Zoom-independent response');
 assert.ok(Math.abs(simulate({ fps: 30 }).x - simulate({ fps: 144 }).x) < 5, 'Consistent frame rates');
 assert.ok(simulate().vx <= 230, 'Speed cap');
@@ -43,7 +44,7 @@ for (const mass of [4, 18, 80]) for (const drive of [1, 1.5]) for (const fps of 
     const keyTurn = simulate({ ...common, mode: 'keyboard', angle: 0, seconds: .2, keys: { KeyD: true } });
     assert.equal(turn.angle, keyTurn.angle, mode + ' turn acceleration and cap match D');
     const initial = simulate({ ...common, mode, angle: 0, seconds: 1 / fps });
-    assert.ok(Math.hypot(initial.vx, initial.vy) < .001, 'No sideways thrust before turning');
+    assert.ok(initial.vy < 0 && Math.abs(initial.vx) < Math.abs(initial.vy) * .1, 'A side cursor turns the ship while it keeps thrusting forward, never sideways');
   }
 }
 assert.equal(simulate({ mode: 'keyboard', keys: { KeyW: true, KeyS: true } }).vx, 0, 'Opposite thrust cancels');

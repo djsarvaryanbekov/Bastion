@@ -6,7 +6,7 @@
   var TRAIL_SAMPLES = 10;
   // Drawn size only: hitboxes, speed and damage live in game.js and are not touched here.
   // Sized up from 18/12/18x27/23 so the player's fire stays visible inside a large swarm.
-  var SHOT_SIZE = { cannon: 25, scatter: 17, missileWidth: 22, missileHeight: 33, cryo: 28 };
+  var SHOT_SIZE = { cannon: 25, scatter: 17, missileWidth: 18, missileHeight: 27, cryo: 28 };
   var MUZZLE_SCALE = 1.4;
   var projectileTypes = ["cannon", "scatter", "missile", "cryo"];
   var muzzleTypes = projectileTypes.concat(["rail", "flak"]);

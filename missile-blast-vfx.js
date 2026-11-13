@@ -12,15 +12,12 @@
   //     while it fades.
   //   - A hot blob simulated as metaballs: lobes drift apart and stay fused like liquid, burn white-yellow,
   //     then cool to a pink puff. It is computed on a small grid each frame and drawn scaled up.
-  //   - A smaller bright sphere that swells around the cooling blob.
-  //   - A flickering four-point sparkle and a few specks thrown out with drag.
+  // The sparkle, specks and inner sphere of the reference were dropped as too busy over a full fight.
   // Everything derives from age and the blast's world position, so nothing is stored per blast.
   var TAU = Math.PI * 2;
   var SPRITE = 512;
   var SPHERE_STOPS = [[0, 232, 26, 46, .26], [.7, 238, 36, 50, .32], [.9, 255, 76, 66, .5], [.97, 255, 124, 96, .74], [1, 255, 124, 96, 0]];
-  var INNER_STOPS = [[0, 255, 62, 74, .42], [.8, 255, 78, 84, .5], [.95, 255, 150, 132, .82], [1, 255, 150, 132, 0]];
   var GLOW_STOPS = [[0, 255, 210, 130, .75], [.4, 255, 130, 72, .42], [1, 255, 60, 60, 0]];
-  var SPARKLE_REACH = .62;
 
   // Blob simulation: lobes start together and drift apart; the field is the sum of r^2/d^2.
   var BLOB_GRID = 72;
@@ -29,7 +26,11 @@
   var BLOB_LIFE = .7;
   // Lobes leave mostly along one direction, so the blob stretches and splits unevenly, never symmetric.
   var LOBE_HEADINGS = [0, .55, -.85, 2.9];
-  var DEBRIS_COUNT = 9;
+  // Kept faint and compact: many blasts overlap in late waves.
+  var SPHERE_OPACITY = .5;
+  var GLOW_OPACITY = .45;
+  var BLOB_SCALE = .7;
+  var BLOB_OPACITY = .85;
   var art = null, blobCanvas = null, blobContext = null, blobImage = null;
 
   function clamp(value) { return Math.max(0, Math.min(1, value)); }
@@ -57,28 +58,9 @@
     return canvas;
   }
 
-  function paintSparkle() {
-    var canvas = newCanvas(SPRITE), context = canvas.getContext("2d"), c = SPRITE / 2;
-    context.globalCompositeOperation = "lighter";
-    [[0, 1, .012], [Math.PI / 2, 1, .012], [Math.PI / 4, .45, .008], [Math.PI * 3 / 4, .45, .008]].forEach(function (spike) {
-      for (var side = -1; side <= 1; side += 2) {
-        var length = c * spike[1] * side;
-        var endX = c + Math.cos(spike[0]) * length, endY = c + Math.sin(spike[0]) * length;
-        var gradient = context.createLinearGradient(c, c, endX, endY);
-        gradient.addColorStop(0, "rgba(255,252,236,.95)");
-        gradient.addColorStop(1, "rgba(255,220,160,0)");
-        context.strokeStyle = gradient;
-        context.lineWidth = SPRITE * spike[2];
-        context.lineCap = "round";
-        context.beginPath(); context.moveTo(c, c); context.lineTo(endX, endY); context.stroke();
-      }
-    });
-    return canvas;
-  }
-
   function sprites() {
     if (!art && typeof document !== "undefined") {
-      art = { sphere: paintRadial(SPHERE_STOPS), inner: paintRadial(INNER_STOPS), glow: paintRadial(GLOW_STOPS), sparkle: paintSparkle() };
+      art = { sphere: paintRadial(SPHERE_STOPS), glow: paintRadial(GLOW_STOPS) };
       blobCanvas = newCanvas(BLOB_GRID);
       // A CPU-backed context: its pixels are rewritten every frame, which a GPU canvas handles badly.
       blobContext = blobCanvas.getContext("2d", { willReadFrequently: true });
@@ -148,20 +130,6 @@
     return 1 - Math.pow(clamp((t - .55) / .45), 1.3);
   }
 
-  function drawDebris(ctx, pos, age, radius, seedX, seedY) {
-    var alpha = 1 - clamp((age - .15) / .5);
-    if (alpha <= 0) return;
-    ctx.fillStyle = "#ff8a6a";
-    for (var i = 0; i < DEBRIS_COUNT; i += 1) {
-      var angle = hash(seedX, seedY, 60 + i) * TAU;
-      // Fast at first, slowed by drag: distance follows 1 - e^(-k t).
-      var travel = radius * (.35 + .5 * hash(seedX, seedY, 70 + i)) * (1 - Math.exp(-age * 7));
-      var size = 2 + hash(seedX, seedY, 80 + i) * 2.5;
-      ctx.globalAlpha = alpha;
-      ctx.fillRect(pos.x + Math.cos(angle) * travel - size / 2, pos.y + Math.sin(angle) * travel - size / 2, size, size);
-    }
-  }
-
   // age runs 0..1 over the effect's life; radius is the damage radius in the canvas units of pos;
   // seedX/seedY (the blast's world position) make each blast's blob and debris different.
   function draw(ctx, pos, age, radius, reducedFlash, seedX, seedY) {
@@ -172,32 +140,19 @@
     ctx.save();
     ctx.globalCompositeOperation = "source-over";
     // Big sphere: reaches the damage radius almost at once, keeps swelling a little, fades in the second half.
-    ctx.globalAlpha = 1 - Math.pow(clamp((age - .4) / .6), 1.2);
+    ctx.globalAlpha = SPHERE_OPACITY * (1 - Math.pow(clamp((age - .4) / .6), 1.2));
     stamp(ctx, images.sphere, pos.x, pos.y, radius * (.9 + .1 * easeOut(age / .07) + .06 * easeOut(age)));
-    // Inner sphere swells around the cooling blob.
-    var inner = clamp((age - .12) / .1) * (1 - clamp((age - .42) / .25));
-    if (inner > 0) {
-      ctx.globalAlpha = inner;
-      stamp(ctx, images.inner, pos.x, pos.y, radius * (.22 + .3 * easeOut((age - .12) / .4)));
-    }
-    drawDebris(ctx, pos, age, radius, seedX, seedY);
     if (age < BLOB_LIFE) {
       var blobAlpha = simulateBlob(age, seedX, seedY);
       var heat = 1 - clamp(age / .3);
       ctx.globalCompositeOperation = "lighter";
-      ctx.globalAlpha = heat * flash;
-      stamp(ctx, images.glow, pos.x, pos.y, radius * .8);
+      ctx.globalAlpha = heat * flash * GLOW_OPACITY;
+      stamp(ctx, images.glow, pos.x, pos.y, radius * .8 * BLOB_SCALE);
       ctx.globalCompositeOperation = "source-over";
-      ctx.globalAlpha = blobAlpha * (reducedFlash ? .8 : 1);
+      ctx.globalAlpha = blobAlpha * BLOB_OPACITY * (reducedFlash ? .8 : 1);
       ctx.imageSmoothingEnabled = true;
-      ctx.drawImage(blobCanvas, pos.x - radius * BLOB_EXTENT, pos.y - radius * BLOB_EXTENT, radius * BLOB_EXTENT * 2, radius * BLOB_EXTENT * 2);
-      var sparkle = 1 - clamp(age / .22);
-      if (sparkle > 0) {
-        ctx.globalCompositeOperation = "lighter";
-        // Flicker and a slow turn, as the reference sparkle shimmers frame to frame.
-        ctx.globalAlpha = sparkle * flash * (.75 + .25 * Math.sin(age * 90 + seedX));
-        stamp(ctx, images.sparkle, pos.x, pos.y, radius * SPARKLE_REACH, hash(seedX, seedY, 7) * TAU + age * 1.6);
-      }
+      var blobRadius = radius * BLOB_EXTENT * BLOB_SCALE;
+      ctx.drawImage(blobCanvas, pos.x - blobRadius, pos.y - blobRadius, blobRadius * 2, blobRadius * 2);
     }
     ctx.restore();
     return true;

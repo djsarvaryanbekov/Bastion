@@ -112,4 +112,18 @@ for(let x=1;x<=6;x++){const t=api.makeTile("bulkhead",x,0,false);dynamic.ship.ti
 dynamic.updateMovement(0);near(dynamic.handling.turnMultiplier,.72);
 dynamic.destroyTile("1,0");dynamic.updateMovement(0);
 assert.equal(dynamic.ship.tiles.size,2);near(dynamic.handling.turnMultiplier,1);
+// Mouse is constant forward gas: a side or rear cursor turns the ship without braking or reversing.
+for(const heading of [Math.PI/2,Math.PI]){
+  const steady=game(compact);
+  for(let i=0;i<45;i++){inputs("none",steady);api.keys.KeyW=true;steady.updateMovement(1/30);}
+  const cruising=Math.hypot(steady.ship.vx,steady.ship.vy);
+  let slowest=Infinity;
+  for(let i=0;i<60;i++){
+    inputs("mouse",steady,heading);steady.updateMovement(1/30);
+    const forward=steady.ship.vx*Math.sin(steady.ship.angle)-steady.ship.vy*Math.cos(steady.ship.angle);
+    assert.ok(forward>0,"Mouse steering never drives the ship backwards");
+    slowest=Math.min(slowest,Math.hypot(steady.ship.vx,steady.ship.vy));
+  }
+  assert.ok(slowest>cruising*.75,"Turning toward a side or rear cursor keeps most of the speed: "+slowest.toFixed(1)+" of "+cruising.toFixed(1));
+}
 console.log(JSON.stringify({passed:true,baselineCompared:Boolean(baseline),motion,checks:["Mass distribution and independent moments","Mirrored and rotated layouts","Outer heavy modules","Wide hull turn and release response","Pointer convergence and wraparound","Live purchase, dismantle and severing","420-tile bounds"]}));

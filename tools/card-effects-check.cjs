@@ -194,7 +194,19 @@ game.wave = 3;
 game.enterIntermission();
 assert.equal(game.cardOffer.length, T.marketOfferSize, "Gray Market offers 4 cards");
 
-// ---- Break flow: Doctrine offers after boss waves, free reroll, skip, cap
+// ---- Break flow while Doctrines are parked: a boss break is a normal offer.
+const GameCards = bootstrap.runtime.window.DriftCards;
+assert.equal(GameCards.doctrinesEnabled(), false);
+game = freshRun();
+place(game, "cannon", 0, -1);
+game.wave = 5;
+game.enterIntermission();
+assert.equal(game.offerIsDoctrine, false, "Parked Doctrines leave boss breaks to normal cards");
+assert.ok(game.cardOffer.length === 3 && game.cardOffer.every(pick => Cards.BY_ID[pick.id].kind !== "doctrine"));
+assert.equal(game.freeRerolls, 0, "No Doctrine reroll without a Doctrine offer");
+
+// ---- Break flow with Doctrines switched on: offers after boss waves, free reroll, skip, cap
+GameCards.setDoctrinesEnabled(true);
 game = freshRun();
 place(game, "cannon", 0, -1);
 game.wave = 5;
@@ -219,6 +231,7 @@ game.enterIntermission();
 assert.equal(game.offerIsDoctrine, false, "The Doctrine cap ends Doctrine offers");
 const rareSlot = Cards.BY_ID[game.cardOffer[0].id];
 assert.ok(rareSlot.rarity !== "common", "Capped boss breaks keep the guaranteed rare");
+GameCards.setDoctrinesEnabled(false);
 
 // ---- Earned duo is guaranteed once in the real offer
 game = freshRun();
@@ -285,7 +298,8 @@ assert.equal(game.latticeActive, false, "The window closes again");
 game = freshRun();
 const nearGun = place(game, "cannon", 0, -1);
 place(game, "armor", 0, -2);
-const tipGun = place(game, "cannon", 0, -3);
+place(game, "armor", 0, -3);
+const tipGun = place(game, "cannon", 0, -4);
 grant(game, "outrider");
 game.updateLayoutCards(STEP);
 assert.equal(tipGun.outrider, true, "The farthest weapon is the Outrider");
@@ -305,6 +319,24 @@ const hugB = place(game, "cannon", 1, 0);
 grant(game, "outrider");
 game.updateLayoutCards(STEP);
 assert.ok(!hugA.outrider && !hugB.outrider, "Weapons next to the core are never Outriders");
+
+// Diagonals count by ring, so a compact 3x3 ship with corner weapons has no Outrider.
+game = freshRun();
+const corners = [[-1, -1], [1, -1], [-1, 1], [1, 1]].map(([x, y]) => place(game, "cannon", x, y));
+place(game, "armor", 0, -2);
+grant(game, "outrider");
+game.updateLayoutCards(STEP);
+assert.ok(corners.every(tile => !tile.outrider), "Diagonal neighbours of the core are one cell out");
+
+// Symmetric arms: exactly one weapon echoes.
+game = freshRun();
+for (let y = 1; y <= 3; y += 1) { place(game, "armor", 0, -y); place(game, "armor", 0, y); }
+const north = place(game, "cannon", 0, -4), south = place(game, "cannon", 0, 4);
+grant(game, "outrider");
+game.updateLayoutCards(STEP);
+assert.equal([north, south].filter(tile => tile.outrider).length, 1, "Only one weapon is the Outrider");
+assert.equal(T.outriderMinDistance, 4);
+assert.equal(T.outriderEcho, .4);
 
 game = freshRun();
 place(game, "armor", 0, -1);

@@ -100,9 +100,9 @@
       context.setLineDash([]);
       context.lineJoin = "round";
       context.shadowColor = "#69dbe9";
-      context.shadowBlur = 4;
-      context.lineWidth = 3;
-      context.strokeStyle = "rgba(105,219,233,.12)";
+      context.shadowBlur = 8;
+      context.lineWidth = 5;
+      context.strokeStyle = "rgba(105,219,233,.28)";
       context.stroke();
       context.restore();
     }
@@ -114,17 +114,17 @@
       context.lineJoin = "round";
       barrierPath(context, size);
       var impact = reducedFlash ? 0 : hit;
-      context.fillStyle = "rgba(105,219,233," + (.035 + impact * .045) + ")";
+      context.fillStyle = "rgba(105,219,233," + (.08 + impact * .07) + ")";
       context.fill();
       context.setLineDash([]);
-      context.strokeStyle = "rgba(126,226,238," + (.48 + impact * .25) + ")";
-      context.lineWidth = 1.1;
+      context.strokeStyle = "rgba(126,226,238," + (.8 + impact * .2) + ")";
+      context.lineWidth = 1.8;
       context.stroke();
       if (!reducedFlash) {
         context.setLineDash([size * .45, size * 2.6]);
         context.lineDashOffset = -elapsed * size * .55;
-        context.lineWidth = 1.3;
-        context.strokeStyle = "rgba(204,250,255,.5)";
+        context.lineWidth = 2;
+        context.strokeStyle = "rgba(220,252,255,.85)";
         context.stroke();
       }
       context.restore();

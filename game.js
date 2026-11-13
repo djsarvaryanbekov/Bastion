@@ -2042,15 +2042,13 @@
       var thrust = 0;
       var targetAngular = 0;
       if (mouseSteering) {
+        // Holding the mouse is full forward gas; the cursor only steers, so turning never brakes or reverses.
         var mouseDeadZone = 12;
-        var mouseFullSpeedDistance = 120;
+        thrust = 1;
         if (mouseDistance > mouseDeadZone) {
-          var mouseStrength = clamp((mouseDistance - mouseDeadZone) / (mouseFullSpeedDistance - mouseDeadZone), 0, 1);
-          thrust = mouseStrength * mouseStrength * (3 - 2 * mouseStrength);
           var mouseAngle = Math.atan2(mouseX, -mouseY);
           var mouseAngleDelta = Math.atan2(Math.sin(mouseAngle - ship.angle), Math.cos(mouseAngle - ship.angle));
           targetAngular = clamp(mouseAngleDelta * steeringGain, -turnRate, turnRate);
-          thrust *= Math.max(0, Math.cos(mouseAngleDelta));
         }
       } else if (mobileSteering) {
         var desiredAngle = Math.atan2(mobileInput.x, -mobileInput.y);
@@ -4501,15 +4499,17 @@
     Game.prototype.refreshLayoutCards = function () {
       var arc = this.cardMod("arcSpine"), outrider = this.cardMod("outrider");
       if (!arc && !outrider) return;
-      var weapons = [], farthest = 0;
+      var weapons = [], outriderTile = null, outriderRing = 0, outriderSpan = 0;
       this.ship.tiles.forEach(function (tile) {
         tile.outrider = false;
         if (!isWeaponType(tile.type)) return;
         weapons.push(tile);
-        farthest = Math.max(farthest, Math.abs(tile.x) + Math.abs(tile.y));
+        // Rings around the core: a diagonal neighbour is one cell out, not two.
+        var ring = Math.max(Math.abs(tile.x), Math.abs(tile.y)), span = tile.x * tile.x + tile.y * tile.y;
+        if (ring > outriderRing || (ring === outriderRing && span > outriderSpan)) { outriderTile = tile; outriderRing = ring; outriderSpan = span; }
       });
-      // A weapon hugging the core is no outrider: the echo is the reward for building an exposed arm.
-      if (outrider && farthest >= cardsApi.TUNING.outriderMinDistance) weapons.forEach(function (tile) { tile.outrider = Math.abs(tile.x) + Math.abs(tile.y) === farthest; });
+      // Only one weapon echoes, and only at the end of a long exposed arm.
+      if (outrider && outriderTile && outriderRing >= cardsApi.TUNING.outriderMinDistance) outriderTile.outrider = true;
       this.arcSpinePair = null;
       if (!arc || weapons.length < 2) return;
       var best = -1;
@@ -6218,7 +6218,8 @@
 
     var hudCardsSignature = "";
     var hudCardStates = {};
-    // Active rule, duo and Doctrine cards stay visible in combat; a duo that loses its pair turns grey once.
+    // Rule and duo cards stay visible in combat; a duo that loses its pair turns grey once.
+    // Doctrines never change mid-fight, so they live only in the card break list.
     function renderHudCards() {
       if (!ui.hudCards) return;
       var signature = "";
@@ -6228,7 +6229,7 @@
       if (game && game.mode === "waves" && cardsApi) {
         for (var i = 0; i < game.cardPicks.length; i += 1) {
           var def = cardsApi.BY_ID[game.cardPicks[i].id];
-          if (!def.kind) continue;
+          if (!def.kind || def.kind === "doctrine") continue;
           special.push(game.cardPicks[i]);
           signature += def.id + (dormant(def) ? "-," : def.id === "phaseLattice" && game.latticeActive ? "*," : "+,");
         }

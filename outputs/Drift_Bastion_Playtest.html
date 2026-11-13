@@ -2582,8 +2582,9 @@ body.pc-game.pc-ui-pending #pcViewport { visibility:hidden; }
 .pc-game .hud-chip label { font-size:.6rem; color:#a5b8c3; letter-spacing:.11em; }
 .pc-game .hud-chip b { font-size:1.1rem; color:var(--text); font-weight:550; }
 .pc-game .hud-matter b { color:var(--gold); }
-.pc-game .health-shell { width:210px; min-width:150px; border:0; background:none; padding:0; margin:0; }
-.pc-game .health-label { font-size:.7rem; margin-bottom:8px; }
+.pc-game .health-shell { width:auto; min-width:210px; border:0; background:none; padding:0; margin:0; }
+/* Longer translations widen the panel instead of wrapping the label or the numbers. */
+.pc-game .health-label { font-size:.7rem; margin-bottom:8px; gap:14px; white-space:nowrap; }
 .pc-game .health-bar { height:5px; border:0; border-radius:0; background:#334550; }
 .pc-game .health-fill { background:var(--cyan); box-shadow:none; border-radius:0; }
 .pc-game .health-shell { transition:opacity .22s ease; }
@@ -2766,7 +2767,7 @@ body.pc-game.pc-ui-pending #pcViewport { visibility:hidden; }
   .pc-game .pick-button .module-glyph,.pc-game .pick-button .module-icon { height:80px; }
   .pc-game .result-panel { padding:4% 14%; }
   .pc-game .hud-stack { gap:16px; } .pc-game .hud-chip { padding-left:15px; }
-  .pc-game .health-shell { width:165px; }
+  .pc-game .health-shell { min-width:165px; }
   .pc-game .settings-view .pause-panel { padding:24px 8%; }
   .pc-range-panel { width:255px; padding:16px; top:85px; bottom:16px; }
 }
@@ -3430,7 +3431,7 @@ window.BastionLocales = {"de":{" cells":" Felder","+10% Matter; each further Sip
   var STORAGE_KEY = "drift-bastion-playtest-v1";
   var SCHEMA_VERSION = 3;
   var METRICS_VERSION = 3;
-  var GAME_BUILD = "2026.11.13-balance-data-61";
+  var GAME_BUILD = "2026.11.13-no-doctrines-64";
   // Per-wave rows carry the balance detail, so the time series only needs a coarse shape.
   var SAMPLE_INTERVAL = 30;
   var MAX_RUNS = 30;
@@ -4369,6 +4370,9 @@ window.BastionLocales = {"de":{" cells":" Felder","+10% Matter; each further Sip
   var RARITIES = ["common", "rare", "epic", "duo"];
   // Doctrines are rule changers offered only after boss waves; scarcity is what lets them be strong.
   var DOCTRINE_CAP = 3;
+  // Doctrines are parked (2026-11-13): their cards and effects stay in the game, but no break offers them.
+  // Boss breaks then give a normal offer. Set to true to bring the Doctrine pick back.
+  var doctrinesEnabled = false;
   // Provisional playtest values for rule, duo and doctrine cards; game.js reads them from here.
   var TUNING = {
     bulkheadRelay: .12,
@@ -4386,7 +4390,7 @@ window.BastionLocales = {"de":{" cells":" Felder","+10% Matter; each further Sip
     strutCorePenalty: .1,
     conduitInterval: 4, conduitStep: .2, conduitPerCell: .1,
     latticeInterval: 12, latticeWindow: 3, latticeWarning: 1,
-    outriderEcho: .6, outriderDelay: .15, outriderMinDistance: 2,
+    outriderEcho: .4, outriderDelay: .15, outriderMinDistance: 4,
     returnMultiplier: 3, returnMax: 6, returnRange: 520,
     layoutRefresh: .25
   };
@@ -4657,6 +4661,7 @@ window.BastionLocales = {"de":{" cells":" Felder","+10% Matter; each further Sip
   }
 
   function doctrineCandidates(picks) {
+    if (!doctrinesEnabled) return [];
     return CARD_DEFS.filter(function (def) {
       if (kindOf(def) !== "doctrine" || def.retired || hasPick(picks, def.id)) return false;
       return !(picks || []).some(function (pick) { return BY_ID[pick.id] && BY_ID[pick.id].excludes === def.id; });
@@ -4709,6 +4714,9 @@ window.BastionLocales = {"de":{" cells":" Felder","+10% Matter; each further Sip
     BY_ID: BY_ID,
     DIVIDEND_CAP: DIVIDEND_CAP,
     DOCTRINE_CAP: DOCTRINE_CAP,
+    doctrinesEnabled: function () { return doctrinesEnabled; },
+    // Tests use this to keep the parked Doctrine logic covered.
+    setDoctrinesEnabled: function (value) { doctrinesEnabled = Boolean(value); },
     VOLATILE_RADIUS: VOLATILE_RADIUS,
     TUNING: TUNING,
     pairKey: pairKey,
@@ -7284,9 +7292,9 @@ window.DriftEnemyArtData = {"scout":{"src":"data:image/png;base64,iVBORw0KGgoAAA
       context.setLineDash([]);
       context.lineJoin = "round";
       context.shadowColor = "#69dbe9";
-      context.shadowBlur = 4;
-      context.lineWidth = 3;
-      context.strokeStyle = "rgba(105,219,233,.12)";
+      context.shadowBlur = 8;
+      context.lineWidth = 5;
+      context.strokeStyle = "rgba(105,219,233,.28)";
       context.stroke();
       context.restore();
     }
@@ -7298,17 +7306,17 @@ window.DriftEnemyArtData = {"scout":{"src":"data:image/png;base64,iVBORw0KGgoAAA
       context.lineJoin = "round";
       barrierPath(context, size);
       var impact = reducedFlash ? 0 : hit;
-      context.fillStyle = "rgba(105,219,233," + (.035 + impact * .045) + ")";
+      context.fillStyle = "rgba(105,219,233," + (.08 + impact * .07) + ")";
       context.fill();
       context.setLineDash([]);
-      context.strokeStyle = "rgba(126,226,238," + (.48 + impact * .25) + ")";
-      context.lineWidth = 1.1;
+      context.strokeStyle = "rgba(126,226,238," + (.8 + impact * .2) + ")";
+      context.lineWidth = 1.8;
       context.stroke();
       if (!reducedFlash) {
         context.setLineDash([size * .45, size * 2.6]);
         context.lineDashOffset = -elapsed * size * .55;
-        context.lineWidth = 1.3;
-        context.strokeStyle = "rgba(204,250,255,.5)";
+        context.lineWidth = 2;
+        context.strokeStyle = "rgba(220,252,255,.85)";
         context.stroke();
       }
       context.restore();
@@ -7383,15 +7391,12 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
   //     while it fades.
   //   - A hot blob simulated as metaballs: lobes drift apart and stay fused like liquid, burn white-yellow,
   //     then cool to a pink puff. It is computed on a small grid each frame and drawn scaled up.
-  //   - A smaller bright sphere that swells around the cooling blob.
-  //   - A flickering four-point sparkle and a few specks thrown out with drag.
+  // The sparkle, specks and inner sphere of the reference were dropped as too busy over a full fight.
   // Everything derives from age and the blast's world position, so nothing is stored per blast.
   var TAU = Math.PI * 2;
   var SPRITE = 512;
   var SPHERE_STOPS = [[0, 232, 26, 46, .26], [.7, 238, 36, 50, .32], [.9, 255, 76, 66, .5], [.97, 255, 124, 96, .74], [1, 255, 124, 96, 0]];
-  var INNER_STOPS = [[0, 255, 62, 74, .42], [.8, 255, 78, 84, .5], [.95, 255, 150, 132, .82], [1, 255, 150, 132, 0]];
   var GLOW_STOPS = [[0, 255, 210, 130, .75], [.4, 255, 130, 72, .42], [1, 255, 60, 60, 0]];
-  var SPARKLE_REACH = .62;
 
   // Blob simulation: lobes start together and drift apart; the field is the sum of r^2/d^2.
   var BLOB_GRID = 72;
@@ -7400,7 +7405,11 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
   var BLOB_LIFE = .7;
   // Lobes leave mostly along one direction, so the blob stretches and splits unevenly, never symmetric.
   var LOBE_HEADINGS = [0, .55, -.85, 2.9];
-  var DEBRIS_COUNT = 9;
+  // Kept faint and compact: many blasts overlap in late waves.
+  var SPHERE_OPACITY = .5;
+  var GLOW_OPACITY = .45;
+  var BLOB_SCALE = .7;
+  var BLOB_OPACITY = .85;
   var art = null, blobCanvas = null, blobContext = null, blobImage = null;
 
   function clamp(value) { return Math.max(0, Math.min(1, value)); }
@@ -7428,28 +7437,9 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
     return canvas;
   }
 
-  function paintSparkle() {
-    var canvas = newCanvas(SPRITE), context = canvas.getContext("2d"), c = SPRITE / 2;
-    context.globalCompositeOperation = "lighter";
-    [[0, 1, .012], [Math.PI / 2, 1, .012], [Math.PI / 4, .45, .008], [Math.PI * 3 / 4, .45, .008]].forEach(function (spike) {
-      for (var side = -1; side <= 1; side += 2) {
-        var length = c * spike[1] * side;
-        var endX = c + Math.cos(spike[0]) * length, endY = c + Math.sin(spike[0]) * length;
-        var gradient = context.createLinearGradient(c, c, endX, endY);
-        gradient.addColorStop(0, "rgba(255,252,236,.95)");
-        gradient.addColorStop(1, "rgba(255,220,160,0)");
-        context.strokeStyle = gradient;
-        context.lineWidth = SPRITE * spike[2];
-        context.lineCap = "round";
-        context.beginPath(); context.moveTo(c, c); context.lineTo(endX, endY); context.stroke();
-      }
-    });
-    return canvas;
-  }
-
   function sprites() {
     if (!art && typeof document !== "undefined") {
-      art = { sphere: paintRadial(SPHERE_STOPS), inner: paintRadial(INNER_STOPS), glow: paintRadial(GLOW_STOPS), sparkle: paintSparkle() };
+      art = { sphere: paintRadial(SPHERE_STOPS), glow: paintRadial(GLOW_STOPS) };
       blobCanvas = newCanvas(BLOB_GRID);
       // A CPU-backed context: its pixels are rewritten every frame, which a GPU canvas handles badly.
       blobContext = blobCanvas.getContext("2d", { willReadFrequently: true });
@@ -7519,20 +7509,6 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
     return 1 - Math.pow(clamp((t - .55) / .45), 1.3);
   }
 
-  function drawDebris(ctx, pos, age, radius, seedX, seedY) {
-    var alpha = 1 - clamp((age - .15) / .5);
-    if (alpha <= 0) return;
-    ctx.fillStyle = "#ff8a6a";
-    for (var i = 0; i < DEBRIS_COUNT; i += 1) {
-      var angle = hash(seedX, seedY, 60 + i) * TAU;
-      // Fast at first, slowed by drag: distance follows 1 - e^(-k t).
-      var travel = radius * (.35 + .5 * hash(seedX, seedY, 70 + i)) * (1 - Math.exp(-age * 7));
-      var size = 2 + hash(seedX, seedY, 80 + i) * 2.5;
-      ctx.globalAlpha = alpha;
-      ctx.fillRect(pos.x + Math.cos(angle) * travel - size / 2, pos.y + Math.sin(angle) * travel - size / 2, size, size);
-    }
-  }
-
   // age runs 0..1 over the effect's life; radius is the damage radius in the canvas units of pos;
   // seedX/seedY (the blast's world position) make each blast's blob and debris different.
   function draw(ctx, pos, age, radius, reducedFlash, seedX, seedY) {
@@ -7543,32 +7519,19 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
     ctx.save();
     ctx.globalCompositeOperation = "source-over";
     // Big sphere: reaches the damage radius almost at once, keeps swelling a little, fades in the second half.
-    ctx.globalAlpha = 1 - Math.pow(clamp((age - .4) / .6), 1.2);
+    ctx.globalAlpha = SPHERE_OPACITY * (1 - Math.pow(clamp((age - .4) / .6), 1.2));
     stamp(ctx, images.sphere, pos.x, pos.y, radius * (.9 + .1 * easeOut(age / .07) + .06 * easeOut(age)));
-    // Inner sphere swells around the cooling blob.
-    var inner = clamp((age - .12) / .1) * (1 - clamp((age - .42) / .25));
-    if (inner > 0) {
-      ctx.globalAlpha = inner;
-      stamp(ctx, images.inner, pos.x, pos.y, radius * (.22 + .3 * easeOut((age - .12) / .4)));
-    }
-    drawDebris(ctx, pos, age, radius, seedX, seedY);
     if (age < BLOB_LIFE) {
       var blobAlpha = simulateBlob(age, seedX, seedY);
       var heat = 1 - clamp(age / .3);
       ctx.globalCompositeOperation = "lighter";
-      ctx.globalAlpha = heat * flash;
-      stamp(ctx, images.glow, pos.x, pos.y, radius * .8);
+      ctx.globalAlpha = heat * flash * GLOW_OPACITY;
+      stamp(ctx, images.glow, pos.x, pos.y, radius * .8 * BLOB_SCALE);
       ctx.globalCompositeOperation = "source-over";
-      ctx.globalAlpha = blobAlpha * (reducedFlash ? .8 : 1);
+      ctx.globalAlpha = blobAlpha * BLOB_OPACITY * (reducedFlash ? .8 : 1);
       ctx.imageSmoothingEnabled = true;
-      ctx.drawImage(blobCanvas, pos.x - radius * BLOB_EXTENT, pos.y - radius * BLOB_EXTENT, radius * BLOB_EXTENT * 2, radius * BLOB_EXTENT * 2);
-      var sparkle = 1 - clamp(age / .22);
-      if (sparkle > 0) {
-        ctx.globalCompositeOperation = "lighter";
-        // Flicker and a slow turn, as the reference sparkle shimmers frame to frame.
-        ctx.globalAlpha = sparkle * flash * (.75 + .25 * Math.sin(age * 90 + seedX));
-        stamp(ctx, images.sparkle, pos.x, pos.y, radius * SPARKLE_REACH, hash(seedX, seedY, 7) * TAU + age * 1.6);
-      }
+      var blobRadius = radius * BLOB_EXTENT * BLOB_SCALE;
+      ctx.drawImage(blobCanvas, pos.x - blobRadius, pos.y - blobRadius, blobRadius * 2, blobRadius * 2);
     }
     ctx.restore();
     return true;
@@ -7587,7 +7550,7 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
   var TRAIL_SAMPLES = 10;
   // Drawn size only: hitboxes, speed and damage live in game.js and are not touched here.
   // Sized up from 18/12/18x27/23 so the player's fire stays visible inside a large swarm.
-  var SHOT_SIZE = { cannon: 25, scatter: 17, missileWidth: 22, missileHeight: 33, cryo: 28 };
+  var SHOT_SIZE = { cannon: 25, scatter: 17, missileWidth: 18, missileHeight: 27, cryo: 28 };
   var MUZZLE_SCALE = 1.4;
   var projectileTypes = ["cannon", "scatter", "missile", "cryo"];
   var muzzleTypes = projectileTypes.concat(["rail", "flak"]);
@@ -10603,15 +10566,13 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
       var thrust = 0;
       var targetAngular = 0;
       if (mouseSteering) {
+        // Holding the mouse is full forward gas; the cursor only steers, so turning never brakes or reverses.
         var mouseDeadZone = 12;
-        var mouseFullSpeedDistance = 120;
+        thrust = 1;
         if (mouseDistance > mouseDeadZone) {
-          var mouseStrength = clamp((mouseDistance - mouseDeadZone) / (mouseFullSpeedDistance - mouseDeadZone), 0, 1);
-          thrust = mouseStrength * mouseStrength * (3 - 2 * mouseStrength);
           var mouseAngle = Math.atan2(mouseX, -mouseY);
           var mouseAngleDelta = Math.atan2(Math.sin(mouseAngle - ship.angle), Math.cos(mouseAngle - ship.angle));
           targetAngular = clamp(mouseAngleDelta * steeringGain, -turnRate, turnRate);
-          thrust *= Math.max(0, Math.cos(mouseAngleDelta));
         }
       } else if (mobileSteering) {
         var desiredAngle = Math.atan2(mobileInput.x, -mobileInput.y);
@@ -13062,15 +13023,17 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
     Game.prototype.refreshLayoutCards = function () {
       var arc = this.cardMod("arcSpine"), outrider = this.cardMod("outrider");
       if (!arc && !outrider) return;
-      var weapons = [], farthest = 0;
+      var weapons = [], outriderTile = null, outriderRing = 0, outriderSpan = 0;
       this.ship.tiles.forEach(function (tile) {
         tile.outrider = false;
         if (!isWeaponType(tile.type)) return;
         weapons.push(tile);
-        farthest = Math.max(farthest, Math.abs(tile.x) + Math.abs(tile.y));
+        // Rings around the core: a diagonal neighbour is one cell out, not two.
+        var ring = Math.max(Math.abs(tile.x), Math.abs(tile.y)), span = tile.x * tile.x + tile.y * tile.y;
+        if (ring > outriderRing || (ring === outriderRing && span > outriderSpan)) { outriderTile = tile; outriderRing = ring; outriderSpan = span; }
       });
-      // A weapon hugging the core is no outrider: the echo is the reward for building an exposed arm.
-      if (outrider && farthest >= cardsApi.TUNING.outriderMinDistance) weapons.forEach(function (tile) { tile.outrider = Math.abs(tile.x) + Math.abs(tile.y) === farthest; });
+      // Only one weapon echoes, and only at the end of a long exposed arm.
+      if (outrider && outriderTile && outriderRing >= cardsApi.TUNING.outriderMinDistance) outriderTile.outrider = true;
       this.arcSpinePair = null;
       if (!arc || weapons.length < 2) return;
       var best = -1;
@@ -14779,7 +14742,8 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
 
     var hudCardsSignature = "";
     var hudCardStates = {};
-    // Active rule, duo and Doctrine cards stay visible in combat; a duo that loses its pair turns grey once.
+    // Rule and duo cards stay visible in combat; a duo that loses its pair turns grey once.
+    // Doctrines never change mid-fight, so they live only in the card break list.
     function renderHudCards() {
       if (!ui.hudCards) return;
       var signature = "";
@@ -14789,7 +14753,7 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
       if (game && game.mode === "waves" && cardsApi) {
         for (var i = 0; i < game.cardPicks.length; i += 1) {
           var def = cardsApi.BY_ID[game.cardPicks[i].id];
-          if (!def.kind) continue;
+          if (!def.kind || def.kind === "doctrine") continue;
           special.push(game.cardPicks[i]);
           signature += def.id + (dormant(def) ? "-," : def.id === "phaseLattice" && game.latticeActive ? "*," : "+,");
         }

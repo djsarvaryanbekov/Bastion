@@ -14,6 +14,9 @@
   var RARITIES = ["common", "rare", "epic", "duo"];
   // Doctrines are rule changers offered only after boss waves; scarcity is what lets them be strong.
   var DOCTRINE_CAP = 3;
+  // Doctrines are parked (2026-11-13): their cards and effects stay in the game, but no break offers them.
+  // Boss breaks then give a normal offer. Set to true to bring the Doctrine pick back.
+  var doctrinesEnabled = false;
   // Provisional playtest values for rule, duo and doctrine cards; game.js reads them from here.
   var TUNING = {
     bulkheadRelay: .12,
@@ -31,7 +34,7 @@
     strutCorePenalty: .1,
     conduitInterval: 4, conduitStep: .2, conduitPerCell: .1,
     latticeInterval: 12, latticeWindow: 3, latticeWarning: 1,
-    outriderEcho: .6, outriderDelay: .15, outriderMinDistance: 2,
+    outriderEcho: .4, outriderDelay: .15, outriderMinDistance: 4,
     returnMultiplier: 3, returnMax: 6, returnRange: 520,
     layoutRefresh: .25
   };
@@ -302,6 +305,7 @@
   }
 
   function doctrineCandidates(picks) {
+    if (!doctrinesEnabled) return [];
     return CARD_DEFS.filter(function (def) {
       if (kindOf(def) !== "doctrine" || def.retired || hasPick(picks, def.id)) return false;
       return !(picks || []).some(function (pick) { return BY_ID[pick.id] && BY_ID[pick.id].excludes === def.id; });
@@ -354,6 +358,9 @@
     BY_ID: BY_ID,
     DIVIDEND_CAP: DIVIDEND_CAP,
     DOCTRINE_CAP: DOCTRINE_CAP,
+    doctrinesEnabled: function () { return doctrinesEnabled; },
+    // Tests use this to keep the parked Doctrine logic covered.
+    setDoctrinesEnabled: function (value) { doctrinesEnabled = Boolean(value); },
     VOLATILE_RADIUS: VOLATILE_RADIUS,
     TUNING: TUNING,
     pairKey: pairKey,
