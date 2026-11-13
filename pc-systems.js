@@ -19,7 +19,7 @@
       selected[kind]=item.id;
       items.forEach(function(entry){entry.selector.classList.toggle("selected",entry===item);entry.selector.setAttribute("aria-pressed",String(entry===item));});
       hero.replaceChildren(); detail.replaceChildren();
-      var image=el("div","systems-core-art");image.innerHTML=window.DriftModuleArt.iconHtml("core");
+      var image=el("div","systems-core-art");image.innerHTML=(window.DriftModuleArt&&window.DriftModuleArt.iconHtml("core"))||"◈";
       hero.append(el("span","eyebrow",kind==="cores"?tr("CORE ASSEMBLY"):tr("PERMANENT CALIBRATION")),image,el("strong","",item.title),el("p","",kind==="cores"?tr("The foundation of your next bastion."):tr("Applied to the selected core on future runs.")));
       detail.append(el("span","eyebrow",kind==="cores"?tr("CORE SPECIFICATION"):tr("SYSTEM EFFECT")),el("h3","",item.title),el("p","systems-description",item.description));
       if (kind === "cores") {

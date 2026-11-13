@@ -1,4 +1,5 @@
 'use strict';
+require("./english-browser-locale.cjs");
 const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),{pathToFileURL}=require('node:url');
 const output=path.resolve(__dirname,'../outputs/qa/upgrade-details');fs.mkdirSync(output,{recursive:true});
 (async()=>{
@@ -11,7 +12,7 @@ const output=path.resolve(__dirname,'../outputs/qa/upgrade-details');fs.mkdirSyn
    await page.clock.install();await page.goto(pathToFileURL(path.resolve(__dirname,'../outputs/Drift_Bastion_Playtest.html')).href+'?debug=1');
    await page.evaluate(()=>window.DriftModuleArt.ready);await page.clock.pauseAt(new Date(Date.now()+1000));
    const tick=()=>page.clock.runFor(200),state=()=>page.evaluate(()=>window.__driftBastion.getState());
-   await page.click('#startButton');await page.evaluate(()=>window.__driftBastion.addMatter(1000));await page.click('#buildButton');
+   await page.click('#startEndlessButton');await page.evaluate(()=>window.__driftBastion.addMatter(1000));await page.click('#buildButton');
    await page.click('#catalog [data-type="scatter"]');
    for(const [x,y] of [[1,0],[1,1],[0,1]])await page.click(`.build-cell[data-x="${x}"][data-y="${y}"]`);
    await page.click('#pcUpgradesTab');await tick();

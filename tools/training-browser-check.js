@@ -1,4 +1,5 @@
 "use strict";
+require("./english-browser-locale.cjs");
 
 const fs = require("node:fs");
 const path = require("node:path");
@@ -171,6 +172,14 @@ async function clickTraining(page, suffix) {
   const control = page.locator("#" + (inBuild ? "trainingBuild" : "training") + suffix);
   await control.click();
 }
+// The pause menu keeps Training inside Settings → advanced tools.
+async function replayTrainingFromPause(page) {
+  if (!(await page.locator("#replayOnboardingButton").isVisible())) {
+    if (await page.locator("#pauseSettingsButton").isVisible()) await page.locator("#pauseSettingsButton").click();
+    if (!(await page.locator("#advancedSettings").evaluate(element => element.open))) await page.locator("#advancedSettings > summary").click();
+  }
+  await page.locator("#replayOnboardingButton").click();
+}
 async function openTrainingBuild(page) {
   if (!(await page.locator("#buildOverlay").isVisible())) await clickTraining(page, "OpenBuildButton");
   assert.equal(await page.locator("#trainingBuildBar").isVisible(), true);
@@ -207,7 +216,7 @@ async function completeRoute(browser, url, profile, errors) {
     const initial = await gameState(page);
     assert.equal(initial.training, true);
     assert.equal(initial.core.id, "standard");
-    assert.equal(initial.matter, 20);
+    assert.equal(initial.matter, 30);
     assert.deepEqual(initial.ship.tiles.map(([, tile]) => tile.type).sort(), ["cannon", "core"]);
     assert.equal(initial.ship.tiles.find(([, tile]) => tile.type === "core")[1].maxHp, 350);
     assert.equal(initial.ship.tiles.find(([, tile]) => tile.type === "cannon")[1].maxHp,
@@ -249,13 +258,17 @@ async function completeRoute(browser, url, profile, errors) {
     assert.equal((await gameState(page)).state, "playing", "The upgrade stage must not force a Build visit");
     assert.ok((await gameState(page)).kills >= afterCombat.kills + 2);
     await openTrainingBuild(page);
-    await page.locator('[data-type="cannon"]').click();
-    const cost = await page.locator('[data-weapon="cannon"][data-choice="tune"]').innerText();
-    assert.match(cost, /22 Matter/, "The shared upgrade uses the real two-copy price");
-    await page.locator('[data-weapon="cannon"][data-choice="tune"]').click();
+    // Run upgrades live in the installed module's research tree; rank 1 is Damage.
+    const damageBefore = (await gameState(page)).weaponDefinitions.cannon.damage;
+    await cell(page, 0, -1).click();
+    await page.locator("#pcUpgradesTab").click();
+    await page.locator('#upgradeList [data-research-node^="base1:"]').click();
+    const cost = await page.locator("#upgradeList .research-purchase").innerText();
+    assert.match(cost, /16 Matter/, "The shared upgrade uses the real two-copy price");
+    await page.locator("#upgradeList .research-purchase").click();
     assert.equal((await gameState(page)).state, "building");
     assert.equal((await lesson(page)).progress.upgraded, true);
-    assert.ok((await gameState(page)).weaponDefinitions.cannon.cooldown < .5);
+    assert.ok((await gameState(page)).weaponDefinitions.cannon.damage > damageBefore);
     await page.screenshot({ path: path.join(output, profile.name + "-upgrades.png") });
     await page.locator("#closeBuild").click();
     await destroyPracticeTargets(page, profile.touch, "upgrades");
@@ -295,7 +308,7 @@ async function suspendedRunSafety(browser, url, errors) {
     await page.keyboard.press("p");
     const before = await gameState(page), persistentBefore = await persistentState(page);
     await page.evaluate(() => { window.__suspendedGameIdentity = window.__trainingFixture.current(); });
-    await page.locator("#replayOnboardingButton").click();
+    await replayTrainingFromPause(page);
     assert.equal((await gameState(page)).training, true);
     await page.clock.runFor(6100);
     await openTrainingBuild(page);
@@ -304,7 +317,7 @@ async function suspendedRunSafety(browser, url, errors) {
     assert.equal(await page.evaluate(() => window.__suspendedGameIdentity === window.__trainingFixture.current()), true);
     assert.deepEqual(await gameState(page), before, "Exiting training must restore the exact paused Survival object and state");
     assert.deepEqual(await persistentState(page), persistentBefore, "Early exit must preserve every save and telemetry byte");
-    await page.locator("#replayOnboardingButton").click();
+    await replayTrainingFromPause(page);
     const deathBaseline = await persistentState(page);
     await page.evaluate(() => window.__trainingFixture.current().applyDamageToTile("0,0", 1000000));
     assert.equal(await page.locator("#trainingHUD").isVisible(), true, "Lesson death must retain visible retry and exit controls");
@@ -368,12 +381,15 @@ async function freshTouchConfirmation(browser, url, errors) {
   try {
     const url = "http://127.0.0.1:" + server.address().port;
     const routes = [];
+    // Touch routes belong to the archived phone build; pass --touch to run them anyway.
+    const touch = process.argv.includes("--touch");
     for (const profile of [
       { name: "desktop-1280", viewport: { width: 1280, height: 800 }, touch: false, scale: 100 },
-      { name: "mobile-360-150", viewport: { width: 360, height: 640 }, touch: true, scale: 150 }
+      { name: "desktop-720-150", viewport: { width: 1280, height: 720 }, touch: false, scale: 150 },
+      ...(touch ? [{ name: "mobile-360-150", viewport: { width: 360, height: 640 }, touch: true, scale: 150 }] : [])
     ]) routes.push(await completeRoute(browser, url, profile, errors));
     const suspended = await suspendedRunSafety(browser, url, errors);
-    const freshTouch = await freshTouchConfirmation(browser, url, errors);
+    const freshTouch = touch ? await freshTouchConfirmation(browser, url, errors) : "skipped";
     assert.deepEqual(errors, []);
     const report = { passed: true, routes, suspended, freshTouch, errors };
     fs.writeFileSync(path.join(output, "training-browser-report.json"), JSON.stringify(report, null, 2));

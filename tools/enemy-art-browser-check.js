@@ -1,4 +1,5 @@
 "use strict";
+require("./english-browser-locale.cjs");
 
 const fs = require("node:fs");
 const path = require("node:path");

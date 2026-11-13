@@ -1,4 +1,5 @@
 'use strict';
+require("./english-browser-locale.cjs");
 const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),{pathToFileURL}=require('node:url');
 (async()=>{
  const browser=await chromium.launch({headless:true});const errors=[],report={};

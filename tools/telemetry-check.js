@@ -31,7 +31,7 @@ const legacyRuns = [{ runId: "old-1", endedAt: "old", outcome: "retired", events
   { runId: "old-2", gameBuild: "known-old-build", endedAt: "old", events: [], samples: [], stats: {}, summary: { durationSeconds: 0 } }];
 const old = { schemaVersion: 1, gameBuild: "old-exporter", testerId: "preserved-id", createdAt: "old", runs: legacyRuns };
 const migrated = harness(old);
-assert.equal(migrated.data().schemaVersion, 2);
+assert.equal(migrated.data().schemaVersion, 3);
 assert.deepEqual(migrated.data().runs, legacyRuns, "All completed historical records survive schema migration unchanged");
 assert.equal(migrated.data().testerId, "preserved-id");
 assert.equal(migrated.data().runs[0].gameBuild, undefined, "The current exporter cannot fabricate a legacy run's build");
@@ -45,7 +45,7 @@ const sample = (elapsed, overrides = {}) => ({ elapsed, matter: 27, kills: 2, mo
   moduleHp: 90, moduleMaxHp: 120, shield: 50, shieldMax: 90, shieldModules: 2, activeShieldModules: 1,
   bossHp: 0, bossMaxHp: 100, bossShield: 0, bossMaxShield: 15, ...overrides });
 api.beginRun({ starterWeapon: "cannon" }, sample(0, { matter: 10 }));
-assert.equal(test.data().runs[0].metricsVersion, 2);
+assert.equal(test.data().runs[0].metricsVersion, 3);
 assert.equal(test.data().runs[0].gameBuild, test.data().gameBuild);
 api.recordEnemyKill("drone", 50);
 api.recordPurchase("cannon", 20, 1, { x: 0, y: 1 });
@@ -119,6 +119,6 @@ assert.equal(test.data().runs[1].samples.at(-1).damageDealt, 10, "Invalid damage
 api.recordBuild(true, 2); test.advance(1500); api.finishRun({ elapsed: 2 }, null);
 assert.equal(test.data().runs[1].summary.buildSeconds, 1.5, "A run ended in Build includes pending Build time");
 api.beginRun({}, { elapsed: 0, matter: 0, coreHpRatio: 1 });
-assert.equal(api.shouldSample(4.999), true); api.sample({ elapsed: 4.999, coreHpRatio: 1 }); assert.equal(api.shouldSample(5), false);
+assert.equal(api.shouldSample(29.999), true); api.sample({ elapsed: 29.999, coreHpRatio: 1 }); assert.equal(api.shouldSample(30), false);
 api.clearCompleted(); assert.equal(test.data().runs.length, 1); assert.equal(api.getStatus().active, true);
 console.log("Telemetry passed: schema1/2 history preservation, per-run build identity, absolute HP/shields, reconciled Matter transactions, real outgoing damage, five-second DPS, boss engagement vs spawn duration, move/sell/upgrade events, final open intervals, and missing/invalid data.");

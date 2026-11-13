@@ -1,4 +1,5 @@
 'use strict';
+require("./english-browser-locale.cjs");
 const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),{pathToFileURL}=require('node:url');
 (async()=>{
  const browser=await chromium.launch({headless:true}),errors=[],checks=[];
@@ -15,7 +16,7 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=r
   await page.click('#pcRangeMenu');await tick();assert.equal((await state()).mode,'range');await page.click('#pcRangeExit');await tick();assert.equal(await page.locator('#menuOverlay').isVisible(),true);checks.push('menu range and return');
   await page.click('#hangarMenuButton');await page.click('#hangarWeaponTab');await page.locator('#weaponPicker button').first().click();await tick();assert.equal(await page.locator('#modulePreviewDialog').count(),0);
   await page.locator('#hangarModuleDetails .armory-detail-action').last().click();await tick();assert.equal((await state()).mode,'range');await page.click('#pcRangeExit');await tick();assert.equal(await page.locator('#hangarOverlay').isVisible(),true);checks.push('Hangar module inspection and range return');
-  await page.click('#closeHangar');await page.click('#startButton');await blocked('combat blocked');
+  await page.click('#closeHangar');await page.click('#startEndlessButton');await blocked('combat blocked');
   await page.click('#pauseButton');await blocked('pause blocked');await page.keyboard.press('Escape');
   await page.click('#buildButton');await tick();await blocked('Build blocked');assert.equal(await page.locator('#pcRangeInspector').count(),0);
   await page.click('#pcUpgradesTab');await tick();assert.equal(await page.locator('.research-range').count(),0);await blocked('upgrade tree blocked');

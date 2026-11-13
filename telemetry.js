@@ -2,9 +2,11 @@
   "use strict";
 
   var STORAGE_KEY = "drift-bastion-playtest-v1";
-  var SCHEMA_VERSION = 2;
-  var GAME_BUILD = "2026.11.13-missile-58";
-  var SAMPLE_INTERVAL = 5;
+  var SCHEMA_VERSION = 3;
+  var METRICS_VERSION = 3;
+  var GAME_BUILD = "2026.11.13-balance-data-61";
+  // Per-wave rows carry the balance detail, so the time series only needs a coarse shape.
+  var SAMPLE_INTERVAL = 30;
   var MAX_RUNS = 30;
   var MAX_STORAGE_BYTES = 1500000;
   var DPS_WINDOW_SECONDS = 5;
@@ -23,7 +25,14 @@
     bossDuration: "spawnToDefeatSeconds runs from spawn; engagementSeconds runs from the first recorded damaging hit. Missing hits remain null.",
     matterBalanceError: "Initial Matter + earned + refunds - spent - final Matter. Nonzero means a missing transaction hook or explicit debug funding.",
     fragmentReward: "Integer Fragments are banked at run end. (earnedUnits + carryBeforeUnits) = fragmentsEarned * scale + carryAfterUnits. Carry is progress toward the same currency, saved between runs; absent on old logs. Start context records the wallet, carry and purchased licences/cores separately from Matter.",
-    absentMetrics: "Fields missing from historical records are unavailable; they must not be interpreted as zero."
+    absentMetrics: "Fields missing from historical records are unavailable; they must not be interpreted as zero.",
+    waves: "metricsVersion 3, Waves mode: one row per wave from wave_start to wave_clear (or run end). Damage, kills, Matter and purchases are what happened inside that wave; breaks between waves are not counted in seconds.",
+    damageBySource: "Actual damage credited to what dealt it: a module type (cannon, laser, ...), or card:<id> for cards that deal damage on their own (castaway, volatile, thermalShock, arcSpine, coreConduit, phaseLattice). Burns and gravity fields count for the module that caused them; duo cards that amplify a weapon count for that weapon. other = unattributed.",
+    killsBySource: "Kills credited to the source of the killing blow (same keys as damageBySource).",
+    damageTakenBySource: "Ship hull damage plus shield absorption, keyed by the enemy type that dealt it (enemy shots count for their shooter).",
+    death: "Present only when the core was destroyed: the wave, the enemy type of the last hit on the core, and the time.",
+    cards: "One entry per card break: offered cards, the pick (null when skipped), rerolls and their Matter cost.",
+    matterEarnedByReason: "kills, waveClear (clear bonus plus dividend) and cardSkip. Reroll costs are spent under reason reroll."
   };
 
   var data = loadData();
@@ -58,7 +67,7 @@
   function loadData() {
     try {
       var parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
-      if (!parsed || (parsed.schemaVersion !== 1 && parsed.schemaVersion !== SCHEMA_VERSION) || !Array.isArray(parsed.runs)) return blankData();
+      if (!parsed || [1, 2, SCHEMA_VERSION].indexOf(parsed.schemaVersion) < 0 || !Array.isArray(parsed.runs)) return blankData();
       parsed.schemaVersion = SCHEMA_VERSION;
       parsed.gameBuild = GAME_BUILD;
       parsed.metricDefinitions = clonePlain(METRIC_DEFINITIONS);
@@ -75,6 +84,7 @@
       if (!run.endedAt) {
         run.endedAt = nowIso();
         run.outcome = "interrupted";
+        closeOpenWave(run, "interrupted", null);
         run.summary = run.summary || summaryFromRun(run, { outcome: "interrupted" });
         delete run._buildOpenedAt;
         delete run._buildOpenedWall;
@@ -152,7 +162,13 @@
       peakProjectiles: 0,
       minimumCoreHpRatio: 1,
       bossSpawnTime: null,
-      bossDefeatTime: null
+      bossDefeatTime: null,
+      damageBySource: {},
+      killsBySource: {},
+      damageTakenBySource: {},
+      coreDamageBySource: {},
+      matterEarnedByReason: {},
+      upgradePaths: {}
     };
   }
 
@@ -190,7 +206,9 @@
       result.initialMatter = run.stats.initialMatter;
       result.matterRefunded = round(run.stats.matterRefunded, 1);
       result.matterSpentByReason = clonePlain(run.stats.matterSpentByReason);
-      result.matterBalanceError = Number.isFinite(run.stats.initialMatter) ? round(run.stats.initialMatter + run.stats.matterEarned + run.stats.matterRefunded - run.stats.matterSpent - result.finalMatter, 3) : null;
+      // Reconcile against the unrounded wallet; the displayed finalMatter is rounded to 0.1.
+      var finalMatter = extra && typeof extra.matter === "number" ? extra.matter : result.finalMatter;
+      result.matterBalanceError = Number.isFinite(run.stats.initialMatter) ? round(run.stats.initialMatter + run.stats.matterEarned + run.stats.matterRefunded - run.stats.matterSpent - finalMatter, 3) : null;
       result.hullDamageDealt = round(run.stats.hullDamageDealt, 2);
       result.shieldDamageDealt = round(run.stats.shieldDamageDealt, 2);
       result.damageDealt = round(run.stats.hullDamageDealt + run.stats.shieldDamageDealt, 2);
@@ -204,6 +222,7 @@
         result["final" + key.charAt(0).toUpperCase() + key.slice(1)] = finalSample[key] === undefined ? null : finalSample[key];
       });
     }
+    if (run.metricsVersion >= 3) Object.assign(result, balanceSummary(run));
     if (extra && extra.fragmentReward) result.fragmentReward = clonePlain(extra.fragmentReward);
     return result;
   }
@@ -241,6 +260,7 @@
       type: type,
       data: clonePlain(details || {})
     });
+    if (activeRun.metricsVersion >= 3) trackBalanceEvent(type, Number(elapsed) || 0, details || {});
     dirty = true;
     persist(false);
   }
@@ -249,12 +269,149 @@
     map[key] = (map[key] || 0) + (amount === undefined ? 1 : amount);
   }
 
+  // ---- Balance rows (metricsVersion 3) ----
+  // The game reports waves and cards as events; rows are derived here so game code only reports facts.
+  function lastWaveRow() {
+    var waves = activeRun && activeRun.waves;
+    return waves && waves.length ? waves[waves.length - 1] : null;
+  }
+
+  function currentWave() {
+    var row = lastWaveRow();
+    return row && row.endedAt === null ? row : null;
+  }
+
+  function openWave(elapsed, details) {
+    closeOpenWave(activeRun, "replaced", elapsed);
+    var lastSample = activeRun.samples.length ? activeRun.samples[activeRun.samples.length - 1] : null;
+    activeRun.waves.push({
+      wave: Math.max(0, Math.floor(Number(details.wave) || 0)),
+      boss: details.boss || null,
+      startedAt: round(elapsed, 2), endedAt: null, seconds: null, outcome: null,
+      kills: 0, killsByType: {}, killsBySource: {},
+      matterEarned: 0, matterSpent: 0, matterSpentByReason: {},
+      damageDealt: 0, damageBySource: {},
+      damageTaken: 0, damageTakenBySource: {}, coreDamage: 0,
+      minCoreHpRatio: lastSample && Number.isFinite(lastSample.coreHpRatio) ? lastSample.coreHpRatio : null,
+      coreHpEnd: null,
+      modulesStart: Number.isFinite(details.modules) ? details.modules : (lastSample ? lastSample.modules : null),
+      modulesEnd: null,
+      purchases: {}, upgrades: [],
+      peakEnemies: 0, minRenderFps: null,
+      clearReward: null
+    });
+  }
+
+  function closeOpenWave(run, outcome, elapsed, details) {
+    var row = run && run.waves && run.waves.length ? run.waves[run.waves.length - 1] : null;
+    if (!row || row.endedAt !== null) return null;
+    // An interrupted session has no end time; keep the row closed but its duration unknown.
+    var known = Number.isFinite(elapsed), end = known ? elapsed : row.startedAt;
+    row.endedAt = round(end, 2);
+    row.seconds = known ? round(Math.max(0, end - row.startedAt), 2) : null;
+    row.outcome = outcome;
+    details = details || {};
+    if (Number.isFinite(details.coreHp)) row.coreHpEnd = round(details.coreHp, 1);
+    if (Number.isFinite(details.modules)) row.modulesEnd = details.modules;
+    if (Number.isFinite(details.reward)) row.clearReward = round(details.reward, 1);
+    ["matterEarned", "matterSpent", "damageDealt", "damageTaken", "coreDamage"].forEach(function (key) { row[key] = round(row[key], 1); });
+    [row.damageBySource, row.damageTakenBySource, row.matterSpentByReason].forEach(roundMap);
+    return row;
+  }
+
+  function roundMap(map) {
+    Object.keys(map).forEach(function (key) { map[key] = round(map[key], 1); });
+  }
+
+  function currentCardBreak(wave) {
+    var cards = activeRun.cards;
+    var last = cards.length ? cards[cards.length - 1] : null;
+    if (last && last.wave === wave) return last;
+    last = { wave: wave, offers: [], picked: null, skipped: false, rerolls: 0, rerollMatter: 0 };
+    cards.push(last);
+    return last;
+  }
+
+  function earnMatter(reason, value) {
+    var earned = amount(value);
+    if (!earned) return;
+    activeRun.stats.matterEarned += earned;
+    addCounter(activeRun.stats.matterEarnedByReason, reason, earned);
+    var row = lastWaveRow();
+    if (row) row.matterEarned = row.endedAt === null ? row.matterEarned + earned : round(row.matterEarned + earned, 1);
+  }
+
+  function trackBalanceEvent(type, elapsed, details) {
+    var wave = Math.max(0, Math.floor(Number(details.wave) || 0));
+    if (type === "wave_start") openWave(elapsed, details);
+    else if (type === "wave_clear") {
+      earnMatter("waveClear", details.reward);
+      closeOpenWave(activeRun, "cleared", elapsed, details);
+    } else if (type === "card_offer") currentCardBreak(wave).offers.push(clonePlain(details.cards || []));
+    else if (type === "card_pick") currentCardBreak(wave).picked = details.card || null;
+    else if (type === "card_skip") {
+      currentCardBreak(wave).skipped = true;
+      earnMatter("cardSkip", details.matter);
+    } else if (type === "card_reroll") {
+      var rerolled = currentCardBreak(wave);
+      rerolled.rerolls += 1;
+      rerolled.rerollMatter += amount(details.cost);
+      if (amount(details.cost)) spendMatter("reroll", details.cost);
+    }
+  }
+
+  function trackWaveSample(clean) {
+    var row = currentWave();
+    if (!row) return;
+    row.peakEnemies = Math.max(row.peakEnemies, clean.enemies);
+    // minimumRenderFps is the worst frame rate since the previous sample, so sparse samples still catch dips.
+    var fps = clean.minimumRenderFps > 0 ? clean.minimumRenderFps : clean.renderFps;
+    if (Number.isFinite(fps) && fps > 0) row.minRenderFps = row.minRenderFps === null ? fps : Math.min(row.minRenderFps, fps);
+    if (Number.isFinite(clean.coreHpRatio)) row.minCoreHpRatio = row.minCoreHpRatio === null ? clean.coreHpRatio : Math.min(row.minCoreHpRatio, clean.coreHpRatio);
+  }
+
+  function share(map) {
+    var total = 0, result = {};
+    Object.keys(map).forEach(function (key) { total += map[key]; });
+    Object.keys(map).forEach(function (key) { result[key] = total > 0 ? round(map[key] / total, 3) : 0; });
+    return result;
+  }
+
+  function roundedCopy(map) {
+    var copy = clonePlain(map || {});
+    roundMap(copy);
+    return copy;
+  }
+
+  function balanceSummary(run) {
+    var waves = run.waves || [], cards = run.cards || [];
+    return {
+      mode: run.context && run.context.mode || null,
+      coreId: run.context && run.context.coreId || null,
+      starterWeapon: run.context && run.context.starterWeapon || null,
+      highestWave: waves.length ? waves[waves.length - 1].wave : null,
+      wavesCleared: waves.filter(function (row) { return row.outcome === "cleared"; }).length,
+      victory: run.events.some(function (entry) { return entry.type === "waves_won"; }),
+      death: clonePlain(run.death),
+      damageBySource: roundedCopy(run.stats.damageBySource),
+      damageShareBySource: share(run.stats.damageBySource || {}),
+      killsBySource: clonePlain(run.stats.killsBySource || {}),
+      damageTakenBySource: roundedCopy(run.stats.damageTakenBySource),
+      coreDamageBySource: roundedCopy(run.stats.coreDamageBySource),
+      matterEarnedByReason: roundedCopy(run.stats.matterEarnedByReason),
+      upgradePaths: clonePlain(run.stats.upgradePaths || {}),
+      cardsPicked: cards.filter(function (entry) { return entry.picked; }).map(function (entry) { return entry.picked; }),
+      cardsSkipped: cards.filter(function (entry) { return entry.skipped; }).length,
+      rerolls: cards.reduce(function (sum, entry) { return sum + entry.rerolls; }, 0)
+    };
+  }
+
   function beginRun(context, firstSample) {
     if (activeRun) abandonRun("restarted", context && context.elapsed);
     activeRun = {
       runId: makeId("run"),
       gameBuild: GAME_BUILD,
-      metricsVersion: 2,
+      metricsVersion: METRICS_VERSION,
       startedAt: nowIso(),
       endedAt: null,
       outcome: null,
@@ -262,6 +419,9 @@
       environment: environmentSnapshot(),
       events: [],
       samples: [],
+      waves: [],
+      cards: [],
+      death: null,
       stats: makeStats(),
       summary: null,
       _buildOpenedAt: null,
@@ -327,6 +487,7 @@
     activeRun.stats.peakEnemies = Math.max(activeRun.stats.peakEnemies, clean.enemies);
     activeRun.stats.peakProjectiles = Math.max(activeRun.stats.peakProjectiles, clean.friendlyProjectiles + clean.hostileProjectiles);
     activeRun.stats.minimumCoreHpRatio = Math.min(activeRun.stats.minimumCoreHpRatio, clean.coreHpRatio);
+    trackWaveSample(clean);
     nextSampleAt += SAMPLE_INTERVAL;
     while (nextSampleAt <= elapsed + .001) nextSampleAt += SAMPLE_INTERVAL;
     dirty = true;
@@ -334,26 +495,58 @@
     return true;
   }
 
-  function recordEnemyKill(type, reward) {
+  function recordEnemyKill(type, reward, source) {
     if (!activeRun) return;
     addCounter(activeRun.stats.enemiesKilledByType, type || "unknown");
-    activeRun.stats.matterEarned += amount(reward);
+    if (activeRun.metricsVersion < 3) {
+      activeRun.stats.matterEarned += amount(reward);
+      dirty = true;
+      return;
+    }
+    addCounter(activeRun.stats.killsBySource, source || "other");
+    earnMatter("kills", reward);
+    var row = currentWave();
+    if (row) {
+      row.kills += 1;
+      addCounter(row.killsByType, type || "unknown");
+      addCounter(row.killsBySource, source || "other");
+    }
     dirty = true;
   }
 
-  function recordDamage(targetType, hullDamage, shieldAbsorbed) {
+  function recordDamage(targetType, hullDamage, shieldAbsorbed, attacker, coreHpRatio) {
     if (!activeRun) return;
     var damage = amount(hullDamage);
     if (targetType === "core") activeRun.stats.damageToCore += damage;
     else activeRun.stats.damageToModules += damage;
     activeRun.stats.shieldDamageAbsorbed += amount(shieldAbsorbed);
+    if (activeRun.metricsVersion >= 3) recordDamageTaken(targetType, damage, damage + amount(shieldAbsorbed), attacker || "unknown", coreHpRatio);
     dirty = true;
+  }
+
+  function recordDamageTaken(targetType, hull, taken, source, coreHpRatio) {
+    addCounter(activeRun.stats.damageTakenBySource, source, taken);
+    if (targetType === "core" && hull > 0) {
+      addCounter(activeRun.stats.coreDamageBySource, source, hull);
+      activeRun._lastCoreAttacker = source;
+    }
+    var row = currentWave();
+    if (!row) return;
+    row.damageTaken += taken;
+    addCounter(row.damageTakenBySource, source, taken);
+    if (targetType === "core") row.coreDamage += hull;
+    if (typeof coreHpRatio === "number" && Number.isFinite(coreHpRatio)) {
+      var ratio = round(Math.max(0, coreHpRatio), 3);
+      row.minCoreHpRatio = row.minCoreHpRatio === null ? ratio : Math.min(row.minCoreHpRatio, ratio);
+    }
   }
 
   function recordPurchase(type, price, elapsed, placement) {
     if (!activeRun) return;
     addCounter(activeRun.stats.modulesPurchasedByType, type || "unknown");
     spendMatter("module", price);
+    var row = activeRun.metricsVersion >= 3 ? lastWaveRow() : null;
+    if (row) addCounter(row.purchases, type || "unknown");
     event("module_purchased", elapsed, { type: type, price: price, placement: clonePlain(placement) });
   }
 
@@ -368,6 +561,12 @@
     var spent = amount(price);
     activeRun.stats.matterSpent += spent;
     addCounter(activeRun.stats.matterSpentByReason, reason || "other", spent);
+    // Waves spend Matter in the break after a wave, so a row's spending covers its wave and the break that follows.
+    var row = activeRun.metricsVersion >= 3 ? lastWaveRow() : null;
+    if (row && spent) {
+      row.matterSpent = round(row.matterSpent + spent, 1);
+      addCounter(row.matterSpentByReason, reason || "other", spent);
+    }
   }
 
   function recordMatterSpent(reason, price, elapsed, details) {
@@ -380,6 +579,12 @@
     if (!activeRun) return;
     spendMatter("upgrade", price);
     activeRun.stats.upgradesPurchased += 1;
+    if (activeRun.metricsVersion >= 3) {
+      var paths = activeRun.stats.upgradePaths;
+      (paths[type] = paths[type] || []).push(choice);
+      var row = lastWaveRow();
+      if (row) row.upgrades.push(type + ":" + choice);
+    }
     event("weapon_upgraded", elapsed, { type: type, choice: choice, price: amount(price), level: details && details.level, branch: details && details.branch, path: clonePlain(details && details.path || []), unitCost: details && details.unitCost, copies: details && details.copies });
   }
 
@@ -406,7 +611,7 @@
     return null;
   }
 
-  function recordOutgoingDamage(targetType, hullDamage, shieldAbsorbed, elapsed, targetId) {
+  function recordOutgoingDamage(targetType, hullDamage, shieldAbsorbed, elapsed, targetId, source) {
     if (!activeRun || !Number.isFinite(elapsed) || elapsed < 0) return;
     var hull = amount(hullDamage);
     var shield = amount(shieldAbsorbed);
@@ -415,6 +620,14 @@
     activeRun.stats.hullDamageDealt += hull;
     activeRun.stats.shieldDamageDealt += shield;
     addCounter(activeRun.stats.damageDealtByTargetType, targetType || "unknown", total);
+    if (activeRun.metricsVersion >= 3) {
+      addCounter(activeRun.stats.damageBySource, source || "other", total);
+      var row = currentWave();
+      if (row) {
+        row.damageDealt += total;
+        addCounter(row.damageBySource, source || "other", total);
+      }
+    }
     var bucket = Math.floor((elapsed + .0000001) / DPS_BUCKET_SECONDS);
     var slot = bucket % DPS_BUCKET_COUNT;
     if (damageBucketTimes[slot] !== bucket) {
@@ -509,6 +722,7 @@
     recordBuild(false, elapsed, { reason: "run_finished" });
     recordPause(false, elapsed);
     event("run_finished", elapsed, result || {});
+    if (activeRun.metricsVersion >= 3) recordRunEnd((result && result.outcome) || "unknown", elapsed, finalSample);
     activeRun.endedAt = nowIso();
     activeRun.outcome = (result && result.outcome) || "unknown";
     activeRun.summary = summaryFromRun(activeRun, result || {});
@@ -516,9 +730,19 @@
     delete activeRun._buildOpenedWall;
     delete activeRun._pauseOpenedAt;
     delete activeRun._pauseOpenedWall;
+    delete activeRun._lastCoreAttacker;
     activeRun = null;
     dirty = true;
     persist(true);
+  }
+
+  function recordRunEnd(outcome, elapsed, finalSample) {
+    var closed = closeOpenWave(activeRun, outcome === "death" ? "died" : outcome, elapsed,
+      finalSample ? { coreHp: finalSample.coreHp, modules: finalSample.modules } : null);
+    if (outcome !== "death") return;
+    var row = closed || lastWaveRow();
+    activeRun.death = { t: round(elapsed, 2), wave: row ? row.wave : null,
+      waveSeconds: closed ? closed.seconds : null, killedBy: activeRun._lastCoreAttacker || "unknown" };
   }
 
   function abandonRun(reason, elapsed) {
@@ -548,6 +772,7 @@
       delete exportData.runs[i]._buildOpenedWall;
       delete exportData.runs[i]._pauseOpenedAt;
       delete exportData.runs[i]._pauseOpenedWall;
+      delete exportData.runs[i]._lastCoreAttacker;
     }
     exportData.exportedAt = nowIso();
     var json = JSON.stringify(exportData, null, 2);

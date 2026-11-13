@@ -1357,6 +1357,9 @@
       this.cardPicked = false;
       this.rerolls = 0;
       this.volatileQueue = [];
+      // Balance telemetry credits every hit to the module or card that caused it (see damageEnemy).
+      this.damageSource = "other";
+      this.damageAttacker = "unknown";
       this.seenDuos = [];
       this.ownsDuo = false;
       this.cardSkipped = false;
@@ -2282,6 +2285,7 @@
       if (enemy.dead || (enemy.burnTimer > 0 && enemy.burnDamage > EMBER_COMBO_BURN_DAMAGE)) return;
       if (!(enemy.burnTimer > 0)) enemy.burnTickTime = 0;
       enemy.burnDamage = EMBER_COMBO_BURN_DAMAGE;
+      enemy.burnSource = this.damageSource;
       enemy.burnTimer = Math.max(enemy.burnTimer || 0, EMBER_COMBO_BURN_DURATION);
       enemy.spreadBurn = false;
     };
@@ -2566,6 +2570,7 @@
       for (var i = 0; i < this.enemies.length; i += 1) {
         var enemy = this.enemies[i];
         if (enemy.dead) continue;
+        this.damageAttacker = enemy.type;
         if (enemy.type === "boss") {
           this.updateBoss(enemy, dt);
           continue;
@@ -2842,6 +2847,8 @@
       projectile.shatter = false;
       projectile.coldPayload = false;
       projectile.lensed = false;
+      projectile.source = friendly ? this.damageSource : null;
+      projectile.attacker = friendly ? null : this.damageAttacker;
       if (projectile.hitIds) projectile.hitIds.clear();
       if ((kind === "rail" || kind === "sniperShot") && !projectile.hitIds) projectile.hitIds = new Set();
       if (this.attackVfx) this.attackVfx.resetProjectile(projectile);
@@ -3017,6 +3024,8 @@
       for (var i = 0; i < this.projectiles.length; i += 1) {
         if (this.finished) break;
         var projectile = this.projectiles[i];
+        if (projectile.friendly) this.damageSource = projectile.source || "other";
+        else this.damageAttacker = projectile.attacker || "unknown";
         var startX = projectile.x, startY = projectile.y;
         var launchX = projectile.launchX, launchY = projectile.launchY;
         projectile.launchX = null; projectile.launchY = null;
@@ -3353,6 +3362,7 @@
 
     Game.prototype.updateWeapon = function (tile, dt, damageMultiplier) {
       if (!isWeaponType(tile.type)) return;
+      this.damageSource = tile.type;
       if (this.cardMod("leanHull") || this.cardMod("flagship")) damageMultiplier *= this.tileCardDamage(tile);
       window.DriftWeaponFeedback.settle(tile, dt);
       tile.cooldown -= dt * this.weaponCooldownRate(tile);
@@ -3510,6 +3520,7 @@
         this.damageEnemy(enemy, def.damage * damageMultiplier);
         if (enemy.dead) continue;
         if (!(enemy.burnTimer > 0) || def.burnDamage * damageMultiplier >= enemy.burnDamage) enemy.spreadBurn = !!def.spreadBurn;
+        if (!(enemy.burnTimer > 0) || def.burnDamage * damageMultiplier >= enemy.burnDamage) enemy.burnSource = this.damageSource;
         enemy.burnDamage = Math.max(enemy.burnTimer > 0 ? enemy.burnDamage : 0, def.burnDamage * damageMultiplier);
         enemy.burnTimer = Math.max(enemy.burnTimer || 0, def.burnDuration);
       }
@@ -3566,7 +3577,7 @@
             if(enemy.dead||distanceSquared(enemy.x,enemy.y,area.x,area.y)>area.radius*area.radius)return;
             var strongest=area;
             for(var a=0;a<areas.length;a+=1){var other=areas[a];if(other.kind==='fire'&&other.life>0&&distanceSquared(enemy.x,enemy.y,other.x,other.y)<=other.radius*other.radius&&(other.damage>strongest.damage||other.damage===strongest.damage&&a<i))strongest=other;}
-            if(strongest===area)this.damageEnemy(enemy,area.damage*step);
+            if(strongest===area){this.damageSource=area.sourceTile.type;this.damageEnemy(enemy,area.damage*step);}
           },this);
         }
         if(area.visualClock<=0){var ring=this.spawnEffect('ring',area.x,area.y,.22,area.color);ring.maxRadius=area.radius;area.visualClock=.2;}
@@ -3596,6 +3607,7 @@
           enemy.burnTickTime += Math.min(dt, enemy.burnTimer);
           enemy.burnTimer = Math.max(0, enemy.burnTimer - dt);
           if (enemy.burnTickTime >= .25 || enemy.burnTimer <= 0) {
+            this.damageSource = enemy.burnSource || "other";
             this.damageEnemy(enemy, enemy.burnDamage * enemy.burnTickTime);
             enemy.burnTickTime = 0;
           }
@@ -3612,7 +3624,7 @@
           var dy = activeField.y - enemy.y;
           var distance = Math.sqrt(dx * dx + dy * dy);
           if (distance > activeField.radius) continue;
-          if (activeField.tickDamage > 0) this.damageEnemy(enemy, activeField.tickDamage);
+          if (activeField.tickDamage > 0) { this.damageSource = activeField.sourceTile ? activeField.sourceTile.type : "gravity"; this.damageEnemy(enemy, activeField.tickDamage); }
           // Pull never replaces movement or attacks; multiple wells cannot multiply its strength.
           var resistance = enemy.type === "boss" ? 0 : 1;
           var pull = Math.min(Math.max(0, distance - 8), activeField.pullStrength * resistance * activeField.stepTime);
@@ -3630,6 +3642,7 @@
         var endingField = fields[fieldWrite];
         if (endingField.life > 0) fields[write++] = endingField;
         else if (endingField.collapseDamage) {
+          this.damageSource = endingField.sourceTile ? endingField.sourceTile.type : "gravity";
           this.enemies.slice().forEach(function(enemy) { if (!enemy.dead && distanceSquared(endingField.x,endingField.y,enemy.x,enemy.y)<=endingField.radius*endingField.radius) this.damageEnemy(enemy,endingField.collapseDamage); },this);
           var collapseRing=this.spawnEffect("ring",endingField.x,endingField.y,.3,endingField.color); collapseRing.maxRadius=endingField.radius;
         }
@@ -3726,12 +3739,12 @@
           shieldHitEffect.maxRadius = enemy.radius + 12;
         }
         if (amount <= 0) {
-          if (this === game && playtestTelemetry && playtestTelemetry.recordOutgoingDamage) playtestTelemetry.recordOutgoingDamage(enemy.type, 0, shieldBefore - enemy.shield, this.elapsed, enemy.id);
+          if (this === game && playtestTelemetry && playtestTelemetry.recordOutgoingDamage) playtestTelemetry.recordOutgoingDamage(enemy.type, 0, shieldBefore - enemy.shield, this.elapsed, enemy.id, this.damageSource);
           return;
         }
       }
       enemy.hp -= amount;
-      if (this === game && playtestTelemetry && playtestTelemetry.recordOutgoingDamage) playtestTelemetry.recordOutgoingDamage(enemy.type, Math.min(hpBefore, amount), shieldBefore - (enemy.shield || 0), this.elapsed, enemy.id);
+      if (this === game && playtestTelemetry && playtestTelemetry.recordOutgoingDamage) playtestTelemetry.recordOutgoingDamage(enemy.type, Math.min(hpBefore, amount), shieldBefore - (enemy.shield || 0), this.elapsed, enemy.id, this.damageSource);
       enemy.hitFlash = .10;
       if (save.settings.damageNumbers && amount >= 3.5) {
         enemy.pendingDamageNumber += amount;
@@ -3753,7 +3766,7 @@
         this.enemies.forEach(function(other) {
           if (other.dead || distanceSquared(enemy.x,enemy.y,other.x,other.y)>80*80) return;
           var transferred = enemy.burnDamage*.5;
-          if (!(other.burnTimer>0) || transferred >= other.burnDamage) { other.burnDamage=transferred; other.spreadBurn=false; }
+          if (!(other.burnTimer>0) || transferred >= other.burnDamage) { other.burnDamage=transferred; other.spreadBurn=false; other.burnSource=enemy.burnSource; }
           other.burnTimer=Math.max(other.burnTimer || 0,2.5);
         });
       }
@@ -3786,7 +3799,7 @@
         }
         ui.bossHud.classList.add("hidden");
         if (playtestTelemetry) {
-          playtestTelemetry.recordEnemyKill("boss", enemy.reward);
+          playtestTelemetry.recordEnemyKill("boss", enemy.reward, this.damageSource);
           playtestTelemetry.recordBossDefeat(this.elapsed, { id: enemy.id });
         }
         audio.tone(70, .9, .1, "sawtooth", 420);
@@ -3800,12 +3813,12 @@
       var rewardMultiplier = this.matterIncomeMultiplier();
       var earnedMatter = enemy.reward * rewardMultiplier;
       this.matter += earnedMatter;
-      if (this.cardMod("volatile") > 0) this.volatileQueue.push({ x: enemy.x, y: enemy.y, damage: (enemy.maxHp || 0) * this.cardMod("volatile") });
+      if (this.cardMod("volatile") > 0) this.volatileQueue.push({ x: enemy.x, y: enemy.y, damage: (enemy.maxHp || 0) * this.cardMod("volatile"), source: "card:volatile" });
       if (this.training && enemy.trainingTarget) {
         trainingShipState();
         trainingEvent("target_destroyed", { id: enemy.trainingTarget.id, group: enemy.trainingTarget.group, upgraded: Boolean(this.upgrades.cannon && this.upgrades.cannon.level > 0) });
       }
-      if (playtestTelemetry) playtestTelemetry.recordEnemyKill(enemy.type, earnedMatter);
+      if (playtestTelemetry) playtestTelemetry.recordEnemyKill(enemy.type, earnedMatter, this.damageSource);
       this.burst(enemy.x, enemy.y, KILL_BURST_COLOR, 5, 120);
       if (enemy.type === "splitter") {
         for (var i = 0; i < 2; i += 1) {
@@ -3870,7 +3883,7 @@
       }
       this.lastShieldAbsorbed = shieldAbsorbed;
       if (remaining <= 0) {
-        if (playtestTelemetry) playtestTelemetry.recordDamage(target.type, 0, shieldAbsorbed);
+        if (playtestTelemetry) playtestTelemetry.recordDamage(target.type, 0, shieldAbsorbed, this.damageAttacker);
         var shieldedPos = this.gridToWorld(target.x, target.y);
         if (this.effects.length < (currentQualityTier() > 1 ? 65 : (currentQualityTier() > 0 ? 90 : 120))) {
           var shieldBlockEffect = this.spawnEffect("ring", shieldedPos.x, shieldedPos.y, .16, "#70ffc2");
@@ -3883,7 +3896,7 @@
       remaining *= 1 - this.bulkheadReduction(target);
       var removedHp = Math.min(target.hp, remaining);
       target.hp = Math.max(0, target.hp - remaining);
-      if (playtestTelemetry) playtestTelemetry.recordDamage(target.type, removedHp, shieldAbsorbed);
+      if (playtestTelemetry) playtestTelemetry.recordDamage(target.type, removedHp, shieldAbsorbed, this.damageAttacker, target.type === "core" && target.maxHp > 0 ? target.hp / target.maxHp : null);
       target.repairDelay = repairDef.repairDelay;
       target.flash = Math.max(target.flash, .24 + clamp(remaining / 40, 0, .18));
       var impactPos = this.gridToWorld(target.x, target.y);
@@ -4071,6 +4084,8 @@
         if (this === game && !this.training) storeSave();
       }
       this.backgroundPulse += dt;
+      this.damageSource = "other";
+      this.damageAttacker = "unknown";
       this.updateMovement(dt);
       this.updateFeedback(dt);
       this.updateShields(dt);
@@ -4118,7 +4133,7 @@
       this.layoutClock = 0;
       if (this.cardMod("waveStartRepair") > 0) this.repairShip(this.cardMod("waveStartRepair"), 0);
       this.spawnAssaultWave(true);
-      if (playtestTelemetry && this === game) playtestTelemetry.event("wave_start", this.elapsed, { wave: wave, pressure: Math.round(this.pressureClock()), boss: def.boss || "" });
+      if (playtestTelemetry && this === game) playtestTelemetry.event("wave_start", this.elapsed, { wave: wave, pressure: Math.round(this.pressureClock()), boss: def.boss || "", modules: this.ship.tiles.size });
     };
 
     Game.prototype.waveTimeLimit = function () {
@@ -4292,7 +4307,7 @@
       enemy.burnTimer = 0; enemy.burnDamage = 0; enemy.spreadBurn = false;
       enemy.slowTimer = 0; enemy.slowFactor = 1; enemy.freezeUntil = 0;
       this.volatileQueue.push({ x: enemy.x, y: enemy.y, damage: this.cardMod("thermalShock") * this.cardDamageScale(),
-        radius: tuning.thermalShockRadius, color: MODULES.cryo.color, accent: MODULES.ember.color });
+        radius: tuning.thermalShockRadius, color: MODULES.cryo.color, accent: MODULES.ember.color, source: "card:thermalShock" });
     };
 
     Game.prototype.fireStormSurge = function (origin, def, damageMultiplier) {
@@ -4416,6 +4431,7 @@
         var target = this.nearestEnemyTo(wreck.x, wreck.y, wreck.def.range);
         if (!target) continue;
         wreck.cooldown = wreck.def.cooldown;
+        this.damageSource = "card:castaway";
         this.fireDerelict(wreck, target);
       }
       this.derelicts.length = write;
@@ -4473,8 +4489,11 @@
       if (this.mode !== "waves" || !cardsApi || this.wavePhase === "clearing") { this.latticeActive = false; return; }
       this.layoutClock -= dt;
       if (this.layoutClock <= 0) { this.layoutClock = cardsApi.TUNING.layoutRefresh; this.refreshLayoutCards(); }
+      this.damageSource = "card:phaseLattice";
       if (this.cardMod("phaseLattice")) this.updatePhaseLattice(dt);
+      this.damageSource = "card:coreConduit";
       if (this.cardMod("coreConduit")) this.updateConduit(dt);
+      this.damageSource = "card:arcSpine";
       if (this.cardMod("arcSpine")) this.updateArcSpine(dt);
     };
 
@@ -4645,6 +4664,7 @@
       this.volatileQueue = [];
       blasts.forEach(function (blast) {
         var radius = blast.radius || cardsApi.VOLATILE_RADIUS;
+        this.damageSource = blast.source || "other";
         this.burst(blast.x, blast.y, blast.color || "#ff9b55", 6, 160);
         if (blast.accent) {
           this.burst(blast.x, blast.y, blast.accent, 6, 120);
@@ -5920,7 +5940,7 @@
           initialModules: game.ship.tiles.size
         }, telemetrySample());
         // Wave 1 starts inside the constructor, before the run log exists.
-        if (game.mode === "waves") playtestTelemetry.event("wave_start", game.elapsed, { wave: game.wave, pressure: Math.round(game.pressureClock()), boss: "" });
+        if (game.mode === "waves") playtestTelemetry.event("wave_start", game.elapsed, { wave: game.wave, pressure: Math.round(game.pressureClock()), boss: "", modules: game.ship.tiles.size });
       }
       ui.menu.classList.add("hidden");
       ui.hangarOverlay.classList.add("hidden");
@@ -7077,27 +7097,34 @@
         drawModuleGlyph(tile, tile.x * TILE_SIZE, tile.y * TILE_SIZE);
       });
       // Status overlays stay above all equipment, including adjacent barrel overhang.
+      var platformArt = Boolean(moduleArt && moduleArt.available("platform"));
+      ctx.shadowBlur = 0;
       game.ship.tiles.forEach(function (tile) {
         var x = tile.x * TILE_SIZE;
         var y = tile.y * TILE_SIZE;
-        var color = tile.type === "core" ? CORE_COLORS[game.coreDef.id] : MODULES[tile.type].color;
-        var damageGlow = clamp(tile.flash / .42, 0, 1);
-        var damageAlpha = damageGlow * (save.settings.reducedFlash ? .24 : .46);
         var upgrading = tile.upgradeFlash > 0;
-        ctx.shadowBlur = simplifiedEffects ? 0 : (tile.flash > 0 || upgrading ? 12 : (tile.type === "core" ? 8 : 0));
-        ctx.shadowColor = tile.flash > 0 ? "#ff3f5f" : (upgrading ? "#65e8ff" : color);
-        ctx.fillStyle = tile.flash > 0 ? "rgba(255,40,72," + damageAlpha + ")" : (upgrading ? "rgba(101,232,255," + (.15 + .3 * tile.upgradeFlash / .65) + ")" : "rgba(21,64,89,.34)");
-        ctx.strokeStyle = tile.flash > 0 ? "#ff8799" : (upgrading ? "#b9f5ff" : color);
-        ctx.lineWidth = tile.type === "core" ? 2.5 : 1.5;
-        ctx.beginPath();
-        ctx.roundRect(x - TILE_SIZE * .46, y - TILE_SIZE * .46, TILE_SIZE * .92, TILE_SIZE * .92, 5);
-        if (!moduleArt || !moduleArt.available("platform") || tile.flash > 0 || upgrading) {
-          ctx.fill();
-          ctx.stroke();
-        } else if (tile.type === "core" && game.coreDef.id !== "standard") {
-          ctx.stroke();
+        var filledFrame = !platformArt || tile.flash > 0 || upgrading;
+        var outlinedCore = tile.type === "core" && game.coreDef.id !== "standard";
+        // Most tiles draw no frame over their art; skip the style and path setup for them (it ran per tile every frame).
+        if (filledFrame || outlinedCore) {
+          var color = tile.type === "core" ? CORE_COLORS[game.coreDef.id] : MODULES[tile.type].color;
+          var damageGlow = clamp(tile.flash / .42, 0, 1);
+          var damageAlpha = damageGlow * (save.settings.reducedFlash ? .24 : .46);
+          ctx.shadowBlur = simplifiedEffects ? 0 : (tile.flash > 0 || upgrading ? 12 : (tile.type === "core" ? 8 : 0));
+          ctx.shadowColor = tile.flash > 0 ? "#ff3f5f" : (upgrading ? "#65e8ff" : color);
+          ctx.fillStyle = tile.flash > 0 ? "rgba(255,40,72," + damageAlpha + ")" : (upgrading ? "rgba(101,232,255," + (.15 + .3 * tile.upgradeFlash / .65) + ")" : "rgba(21,64,89,.34)");
+          ctx.strokeStyle = tile.flash > 0 ? "#ff8799" : (upgrading ? "#b9f5ff" : color);
+          ctx.lineWidth = tile.type === "core" ? 2.5 : 1.5;
+          ctx.beginPath();
+          ctx.roundRect(x - TILE_SIZE * .46, y - TILE_SIZE * .46, TILE_SIZE * .92, TILE_SIZE * .92, 5);
+          if (filledFrame) {
+            ctx.fill();
+            ctx.stroke();
+          } else {
+            ctx.stroke();
+          }
+          ctx.shadowBlur = 0;
         }
-        ctx.shadowBlur = 0;
         if (tile.type === "shield") {
           // Keep charge inside its own tile so adjacent hull and field fills cannot cover it.
           ctx.fillStyle = "#11252e";
@@ -7595,7 +7622,8 @@
       smoothedFps = lerp(smoothedFps, 1000 / rafDelta, .08);
       telemetryMinimumSimulationFps = Math.min(telemetryMinimumSimulationFps, smoothedFps);
       if (game) {
-        var delta = Math.min(FIXED_STEP * MAX_SIMULATION_STEPS, (now - game.lastFrame) / 1000);
+        // rAF stamps the frame start, which can precede a slow handler that set lastFrame; never run time backwards.
+        var delta = Math.max(0, Math.min(FIXED_STEP * MAX_SIMULATION_STEPS, (now - game.lastFrame) / 1000));
         game.lastFrame = now;
         if (game.state === "playing" && !game.finished) {
           game.accumulator += delta;
@@ -7613,6 +7641,9 @@
             game.updateEffects(delta);
             game.updateFeedback(delta);
             game.deathFeedbackTime = Math.max(0, game.deathFeedbackTime - delta);
+          } else if (game.state === "intermission") {
+            // The card screen shows the battlefield: let wrecks and purchase flashes finish instead of freezing.
+            game.updateEffects(delta);
           }
         }
         if (now - lastHudUpdate > 100) {
@@ -8311,7 +8342,7 @@
       rangeScenario: function (id) { if (rangeSession) rangeArena.reset(game, id); },
       rangeState: function () { return rangeSession ? Object.assign({ type: rangeSession.type, screen: game.state, upgrade: game.upgrades[rangeSession.type] || null }, rangeArena.snapshot()) : null; },
       rangeSnapshot: function () { return rangeSession ? { enemies: game.enemies.map(function(e) { return { hp: e.hp, x:e.x, y:e.y }; }), tiles:Array.from(game.ship.tiles.values()).map(function(t) { return { type:t.type,hp:t.hp,maxHp:t.maxHp,shield:t.shield }; }), definitions:JSON.parse(JSON.stringify(game.weaponDefinitions)) } : null; },
-      icon: function (type) { return type === "core" ? moduleArt.iconHtml("core") : moduleIconHtml(type); },
+      icon: moduleIconHtml,
       openBuild: openBuild, resize: resize, closeHangar: closeHangar, hangarTab: setHangarTab,
       clearBuildHover: function () { if (!buildInteraction.drag || !buildInteraction.drag.active) updateBuildPreview(); },
       suspendBuildHover: function () { buildHoverSuspended = true; updateBuildPreview(); },
@@ -8357,8 +8388,8 @@
         var context = target.getContext("2d"); context.clearRect(0,0,800,800);
         var tiles = [{ type:"core",x:0,y:0 },{ type:selectedStarter,x:0,y:-1 }];
         context.save(); context.translate(400,435); context.rotate(-.25); context.scale(1.4,1.4);
-        tiles.forEach(function (tile) { moduleArt.drawBase(context, tile.type, tile.x*112, tile.y*112, 106); });
-        tiles.forEach(function (tile) { if (!moduleArt.drawEquipment(context,tile.type,tile.x*112,tile.y*112,106,-Math.PI/2)) drawModuleGlyph({type:tile.type,aim:-Math.PI/2},tile.x*112,tile.y*112,context,106); });
+        if (moduleArt) tiles.forEach(function (tile) { moduleArt.drawBase(context, tile.type, tile.x*112, tile.y*112, 106); });
+        tiles.forEach(function (tile) { if (!moduleArt || !moduleArt.drawEquipment(context,tile.type,tile.x*112,tile.y*112,106,-Math.PI/2)) drawModuleGlyph({type:tile.type,aim:-Math.PI/2},tile.x*112,tile.y*112,context,106); });
         context.restore();
       }
     };

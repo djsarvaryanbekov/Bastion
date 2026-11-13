@@ -1,4 +1,5 @@
 'use strict';
+require("./english-browser-locale.cjs");
 const {chromium}=require('playwright'),assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),{pathToFileURL}=require('node:url');
 const output=path.resolve(__dirname,'../outputs/qa/build-ux');fs.mkdirSync(output,{recursive:true});
 (async()=>{const browser=await chromium.launch({headless:true}),errors=[],captures=[];try{
@@ -8,8 +9,8 @@ for(const [width,height] of [[1280,720],[1920,1080],[2560,1440]])for(const uiSca
  await page.clock.install();await page.goto(pathToFileURL(path.resolve(__dirname,'../outputs/Drift_Bastion_Playtest.html')).href+'?debug=1');await page.evaluate(()=>window.DriftModuleArt.ready);await page.clock.pauseAt(new Date(Date.now()+1000));
  const tick=()=>page.clock.runFor(200),state=()=>page.evaluate(()=>window.__driftBastion.getState());
  async function shot(name){await tick();await page.screenshot({path:path.join(output,`${height}-${uiScale}-${name}.png`)});captures.push(`${width}x${height}@${uiScale} ${name}`);}
- await page.click('#startButton');await page.evaluate(()=>window.__driftBastion.addMatter(4));await page.click('#buildButton');await page.click('#catalog [data-type="scatter"]');await tick();
- assert.match(await page.locator('#pcBuildGuide').innerText(),/Choose a \+ beside the ship/);
+ await page.click('#startEndlessButton');await page.evaluate(()=>window.__driftBastion.addMatter(4));await page.click('#buildButton');await page.click('#catalog [data-type="scatter"]');await tick();
+ assert.match(await page.locator('#pcBuildGuide').innerText(),/Place Scatter Array/);assert.equal(await page.locator('#pcBuildGuide p').isVisible(),false);
  assert.doesNotMatch(await page.locator('#pcBuildGuide').innerText(),/Need|SHORT|earn Matter/);
  assert.match(await page.locator('#buildSelection').innerText(),/Available: 4 Matter/);await shot('placement-guide');
  await page.evaluate(()=>window.__driftBastion.addMatter(100));await tick();
@@ -43,7 +44,7 @@ for(const [width,height] of [[1280,720],[1920,1080],[2560,1440]])for(const uiSca
  }
  await page.click('.pc-family-card[data-family="cannon"]');await tick();
  await page.locator('#upgradeList .research-node').filter({hasText:'Fire rate'}).click();
- assert.match(await page.locator('#upgradeList .research-state').innerText(),/Requires Damage/);
+ assert.match(await page.locator('#upgradeList p.research-state').innerText(),/Requires Damage/);
  await shot('multiple-weapons-prerequisite');
  await page.click('.research-prerequisite');assert.match(await page.locator('#upgradeList .research-node.selected').innerText(),/Damage/);
  await page.locator('#upgradeList .research-node').filter({hasText:'Twin volley 1'}).click();

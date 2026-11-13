@@ -272,8 +272,8 @@ if (!recordedRun.events.some((event) => event.type === "boss_spawned") || !recor
 documentMock.getElementById("resultExportTelemetry").listeners.click();
 if (downloadClicks !== 1) throw new Error("Playtest JSON export did not trigger a download.");
 sandbox.window.PlaytestTelemetry.beginRun({ starterWeapon: "cannon" }, { elapsed: 0, coreHpRatio: 1 });
-if (!sandbox.window.PlaytestTelemetry.shouldSample(4.999)) throw new Error("Telemetry did not accept the five-second boundary sample.");
-sandbox.window.PlaytestTelemetry.sample({ elapsed: 4.999, coreHpRatio: 1 });
-if (sandbox.window.PlaytestTelemetry.shouldSample(5)) throw new Error("Telemetry duplicated a sample around a floating-point interval boundary.");
+if (!sandbox.window.PlaytestTelemetry.shouldSample(29.999)) throw new Error("Telemetry did not accept the 30-second boundary sample.");
+sandbox.window.PlaytestTelemetry.sample({ elapsed: 29.999, coreHpRatio: 1 });
+if (sandbox.window.PlaytestTelemetry.shouldSample(30)) throw new Error("Telemetry duplicated a sample around a floating-point interval boundary.");
 sandbox.window.PlaytestTelemetry.abandonRun("test_complete", 5);
 console.log(`Runtime bootstrap and stress check passed in ${stressMilliseconds.toFixed(1)} ms (pools E${stressedState.pools.enemies}/P${stressedState.pools.projectiles}/V${stressedState.pools.particles}/F${stressedState.pools.effects}).`);

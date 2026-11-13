@@ -1,4 +1,5 @@
 "use strict";
+require("./english-browser-locale.cjs");
 const fs = require("node:fs"), path = require("node:path"), assert = require("node:assert/strict");
 const { pathToFileURL } = require("node:url");
 const { chromium } = require("playwright");
@@ -52,7 +53,7 @@ const types = ["armor", "missile", "rail", "laser", "arc", "scatter", "flak", "p
       assert.ok(check.sameBase, type + " base changed");
       assert.equal(check.changesWithAim, check.rotates, type + " rotation policy");
     }
-    await page.locator("#startButton").click();
+    await page.locator("#startEndlessButton").click();
     console.log("Rotation policy passed; assembling ship");
     await page.evaluate(() => window.__driftBastion.addMatter(100000));
     await page.locator("#buildButton").click();
@@ -92,7 +93,7 @@ const types = ["armor", "missile", "rail", "laser", "arc", "scatter", "flak", "p
     await page.locator("#corePicker .systems-selector").nth(1).click();
     await page.locator("#corePicker .systems-action").click();
     await page.locator("#closeHangar").click();
-    await page.locator("#startButton").click();
+    await page.locator("#startEndlessButton").click();
     assert.equal((await page.evaluate(() => window.__driftBastion.getState())).coreId, "striker");
     await page.locator("#buildButton").click();
     assert.equal(await page.locator(".build-cell.core.has-module-art").count(), 0);

@@ -178,7 +178,7 @@
       if (index < 0 || (!event.shiftKey && index === focusable.length - 1) || (event.shiftKey && index === 0)) { event.preventDefault(); focusable[event.shiftKey ? focusable.length - 1 : 0].focus(); }
     }
   }, true);
-  window.DriftModuleArt.ready.then(function () { lastHero = ""; refresh(); });
+  if (window.DriftModuleArt) window.DriftModuleArt.ready.then(function () { lastHero = ""; refresh(); });
   refresh();
   document.body.classList.remove("pc-ui-pending");
   window.setInterval(refresh, 160);

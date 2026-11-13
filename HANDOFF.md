@@ -82,6 +82,50 @@ The user asked for a full review of how the UI answers the player (hover, press)
 - **Verified:** the audit re-run finds an animated hover and press response on every button; a real-pointer run of Build confirms the landing, the wallet pulse and the refusal shake; `npm run check`, `npm test`, `npm run test:i18n`. Not judged by a person.
 - **Git:** committed on `feat/waves-and-cards` and merged into `main` locally. `main` was pushed only if the user said "git push" afterwards.
 
+## Update 2026-11-13 — full QA pass and performance fixes (build `2026.11.13-perf-59`)
+The user asked for a full test of UI, every module, core gameplay and performance, with a log, and optimization where possible.
+- Log, scripts and results: `research/qa-2026-11-13/QA_LOG.md` (re-runnable harness; runs on a hooked copy of the HTML with isolated storage).
+- Found nothing broken in UI (30 screens at 1920×1080 and at 1280×720 @150%, 16 languages), modules (all 18) or a 25-wave run with all bosses and victory.
+- Fixed: Build purchase cost grew with ship size (inline base64 sprites in every cell; now blob URLs in `module-art.js`, 373 → 62 ms per click at 121 modules); negative frame step could freeze the simulation after a slow click (clamped in `stepFrame`); effects now age during the wave break; `drawShip` overlay skips per-tile style work when it draws nothing.
+- Promoted to the main HTML; backup of build 58 in `outputs/experiments/2026-11-13-qa-perf/backup/`. Not committed, ZIP and itch not updated, not playtested by a person.
+- Older Playwright suites fail; most only because Chromium here reports Russian (`research/qa-2026-11-13/force-en-locale.cjs`). Triage table in the QA log.
+
+### Follow-up: browser suites updated (build `2026.11.13-art-fallback-60`)
+- The user said "Yes, update tests". All 19 browser checks in `test:browser`, `test:pc`, `test:art`, `test:feedback`, `test:training`, `test:controls`, `test:economy-browser` and `test:presentation` were brought to the current game. Each change keeps what the check was originally testing:
+  - `tools/english-browser-locale.cjs` is required first in each of them, so English assertions hold on a Russian machine.
+  - Checks that open Build mid-fight start Endless (`#startEndlessButton`), because Waves only builds between waves.
+  - New research-tree selectors (`data-research-node`, `.research-purchase`). `balance-browser` was rewritten and still asserts the same prices (8/18/36/87/90/162).
+  - Build auto-fit with zoom-in scrolling; build id read from `telemetry.js`; sprite blob URL compared byte for byte; star found by marker size behind the space backdrop; reduced-flash sparks compared against normal ones; Training Matter is 30; Training is reached via Settings → advanced.
+  - Touch routes in `training-browser` run only with `--touch` (the phone build is archived). Its profiles are 1280×800 and 1280×720 @150%.
+- A real bug surfaced in `module-art-browser`'s missing-art check: with no module art, the menu threw errors (`pc-ui.js`, `pc-research.js`, `pc-systems.js`, `game.js` `drawHero` / `icon`). It was the same in build 58. Guarded, then the main HTML was rebuilt. Backup of 59 is in `outputs/experiments/2026-11-13-qa-perf/backup-59/`.
+
+## Update 2026-11-13 — player balance data v3 (build `2026.11.13-balance-data-61`)
+The user asked to remake the JSON balance data players export (proposal approved with "Yes, build it"). Delivery is still a manual export (Settings → advanced → Export). Auto-upload was not built: it needs a server and player consent, so it is the user's decision.
+- **Attribution in `game.js`:**
+  - `Game.damageSource` is set where damage starts (`updateWeapon`, each friendly projectile, fire areas and gravity fields by their emitter tile, burns via `enemy.burnSource`, card effects as `card:<id>`). `damageEnemy` passes it to telemetry.
+  - `Game.damageAttacker` is set per enemy in `updateEnemies` and per hostile projectile; ship damage passes it plus the core HP ratio.
+  - Both reset each `update()`.
+  - Duo cards that amplify a weapon count for that weapon.
+- **`telemetry.js` schema/metrics v3:**
+  - Per run: `waves[]` rows (time, kills, Matter in and out, damage by source, damage taken by enemy, lowest core HP, modules, purchases, upgrades, peak enemies, min fps); break spending is credited to the wave before the break.
+  - `cards[]` (offers incl. rerolls, pick, skip, reroll cost) and `death` (wave, `killedBy` = enemy of the last core hit).
+  - Summary adds the source shares, kills by source, upgrade paths and Matter by reason. Wave-clear bonus, skip reward and reroll cost now reconcile (`matterBalanceError` 0, computed on unrounded Matter).
+  - Samples every 30 s (was 5 s).
+  - v1/v2 history loads unchanged.
+- **`tools/balance-report.cjs`** (`npm run balance:report -- <folder or files> --out=report.md --csv=waves.csv [--build=prefix] [--mode=waves] [--include-debug]`):
+  - Merges exports and drops duplicate runs from repeated exports and debug runs.
+  - Writes a markdown report (outcomes, how far runs get, per-wave medians, deaths and killers, damage share by source, damage taken by enemy, card pick rates, economy) plus a per-wave CSV.
+  - Older runs count in totals only.
+- **Tests:**
+  - `tools/telemetry-balance-check.js` and `tools/balance-report-check.cjs` run in `npm test`.
+  - `tools/telemetry-browser-check.cjs` (in `test:browser`) plays 3 real waves in a temporary build: damage by source covers Cannon/Laser/Ember/Missile with nothing unattributed, Matter reconciles, and the death names the enemy.
+  - `telemetry-check.js` was updated for schema 3 and 30 s samples.
+- **The user's existing exports** (10 files in Downloads, 3 testers, 36 runs) are all pre-Waves builds from 2026-09/10. The report reads them, but they have no wave or card data.
+- Verified on build 61:
+  - `npm run check`, `npm test`, `test:i18n`, `test:attack-vfx`, `test:steering` and all 20 browser checks pass. `standalone-browser` and `.artifact_build/runtime-check.js` were updated for schema 3 and 30 s samples.
+  - `balance-browser` once failed its last check: the `cannon:focus` license was missing after the page reload. It then passed 9 runs in a row. The cause was not found, so treat it as an open question, not as proof the save is fine.
+- Backup of build 60: `outputs/experiments/2026-11-13-qa-perf/backup-60/`. Not committed; ZIP and itch not updated.
+
 ## Update 2026-11-13 — Missile Pod blast (build `2026.11.13-missile-58`)
 The user asked for the missile blast to show its radius, rejected painted and generated fireballs, and chose Nova Drift's explosions as the reference (Steam screenshot, then its launch trailer frame by frame).
 - `missile-blast-vfx.js` (new, wired through `attack-vfx.js`, `index.html`, `tools/build-standalone.js`, `package.json` check): a faint sphere at the damage radius that swells slightly and fades; a metaball blob simulated per blast on a 72x72 grid (lobes drift apart unevenly, white-hot then pink); a swelling inner sphere; flickering sparkle; specks with drag. Missile blast effect life is 1 s (`MISSILE_BLAST_LIFE` in `game.js`); damage is unchanged.

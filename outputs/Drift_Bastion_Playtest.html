@@ -3428,9 +3428,11 @@ window.BastionLocales = {"de":{" cells":" Felder","+10% Matter; each further Sip
   "use strict";
 
   var STORAGE_KEY = "drift-bastion-playtest-v1";
-  var SCHEMA_VERSION = 2;
-  var GAME_BUILD = "2026.11.13-missile-58";
-  var SAMPLE_INTERVAL = 5;
+  var SCHEMA_VERSION = 3;
+  var METRICS_VERSION = 3;
+  var GAME_BUILD = "2026.11.13-balance-data-61";
+  // Per-wave rows carry the balance detail, so the time series only needs a coarse shape.
+  var SAMPLE_INTERVAL = 30;
   var MAX_RUNS = 30;
   var MAX_STORAGE_BYTES = 1500000;
   var DPS_WINDOW_SECONDS = 5;
@@ -3449,7 +3451,14 @@ window.BastionLocales = {"de":{" cells":" Felder","+10% Matter; each further Sip
     bossDuration: "spawnToDefeatSeconds runs from spawn; engagementSeconds runs from the first recorded damaging hit. Missing hits remain null.",
     matterBalanceError: "Initial Matter + earned + refunds - spent - final Matter. Nonzero means a missing transaction hook or explicit debug funding.",
     fragmentReward: "Integer Fragments are banked at run end. (earnedUnits + carryBeforeUnits) = fragmentsEarned * scale + carryAfterUnits. Carry is progress toward the same currency, saved between runs; absent on old logs. Start context records the wallet, carry and purchased licences/cores separately from Matter.",
-    absentMetrics: "Fields missing from historical records are unavailable; they must not be interpreted as zero."
+    absentMetrics: "Fields missing from historical records are unavailable; they must not be interpreted as zero.",
+    waves: "metricsVersion 3, Waves mode: one row per wave from wave_start to wave_clear (or run end). Damage, kills, Matter and purchases are what happened inside that wave; breaks between waves are not counted in seconds.",
+    damageBySource: "Actual damage credited to what dealt it: a module type (cannon, laser, ...), or card:<id> for cards that deal damage on their own (castaway, volatile, thermalShock, arcSpine, coreConduit, phaseLattice). Burns and gravity fields count for the module that caused them; duo cards that amplify a weapon count for that weapon. other = unattributed.",
+    killsBySource: "Kills credited to the source of the killing blow (same keys as damageBySource).",
+    damageTakenBySource: "Ship hull damage plus shield absorption, keyed by the enemy type that dealt it (enemy shots count for their shooter).",
+    death: "Present only when the core was destroyed: the wave, the enemy type of the last hit on the core, and the time.",
+    cards: "One entry per card break: offered cards, the pick (null when skipped), rerolls and their Matter cost.",
+    matterEarnedByReason: "kills, waveClear (clear bonus plus dividend) and cardSkip. Reroll costs are spent under reason reroll."
   };
 
   var data = loadData();
@@ -3484,7 +3493,7 @@ window.BastionLocales = {"de":{" cells":" Felder","+10% Matter; each further Sip
   function loadData() {
     try {
       var parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
-      if (!parsed || (parsed.schemaVersion !== 1 && parsed.schemaVersion !== SCHEMA_VERSION) || !Array.isArray(parsed.runs)) return blankData();
+      if (!parsed || [1, 2, SCHEMA_VERSION].indexOf(parsed.schemaVersion) < 0 || !Array.isArray(parsed.runs)) return blankData();
       parsed.schemaVersion = SCHEMA_VERSION;
       parsed.gameBuild = GAME_BUILD;
       parsed.metricDefinitions = clonePlain(METRIC_DEFINITIONS);
@@ -3501,6 +3510,7 @@ window.BastionLocales = {"de":{" cells":" Felder","+10% Matter; each further Sip
       if (!run.endedAt) {
         run.endedAt = nowIso();
         run.outcome = "interrupted";
+        closeOpenWave(run, "interrupted", null);
         run.summary = run.summary || summaryFromRun(run, { outcome: "interrupted" });
         delete run._buildOpenedAt;
         delete run._buildOpenedWall;
@@ -3578,7 +3588,13 @@ window.BastionLocales = {"de":{" cells":" Felder","+10% Matter; each further Sip
       peakProjectiles: 0,
       minimumCoreHpRatio: 1,
       bossSpawnTime: null,
-      bossDefeatTime: null
+      bossDefeatTime: null,
+      damageBySource: {},
+      killsBySource: {},
+      damageTakenBySource: {},
+      coreDamageBySource: {},
+      matterEarnedByReason: {},
+      upgradePaths: {}
     };
   }
 
@@ -3616,7 +3632,9 @@ window.BastionLocales = {"de":{" cells":" Felder","+10% Matter; each further Sip
       result.initialMatter = run.stats.initialMatter;
       result.matterRefunded = round(run.stats.matterRefunded, 1);
       result.matterSpentByReason = clonePlain(run.stats.matterSpentByReason);
-      result.matterBalanceError = Number.isFinite(run.stats.initialMatter) ? round(run.stats.initialMatter + run.stats.matterEarned + run.stats.matterRefunded - run.stats.matterSpent - result.finalMatter, 3) : null;
+      // Reconcile against the unrounded wallet; the displayed finalMatter is rounded to 0.1.
+      var finalMatter = extra && typeof extra.matter === "number" ? extra.matter : result.finalMatter;
+      result.matterBalanceError = Number.isFinite(run.stats.initialMatter) ? round(run.stats.initialMatter + run.stats.matterEarned + run.stats.matterRefunded - run.stats.matterSpent - finalMatter, 3) : null;
       result.hullDamageDealt = round(run.stats.hullDamageDealt, 2);
       result.shieldDamageDealt = round(run.stats.shieldDamageDealt, 2);
       result.damageDealt = round(run.stats.hullDamageDealt + run.stats.shieldDamageDealt, 2);
@@ -3630,6 +3648,7 @@ window.BastionLocales = {"de":{" cells":" Felder","+10% Matter; each further Sip
         result["final" + key.charAt(0).toUpperCase() + key.slice(1)] = finalSample[key] === undefined ? null : finalSample[key];
       });
     }
+    if (run.metricsVersion >= 3) Object.assign(result, balanceSummary(run));
     if (extra && extra.fragmentReward) result.fragmentReward = clonePlain(extra.fragmentReward);
     return result;
   }
@@ -3667,6 +3686,7 @@ window.BastionLocales = {"de":{" cells":" Felder","+10% Matter; each further Sip
       type: type,
       data: clonePlain(details || {})
     });
+    if (activeRun.metricsVersion >= 3) trackBalanceEvent(type, Number(elapsed) || 0, details || {});
     dirty = true;
     persist(false);
   }
@@ -3675,12 +3695,149 @@ window.BastionLocales = {"de":{" cells":" Felder","+10% Matter; each further Sip
     map[key] = (map[key] || 0) + (amount === undefined ? 1 : amount);
   }
 
+  // ---- Balance rows (metricsVersion 3) ----
+  // The game reports waves and cards as events; rows are derived here so game code only reports facts.
+  function lastWaveRow() {
+    var waves = activeRun && activeRun.waves;
+    return waves && waves.length ? waves[waves.length - 1] : null;
+  }
+
+  function currentWave() {
+    var row = lastWaveRow();
+    return row && row.endedAt === null ? row : null;
+  }
+
+  function openWave(elapsed, details) {
+    closeOpenWave(activeRun, "replaced", elapsed);
+    var lastSample = activeRun.samples.length ? activeRun.samples[activeRun.samples.length - 1] : null;
+    activeRun.waves.push({
+      wave: Math.max(0, Math.floor(Number(details.wave) || 0)),
+      boss: details.boss || null,
+      startedAt: round(elapsed, 2), endedAt: null, seconds: null, outcome: null,
+      kills: 0, killsByType: {}, killsBySource: {},
+      matterEarned: 0, matterSpent: 0, matterSpentByReason: {},
+      damageDealt: 0, damageBySource: {},
+      damageTaken: 0, damageTakenBySource: {}, coreDamage: 0,
+      minCoreHpRatio: lastSample && Number.isFinite(lastSample.coreHpRatio) ? lastSample.coreHpRatio : null,
+      coreHpEnd: null,
+      modulesStart: Number.isFinite(details.modules) ? details.modules : (lastSample ? lastSample.modules : null),
+      modulesEnd: null,
+      purchases: {}, upgrades: [],
+      peakEnemies: 0, minRenderFps: null,
+      clearReward: null
+    });
+  }
+
+  function closeOpenWave(run, outcome, elapsed, details) {
+    var row = run && run.waves && run.waves.length ? run.waves[run.waves.length - 1] : null;
+    if (!row || row.endedAt !== null) return null;
+    // An interrupted session has no end time; keep the row closed but its duration unknown.
+    var known = Number.isFinite(elapsed), end = known ? elapsed : row.startedAt;
+    row.endedAt = round(end, 2);
+    row.seconds = known ? round(Math.max(0, end - row.startedAt), 2) : null;
+    row.outcome = outcome;
+    details = details || {};
+    if (Number.isFinite(details.coreHp)) row.coreHpEnd = round(details.coreHp, 1);
+    if (Number.isFinite(details.modules)) row.modulesEnd = details.modules;
+    if (Number.isFinite(details.reward)) row.clearReward = round(details.reward, 1);
+    ["matterEarned", "matterSpent", "damageDealt", "damageTaken", "coreDamage"].forEach(function (key) { row[key] = round(row[key], 1); });
+    [row.damageBySource, row.damageTakenBySource, row.matterSpentByReason].forEach(roundMap);
+    return row;
+  }
+
+  function roundMap(map) {
+    Object.keys(map).forEach(function (key) { map[key] = round(map[key], 1); });
+  }
+
+  function currentCardBreak(wave) {
+    var cards = activeRun.cards;
+    var last = cards.length ? cards[cards.length - 1] : null;
+    if (last && last.wave === wave) return last;
+    last = { wave: wave, offers: [], picked: null, skipped: false, rerolls: 0, rerollMatter: 0 };
+    cards.push(last);
+    return last;
+  }
+
+  function earnMatter(reason, value) {
+    var earned = amount(value);
+    if (!earned) return;
+    activeRun.stats.matterEarned += earned;
+    addCounter(activeRun.stats.matterEarnedByReason, reason, earned);
+    var row = lastWaveRow();
+    if (row) row.matterEarned = row.endedAt === null ? row.matterEarned + earned : round(row.matterEarned + earned, 1);
+  }
+
+  function trackBalanceEvent(type, elapsed, details) {
+    var wave = Math.max(0, Math.floor(Number(details.wave) || 0));
+    if (type === "wave_start") openWave(elapsed, details);
+    else if (type === "wave_clear") {
+      earnMatter("waveClear", details.reward);
+      closeOpenWave(activeRun, "cleared", elapsed, details);
+    } else if (type === "card_offer") currentCardBreak(wave).offers.push(clonePlain(details.cards || []));
+    else if (type === "card_pick") currentCardBreak(wave).picked = details.card || null;
+    else if (type === "card_skip") {
+      currentCardBreak(wave).skipped = true;
+      earnMatter("cardSkip", details.matter);
+    } else if (type === "card_reroll") {
+      var rerolled = currentCardBreak(wave);
+      rerolled.rerolls += 1;
+      rerolled.rerollMatter += amount(details.cost);
+      if (amount(details.cost)) spendMatter("reroll", details.cost);
+    }
+  }
+
+  function trackWaveSample(clean) {
+    var row = currentWave();
+    if (!row) return;
+    row.peakEnemies = Math.max(row.peakEnemies, clean.enemies);
+    // minimumRenderFps is the worst frame rate since the previous sample, so sparse samples still catch dips.
+    var fps = clean.minimumRenderFps > 0 ? clean.minimumRenderFps : clean.renderFps;
+    if (Number.isFinite(fps) && fps > 0) row.minRenderFps = row.minRenderFps === null ? fps : Math.min(row.minRenderFps, fps);
+    if (Number.isFinite(clean.coreHpRatio)) row.minCoreHpRatio = row.minCoreHpRatio === null ? clean.coreHpRatio : Math.min(row.minCoreHpRatio, clean.coreHpRatio);
+  }
+
+  function share(map) {
+    var total = 0, result = {};
+    Object.keys(map).forEach(function (key) { total += map[key]; });
+    Object.keys(map).forEach(function (key) { result[key] = total > 0 ? round(map[key] / total, 3) : 0; });
+    return result;
+  }
+
+  function roundedCopy(map) {
+    var copy = clonePlain(map || {});
+    roundMap(copy);
+    return copy;
+  }
+
+  function balanceSummary(run) {
+    var waves = run.waves || [], cards = run.cards || [];
+    return {
+      mode: run.context && run.context.mode || null,
+      coreId: run.context && run.context.coreId || null,
+      starterWeapon: run.context && run.context.starterWeapon || null,
+      highestWave: waves.length ? waves[waves.length - 1].wave : null,
+      wavesCleared: waves.filter(function (row) { return row.outcome === "cleared"; }).length,
+      victory: run.events.some(function (entry) { return entry.type === "waves_won"; }),
+      death: clonePlain(run.death),
+      damageBySource: roundedCopy(run.stats.damageBySource),
+      damageShareBySource: share(run.stats.damageBySource || {}),
+      killsBySource: clonePlain(run.stats.killsBySource || {}),
+      damageTakenBySource: roundedCopy(run.stats.damageTakenBySource),
+      coreDamageBySource: roundedCopy(run.stats.coreDamageBySource),
+      matterEarnedByReason: roundedCopy(run.stats.matterEarnedByReason),
+      upgradePaths: clonePlain(run.stats.upgradePaths || {}),
+      cardsPicked: cards.filter(function (entry) { return entry.picked; }).map(function (entry) { return entry.picked; }),
+      cardsSkipped: cards.filter(function (entry) { return entry.skipped; }).length,
+      rerolls: cards.reduce(function (sum, entry) { return sum + entry.rerolls; }, 0)
+    };
+  }
+
   function beginRun(context, firstSample) {
     if (activeRun) abandonRun("restarted", context && context.elapsed);
     activeRun = {
       runId: makeId("run"),
       gameBuild: GAME_BUILD,
-      metricsVersion: 2,
+      metricsVersion: METRICS_VERSION,
       startedAt: nowIso(),
       endedAt: null,
       outcome: null,
@@ -3688,6 +3845,9 @@ window.BastionLocales = {"de":{" cells":" Felder","+10% Matter; each further Sip
       environment: environmentSnapshot(),
       events: [],
       samples: [],
+      waves: [],
+      cards: [],
+      death: null,
       stats: makeStats(),
       summary: null,
       _buildOpenedAt: null,
@@ -3753,6 +3913,7 @@ window.BastionLocales = {"de":{" cells":" Felder","+10% Matter; each further Sip
     activeRun.stats.peakEnemies = Math.max(activeRun.stats.peakEnemies, clean.enemies);
     activeRun.stats.peakProjectiles = Math.max(activeRun.stats.peakProjectiles, clean.friendlyProjectiles + clean.hostileProjectiles);
     activeRun.stats.minimumCoreHpRatio = Math.min(activeRun.stats.minimumCoreHpRatio, clean.coreHpRatio);
+    trackWaveSample(clean);
     nextSampleAt += SAMPLE_INTERVAL;
     while (nextSampleAt <= elapsed + .001) nextSampleAt += SAMPLE_INTERVAL;
     dirty = true;
@@ -3760,26 +3921,58 @@ window.BastionLocales = {"de":{" cells":" Felder","+10% Matter; each further Sip
     return true;
   }
 
-  function recordEnemyKill(type, reward) {
+  function recordEnemyKill(type, reward, source) {
     if (!activeRun) return;
     addCounter(activeRun.stats.enemiesKilledByType, type || "unknown");
-    activeRun.stats.matterEarned += amount(reward);
+    if (activeRun.metricsVersion < 3) {
+      activeRun.stats.matterEarned += amount(reward);
+      dirty = true;
+      return;
+    }
+    addCounter(activeRun.stats.killsBySource, source || "other");
+    earnMatter("kills", reward);
+    var row = currentWave();
+    if (row) {
+      row.kills += 1;
+      addCounter(row.killsByType, type || "unknown");
+      addCounter(row.killsBySource, source || "other");
+    }
     dirty = true;
   }
 
-  function recordDamage(targetType, hullDamage, shieldAbsorbed) {
+  function recordDamage(targetType, hullDamage, shieldAbsorbed, attacker, coreHpRatio) {
     if (!activeRun) return;
     var damage = amount(hullDamage);
     if (targetType === "core") activeRun.stats.damageToCore += damage;
     else activeRun.stats.damageToModules += damage;
     activeRun.stats.shieldDamageAbsorbed += amount(shieldAbsorbed);
+    if (activeRun.metricsVersion >= 3) recordDamageTaken(targetType, damage, damage + amount(shieldAbsorbed), attacker || "unknown", coreHpRatio);
     dirty = true;
+  }
+
+  function recordDamageTaken(targetType, hull, taken, source, coreHpRatio) {
+    addCounter(activeRun.stats.damageTakenBySource, source, taken);
+    if (targetType === "core" && hull > 0) {
+      addCounter(activeRun.stats.coreDamageBySource, source, hull);
+      activeRun._lastCoreAttacker = source;
+    }
+    var row = currentWave();
+    if (!row) return;
+    row.damageTaken += taken;
+    addCounter(row.damageTakenBySource, source, taken);
+    if (targetType === "core") row.coreDamage += hull;
+    if (typeof coreHpRatio === "number" && Number.isFinite(coreHpRatio)) {
+      var ratio = round(Math.max(0, coreHpRatio), 3);
+      row.minCoreHpRatio = row.minCoreHpRatio === null ? ratio : Math.min(row.minCoreHpRatio, ratio);
+    }
   }
 
   function recordPurchase(type, price, elapsed, placement) {
     if (!activeRun) return;
     addCounter(activeRun.stats.modulesPurchasedByType, type || "unknown");
     spendMatter("module", price);
+    var row = activeRun.metricsVersion >= 3 ? lastWaveRow() : null;
+    if (row) addCounter(row.purchases, type || "unknown");
     event("module_purchased", elapsed, { type: type, price: price, placement: clonePlain(placement) });
   }
 
@@ -3794,6 +3987,12 @@ window.BastionLocales = {"de":{" cells":" Felder","+10% Matter; each further Sip
     var spent = amount(price);
     activeRun.stats.matterSpent += spent;
     addCounter(activeRun.stats.matterSpentByReason, reason || "other", spent);
+    // Waves spend Matter in the break after a wave, so a row's spending covers its wave and the break that follows.
+    var row = activeRun.metricsVersion >= 3 ? lastWaveRow() : null;
+    if (row && spent) {
+      row.matterSpent = round(row.matterSpent + spent, 1);
+      addCounter(row.matterSpentByReason, reason || "other", spent);
+    }
   }
 
   function recordMatterSpent(reason, price, elapsed, details) {
@@ -3806,6 +4005,12 @@ window.BastionLocales = {"de":{" cells":" Felder","+10% Matter; each further Sip
     if (!activeRun) return;
     spendMatter("upgrade", price);
     activeRun.stats.upgradesPurchased += 1;
+    if (activeRun.metricsVersion >= 3) {
+      var paths = activeRun.stats.upgradePaths;
+      (paths[type] = paths[type] || []).push(choice);
+      var row = lastWaveRow();
+      if (row) row.upgrades.push(type + ":" + choice);
+    }
     event("weapon_upgraded", elapsed, { type: type, choice: choice, price: amount(price), level: details && details.level, branch: details && details.branch, path: clonePlain(details && details.path || []), unitCost: details && details.unitCost, copies: details && details.copies });
   }
 
@@ -3832,7 +4037,7 @@ window.BastionLocales = {"de":{" cells":" Felder","+10% Matter; each further Sip
     return null;
   }
 
-  function recordOutgoingDamage(targetType, hullDamage, shieldAbsorbed, elapsed, targetId) {
+  function recordOutgoingDamage(targetType, hullDamage, shieldAbsorbed, elapsed, targetId, source) {
     if (!activeRun || !Number.isFinite(elapsed) || elapsed < 0) return;
     var hull = amount(hullDamage);
     var shield = amount(shieldAbsorbed);
@@ -3841,6 +4046,14 @@ window.BastionLocales = {"de":{" cells":" Felder","+10% Matter; each further Sip
     activeRun.stats.hullDamageDealt += hull;
     activeRun.stats.shieldDamageDealt += shield;
     addCounter(activeRun.stats.damageDealtByTargetType, targetType || "unknown", total);
+    if (activeRun.metricsVersion >= 3) {
+      addCounter(activeRun.stats.damageBySource, source || "other", total);
+      var row = currentWave();
+      if (row) {
+        row.damageDealt += total;
+        addCounter(row.damageBySource, source || "other", total);
+      }
+    }
     var bucket = Math.floor((elapsed + .0000001) / DPS_BUCKET_SECONDS);
     var slot = bucket % DPS_BUCKET_COUNT;
     if (damageBucketTimes[slot] !== bucket) {
@@ -3935,6 +4148,7 @@ window.BastionLocales = {"de":{" cells":" Felder","+10% Matter; each further Sip
     recordBuild(false, elapsed, { reason: "run_finished" });
     recordPause(false, elapsed);
     event("run_finished", elapsed, result || {});
+    if (activeRun.metricsVersion >= 3) recordRunEnd((result && result.outcome) || "unknown", elapsed, finalSample);
     activeRun.endedAt = nowIso();
     activeRun.outcome = (result && result.outcome) || "unknown";
     activeRun.summary = summaryFromRun(activeRun, result || {});
@@ -3942,9 +4156,19 @@ window.BastionLocales = {"de":{" cells":" Felder","+10% Matter; each further Sip
     delete activeRun._buildOpenedWall;
     delete activeRun._pauseOpenedAt;
     delete activeRun._pauseOpenedWall;
+    delete activeRun._lastCoreAttacker;
     activeRun = null;
     dirty = true;
     persist(true);
+  }
+
+  function recordRunEnd(outcome, elapsed, finalSample) {
+    var closed = closeOpenWave(activeRun, outcome === "death" ? "died" : outcome, elapsed,
+      finalSample ? { coreHp: finalSample.coreHp, modules: finalSample.modules } : null);
+    if (outcome !== "death") return;
+    var row = closed || lastWaveRow();
+    activeRun.death = { t: round(elapsed, 2), wave: row ? row.wave : null,
+      waveSeconds: closed ? closed.seconds : null, killedBy: activeRun._lastCoreAttacker || "unknown" };
   }
 
   function abandonRun(reason, elapsed) {
@@ -3974,6 +4198,7 @@ window.BastionLocales = {"de":{" cells":" Felder","+10% Matter; each further Sip
       delete exportData.runs[i]._buildOpenedWall;
       delete exportData.runs[i]._pauseOpenedAt;
       delete exportData.runs[i]._pauseOpenedWall;
+      delete exportData.runs[i]._lastCoreAttacker;
     }
     exportData.exportedAt = nowIso();
     var json = JSON.stringify(exportData, null, 2);
@@ -5928,10 +6153,30 @@ window.DriftModuleArtData = {"platform":{"src":"data:image/png;base64,iVBORw0KGg
     return data[type].integrated || draw(context, type, x, y, size, angle);
   }
 
+  // SVG icons and Build cells point at each sprite through a short blob URL. Inlining the base64 data URI
+  // made every Build grid render re-parse ~200 KB of markup per occupied cell (~25 MB on a 140-module ship).
+  var hrefs = Object.create(null);
+  function spriteHref(type) {
+    if (hrefs[type]) return hrefs[type];
+    var src = data[type].src, href = src;
+    var header = /^data:([^;,]+);base64,/.exec(src);
+    if (header && typeof Blob === "function" && typeof root.atob === "function" && root.URL && typeof root.URL.createObjectURL === "function") {
+      try {
+        var binary = root.atob(src.slice(header[0].length)), bytes = new Uint8Array(binary.length);
+        for (var i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+        href = root.URL.createObjectURL(new Blob([bytes], { type: header[1] }));
+      } catch (error) {
+        href = src;
+      }
+    }
+    hrefs[type] = href;
+    return href;
+  }
+
   function layerHtml(type, angle) {
     var sprite = data[type];
     if (!sprite) return "";
-    return '<image href="' + sprite.src + '" x="' + sprite.x + '" y="' + sprite.y + '" width="' + sprite.width + '" height="' + sprite.height + '"' + (sprite.rotates ? ' transform="rotate(' + ((Number.isFinite(angle) ? angle * 180 / Math.PI : -90) - sprite.forward) + ')"' : "") + '/>';
+    return '<image href="' + spriteHref(type) + '" x="' + sprite.x + '" y="' + sprite.y + '" width="' + sprite.width + '" height="' + sprite.height + '"' + (sprite.rotates ? ' transform="rotate(' + ((Number.isFinite(angle) ? angle * 180 / Math.PI : -90) - sprite.forward) + ')"' : "") + '/>';
   }
 
   function iconHtml(type, cell, options) {
@@ -6129,7 +6374,7 @@ window.DriftEnemyArtData = {"scout":{"src":"data:image/png;base64,iVBORw0KGgoAAA
   }
   function art(type) {
     var el = node("div", "research-art");
-    el.innerHTML = window.DriftModuleArt.iconHtml(type) || "◈"; return el;
+    el.innerHTML = (window.DriftModuleArt && window.DriftModuleArt.iconHtml(type)) || "◈"; return el;
   }
   // Geometry is independent of the upgrade resolver. Every node refers to a real model choice.
   function workspace(container, title, subtitle, entries, inspect, selectedId) {
@@ -6341,7 +6586,7 @@ window.DriftEnemyArtData = {"scout":{"src":"data:image/png;base64,iVBORw0KGgoAAA
       selected[kind]=item.id;
       items.forEach(function(entry){entry.selector.classList.toggle("selected",entry===item);entry.selector.setAttribute("aria-pressed",String(entry===item));});
       hero.replaceChildren(); detail.replaceChildren();
-      var image=el("div","systems-core-art");image.innerHTML=window.DriftModuleArt.iconHtml("core");
+      var image=el("div","systems-core-art");image.innerHTML=(window.DriftModuleArt&&window.DriftModuleArt.iconHtml("core"))||"◈";
       hero.append(el("span","eyebrow",kind==="cores"?tr("CORE ASSEMBLY"):tr("PERMANENT CALIBRATION")),image,el("strong","",item.title),el("p","",kind==="cores"?tr("The foundation of your next bastion."):tr("Applied to the selected core on future runs.")));
       detail.append(el("span","eyebrow",kind==="cores"?tr("CORE SPECIFICATION"):tr("SYSTEM EFFECT")),el("h3","",item.title),el("p","systems-description",item.description));
       if (kind === "cores") {
@@ -9673,6 +9918,9 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
       this.cardPicked = false;
       this.rerolls = 0;
       this.volatileQueue = [];
+      // Balance telemetry credits every hit to the module or card that caused it (see damageEnemy).
+      this.damageSource = "other";
+      this.damageAttacker = "unknown";
       this.seenDuos = [];
       this.ownsDuo = false;
       this.cardSkipped = false;
@@ -10598,6 +10846,7 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
       if (enemy.dead || (enemy.burnTimer > 0 && enemy.burnDamage > EMBER_COMBO_BURN_DAMAGE)) return;
       if (!(enemy.burnTimer > 0)) enemy.burnTickTime = 0;
       enemy.burnDamage = EMBER_COMBO_BURN_DAMAGE;
+      enemy.burnSource = this.damageSource;
       enemy.burnTimer = Math.max(enemy.burnTimer || 0, EMBER_COMBO_BURN_DURATION);
       enemy.spreadBurn = false;
     };
@@ -10882,6 +11131,7 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
       for (var i = 0; i < this.enemies.length; i += 1) {
         var enemy = this.enemies[i];
         if (enemy.dead) continue;
+        this.damageAttacker = enemy.type;
         if (enemy.type === "boss") {
           this.updateBoss(enemy, dt);
           continue;
@@ -11158,6 +11408,8 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
       projectile.shatter = false;
       projectile.coldPayload = false;
       projectile.lensed = false;
+      projectile.source = friendly ? this.damageSource : null;
+      projectile.attacker = friendly ? null : this.damageAttacker;
       if (projectile.hitIds) projectile.hitIds.clear();
       if ((kind === "rail" || kind === "sniperShot") && !projectile.hitIds) projectile.hitIds = new Set();
       if (this.attackVfx) this.attackVfx.resetProjectile(projectile);
@@ -11333,6 +11585,8 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
       for (var i = 0; i < this.projectiles.length; i += 1) {
         if (this.finished) break;
         var projectile = this.projectiles[i];
+        if (projectile.friendly) this.damageSource = projectile.source || "other";
+        else this.damageAttacker = projectile.attacker || "unknown";
         var startX = projectile.x, startY = projectile.y;
         var launchX = projectile.launchX, launchY = projectile.launchY;
         projectile.launchX = null; projectile.launchY = null;
@@ -11669,6 +11923,7 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
 
     Game.prototype.updateWeapon = function (tile, dt, damageMultiplier) {
       if (!isWeaponType(tile.type)) return;
+      this.damageSource = tile.type;
       if (this.cardMod("leanHull") || this.cardMod("flagship")) damageMultiplier *= this.tileCardDamage(tile);
       window.DriftWeaponFeedback.settle(tile, dt);
       tile.cooldown -= dt * this.weaponCooldownRate(tile);
@@ -11826,6 +12081,7 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
         this.damageEnemy(enemy, def.damage * damageMultiplier);
         if (enemy.dead) continue;
         if (!(enemy.burnTimer > 0) || def.burnDamage * damageMultiplier >= enemy.burnDamage) enemy.spreadBurn = !!def.spreadBurn;
+        if (!(enemy.burnTimer > 0) || def.burnDamage * damageMultiplier >= enemy.burnDamage) enemy.burnSource = this.damageSource;
         enemy.burnDamage = Math.max(enemy.burnTimer > 0 ? enemy.burnDamage : 0, def.burnDamage * damageMultiplier);
         enemy.burnTimer = Math.max(enemy.burnTimer || 0, def.burnDuration);
       }
@@ -11882,7 +12138,7 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
             if(enemy.dead||distanceSquared(enemy.x,enemy.y,area.x,area.y)>area.radius*area.radius)return;
             var strongest=area;
             for(var a=0;a<areas.length;a+=1){var other=areas[a];if(other.kind==='fire'&&other.life>0&&distanceSquared(enemy.x,enemy.y,other.x,other.y)<=other.radius*other.radius&&(other.damage>strongest.damage||other.damage===strongest.damage&&a<i))strongest=other;}
-            if(strongest===area)this.damageEnemy(enemy,area.damage*step);
+            if(strongest===area){this.damageSource=area.sourceTile.type;this.damageEnemy(enemy,area.damage*step);}
           },this);
         }
         if(area.visualClock<=0){var ring=this.spawnEffect('ring',area.x,area.y,.22,area.color);ring.maxRadius=area.radius;area.visualClock=.2;}
@@ -11912,6 +12168,7 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
           enemy.burnTickTime += Math.min(dt, enemy.burnTimer);
           enemy.burnTimer = Math.max(0, enemy.burnTimer - dt);
           if (enemy.burnTickTime >= .25 || enemy.burnTimer <= 0) {
+            this.damageSource = enemy.burnSource || "other";
             this.damageEnemy(enemy, enemy.burnDamage * enemy.burnTickTime);
             enemy.burnTickTime = 0;
           }
@@ -11928,7 +12185,7 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
           var dy = activeField.y - enemy.y;
           var distance = Math.sqrt(dx * dx + dy * dy);
           if (distance > activeField.radius) continue;
-          if (activeField.tickDamage > 0) this.damageEnemy(enemy, activeField.tickDamage);
+          if (activeField.tickDamage > 0) { this.damageSource = activeField.sourceTile ? activeField.sourceTile.type : "gravity"; this.damageEnemy(enemy, activeField.tickDamage); }
           // Pull never replaces movement or attacks; multiple wells cannot multiply its strength.
           var resistance = enemy.type === "boss" ? 0 : 1;
           var pull = Math.min(Math.max(0, distance - 8), activeField.pullStrength * resistance * activeField.stepTime);
@@ -11946,6 +12203,7 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
         var endingField = fields[fieldWrite];
         if (endingField.life > 0) fields[write++] = endingField;
         else if (endingField.collapseDamage) {
+          this.damageSource = endingField.sourceTile ? endingField.sourceTile.type : "gravity";
           this.enemies.slice().forEach(function(enemy) { if (!enemy.dead && distanceSquared(endingField.x,endingField.y,enemy.x,enemy.y)<=endingField.radius*endingField.radius) this.damageEnemy(enemy,endingField.collapseDamage); },this);
           var collapseRing=this.spawnEffect("ring",endingField.x,endingField.y,.3,endingField.color); collapseRing.maxRadius=endingField.radius;
         }
@@ -12042,12 +12300,12 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
           shieldHitEffect.maxRadius = enemy.radius + 12;
         }
         if (amount <= 0) {
-          if (this === game && playtestTelemetry && playtestTelemetry.recordOutgoingDamage) playtestTelemetry.recordOutgoingDamage(enemy.type, 0, shieldBefore - enemy.shield, this.elapsed, enemy.id);
+          if (this === game && playtestTelemetry && playtestTelemetry.recordOutgoingDamage) playtestTelemetry.recordOutgoingDamage(enemy.type, 0, shieldBefore - enemy.shield, this.elapsed, enemy.id, this.damageSource);
           return;
         }
       }
       enemy.hp -= amount;
-      if (this === game && playtestTelemetry && playtestTelemetry.recordOutgoingDamage) playtestTelemetry.recordOutgoingDamage(enemy.type, Math.min(hpBefore, amount), shieldBefore - (enemy.shield || 0), this.elapsed, enemy.id);
+      if (this === game && playtestTelemetry && playtestTelemetry.recordOutgoingDamage) playtestTelemetry.recordOutgoingDamage(enemy.type, Math.min(hpBefore, amount), shieldBefore - (enemy.shield || 0), this.elapsed, enemy.id, this.damageSource);
       enemy.hitFlash = .10;
       if (save.settings.damageNumbers && amount >= 3.5) {
         enemy.pendingDamageNumber += amount;
@@ -12069,7 +12327,7 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
         this.enemies.forEach(function(other) {
           if (other.dead || distanceSquared(enemy.x,enemy.y,other.x,other.y)>80*80) return;
           var transferred = enemy.burnDamage*.5;
-          if (!(other.burnTimer>0) || transferred >= other.burnDamage) { other.burnDamage=transferred; other.spreadBurn=false; }
+          if (!(other.burnTimer>0) || transferred >= other.burnDamage) { other.burnDamage=transferred; other.spreadBurn=false; other.burnSource=enemy.burnSource; }
           other.burnTimer=Math.max(other.burnTimer || 0,2.5);
         });
       }
@@ -12102,7 +12360,7 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
         }
         ui.bossHud.classList.add("hidden");
         if (playtestTelemetry) {
-          playtestTelemetry.recordEnemyKill("boss", enemy.reward);
+          playtestTelemetry.recordEnemyKill("boss", enemy.reward, this.damageSource);
           playtestTelemetry.recordBossDefeat(this.elapsed, { id: enemy.id });
         }
         audio.tone(70, .9, .1, "sawtooth", 420);
@@ -12116,12 +12374,12 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
       var rewardMultiplier = this.matterIncomeMultiplier();
       var earnedMatter = enemy.reward * rewardMultiplier;
       this.matter += earnedMatter;
-      if (this.cardMod("volatile") > 0) this.volatileQueue.push({ x: enemy.x, y: enemy.y, damage: (enemy.maxHp || 0) * this.cardMod("volatile") });
+      if (this.cardMod("volatile") > 0) this.volatileQueue.push({ x: enemy.x, y: enemy.y, damage: (enemy.maxHp || 0) * this.cardMod("volatile"), source: "card:volatile" });
       if (this.training && enemy.trainingTarget) {
         trainingShipState();
         trainingEvent("target_destroyed", { id: enemy.trainingTarget.id, group: enemy.trainingTarget.group, upgraded: Boolean(this.upgrades.cannon && this.upgrades.cannon.level > 0) });
       }
-      if (playtestTelemetry) playtestTelemetry.recordEnemyKill(enemy.type, earnedMatter);
+      if (playtestTelemetry) playtestTelemetry.recordEnemyKill(enemy.type, earnedMatter, this.damageSource);
       this.burst(enemy.x, enemy.y, KILL_BURST_COLOR, 5, 120);
       if (enemy.type === "splitter") {
         for (var i = 0; i < 2; i += 1) {
@@ -12186,7 +12444,7 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
       }
       this.lastShieldAbsorbed = shieldAbsorbed;
       if (remaining <= 0) {
-        if (playtestTelemetry) playtestTelemetry.recordDamage(target.type, 0, shieldAbsorbed);
+        if (playtestTelemetry) playtestTelemetry.recordDamage(target.type, 0, shieldAbsorbed, this.damageAttacker);
         var shieldedPos = this.gridToWorld(target.x, target.y);
         if (this.effects.length < (currentQualityTier() > 1 ? 65 : (currentQualityTier() > 0 ? 90 : 120))) {
           var shieldBlockEffect = this.spawnEffect("ring", shieldedPos.x, shieldedPos.y, .16, "#70ffc2");
@@ -12199,7 +12457,7 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
       remaining *= 1 - this.bulkheadReduction(target);
       var removedHp = Math.min(target.hp, remaining);
       target.hp = Math.max(0, target.hp - remaining);
-      if (playtestTelemetry) playtestTelemetry.recordDamage(target.type, removedHp, shieldAbsorbed);
+      if (playtestTelemetry) playtestTelemetry.recordDamage(target.type, removedHp, shieldAbsorbed, this.damageAttacker, target.type === "core" && target.maxHp > 0 ? target.hp / target.maxHp : null);
       target.repairDelay = repairDef.repairDelay;
       target.flash = Math.max(target.flash, .24 + clamp(remaining / 40, 0, .18));
       var impactPos = this.gridToWorld(target.x, target.y);
@@ -12387,6 +12645,8 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
         if (this === game && !this.training) storeSave();
       }
       this.backgroundPulse += dt;
+      this.damageSource = "other";
+      this.damageAttacker = "unknown";
       this.updateMovement(dt);
       this.updateFeedback(dt);
       this.updateShields(dt);
@@ -12434,7 +12694,7 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
       this.layoutClock = 0;
       if (this.cardMod("waveStartRepair") > 0) this.repairShip(this.cardMod("waveStartRepair"), 0);
       this.spawnAssaultWave(true);
-      if (playtestTelemetry && this === game) playtestTelemetry.event("wave_start", this.elapsed, { wave: wave, pressure: Math.round(this.pressureClock()), boss: def.boss || "" });
+      if (playtestTelemetry && this === game) playtestTelemetry.event("wave_start", this.elapsed, { wave: wave, pressure: Math.round(this.pressureClock()), boss: def.boss || "", modules: this.ship.tiles.size });
     };
 
     Game.prototype.waveTimeLimit = function () {
@@ -12608,7 +12868,7 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
       enemy.burnTimer = 0; enemy.burnDamage = 0; enemy.spreadBurn = false;
       enemy.slowTimer = 0; enemy.slowFactor = 1; enemy.freezeUntil = 0;
       this.volatileQueue.push({ x: enemy.x, y: enemy.y, damage: this.cardMod("thermalShock") * this.cardDamageScale(),
-        radius: tuning.thermalShockRadius, color: MODULES.cryo.color, accent: MODULES.ember.color });
+        radius: tuning.thermalShockRadius, color: MODULES.cryo.color, accent: MODULES.ember.color, source: "card:thermalShock" });
     };
 
     Game.prototype.fireStormSurge = function (origin, def, damageMultiplier) {
@@ -12732,6 +12992,7 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
         var target = this.nearestEnemyTo(wreck.x, wreck.y, wreck.def.range);
         if (!target) continue;
         wreck.cooldown = wreck.def.cooldown;
+        this.damageSource = "card:castaway";
         this.fireDerelict(wreck, target);
       }
       this.derelicts.length = write;
@@ -12789,8 +13050,11 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
       if (this.mode !== "waves" || !cardsApi || this.wavePhase === "clearing") { this.latticeActive = false; return; }
       this.layoutClock -= dt;
       if (this.layoutClock <= 0) { this.layoutClock = cardsApi.TUNING.layoutRefresh; this.refreshLayoutCards(); }
+      this.damageSource = "card:phaseLattice";
       if (this.cardMod("phaseLattice")) this.updatePhaseLattice(dt);
+      this.damageSource = "card:coreConduit";
       if (this.cardMod("coreConduit")) this.updateConduit(dt);
+      this.damageSource = "card:arcSpine";
       if (this.cardMod("arcSpine")) this.updateArcSpine(dt);
     };
 
@@ -12961,6 +13225,7 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
       this.volatileQueue = [];
       blasts.forEach(function (blast) {
         var radius = blast.radius || cardsApi.VOLATILE_RADIUS;
+        this.damageSource = blast.source || "other";
         this.burst(blast.x, blast.y, blast.color || "#ff9b55", 6, 160);
         if (blast.accent) {
           this.burst(blast.x, blast.y, blast.accent, 6, 120);
@@ -14236,7 +14501,7 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
           initialModules: game.ship.tiles.size
         }, telemetrySample());
         // Wave 1 starts inside the constructor, before the run log exists.
-        if (game.mode === "waves") playtestTelemetry.event("wave_start", game.elapsed, { wave: game.wave, pressure: Math.round(game.pressureClock()), boss: "" });
+        if (game.mode === "waves") playtestTelemetry.event("wave_start", game.elapsed, { wave: game.wave, pressure: Math.round(game.pressureClock()), boss: "", modules: game.ship.tiles.size });
       }
       ui.menu.classList.add("hidden");
       ui.hangarOverlay.classList.add("hidden");
@@ -15393,27 +15658,34 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
         drawModuleGlyph(tile, tile.x * TILE_SIZE, tile.y * TILE_SIZE);
       });
       // Status overlays stay above all equipment, including adjacent barrel overhang.
+      var platformArt = Boolean(moduleArt && moduleArt.available("platform"));
+      ctx.shadowBlur = 0;
       game.ship.tiles.forEach(function (tile) {
         var x = tile.x * TILE_SIZE;
         var y = tile.y * TILE_SIZE;
-        var color = tile.type === "core" ? CORE_COLORS[game.coreDef.id] : MODULES[tile.type].color;
-        var damageGlow = clamp(tile.flash / .42, 0, 1);
-        var damageAlpha = damageGlow * (save.settings.reducedFlash ? .24 : .46);
         var upgrading = tile.upgradeFlash > 0;
-        ctx.shadowBlur = simplifiedEffects ? 0 : (tile.flash > 0 || upgrading ? 12 : (tile.type === "core" ? 8 : 0));
-        ctx.shadowColor = tile.flash > 0 ? "#ff3f5f" : (upgrading ? "#65e8ff" : color);
-        ctx.fillStyle = tile.flash > 0 ? "rgba(255,40,72," + damageAlpha + ")" : (upgrading ? "rgba(101,232,255," + (.15 + .3 * tile.upgradeFlash / .65) + ")" : "rgba(21,64,89,.34)");
-        ctx.strokeStyle = tile.flash > 0 ? "#ff8799" : (upgrading ? "#b9f5ff" : color);
-        ctx.lineWidth = tile.type === "core" ? 2.5 : 1.5;
-        ctx.beginPath();
-        ctx.roundRect(x - TILE_SIZE * .46, y - TILE_SIZE * .46, TILE_SIZE * .92, TILE_SIZE * .92, 5);
-        if (!moduleArt || !moduleArt.available("platform") || tile.flash > 0 || upgrading) {
-          ctx.fill();
-          ctx.stroke();
-        } else if (tile.type === "core" && game.coreDef.id !== "standard") {
-          ctx.stroke();
+        var filledFrame = !platformArt || tile.flash > 0 || upgrading;
+        var outlinedCore = tile.type === "core" && game.coreDef.id !== "standard";
+        // Most tiles draw no frame over their art; skip the style and path setup for them (it ran per tile every frame).
+        if (filledFrame || outlinedCore) {
+          var color = tile.type === "core" ? CORE_COLORS[game.coreDef.id] : MODULES[tile.type].color;
+          var damageGlow = clamp(tile.flash / .42, 0, 1);
+          var damageAlpha = damageGlow * (save.settings.reducedFlash ? .24 : .46);
+          ctx.shadowBlur = simplifiedEffects ? 0 : (tile.flash > 0 || upgrading ? 12 : (tile.type === "core" ? 8 : 0));
+          ctx.shadowColor = tile.flash > 0 ? "#ff3f5f" : (upgrading ? "#65e8ff" : color);
+          ctx.fillStyle = tile.flash > 0 ? "rgba(255,40,72," + damageAlpha + ")" : (upgrading ? "rgba(101,232,255," + (.15 + .3 * tile.upgradeFlash / .65) + ")" : "rgba(21,64,89,.34)");
+          ctx.strokeStyle = tile.flash > 0 ? "#ff8799" : (upgrading ? "#b9f5ff" : color);
+          ctx.lineWidth = tile.type === "core" ? 2.5 : 1.5;
+          ctx.beginPath();
+          ctx.roundRect(x - TILE_SIZE * .46, y - TILE_SIZE * .46, TILE_SIZE * .92, TILE_SIZE * .92, 5);
+          if (filledFrame) {
+            ctx.fill();
+            ctx.stroke();
+          } else {
+            ctx.stroke();
+          }
+          ctx.shadowBlur = 0;
         }
-        ctx.shadowBlur = 0;
         if (tile.type === "shield") {
           // Keep charge inside its own tile so adjacent hull and field fills cannot cover it.
           ctx.fillStyle = "#11252e";
@@ -15911,7 +16183,8 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
       smoothedFps = lerp(smoothedFps, 1000 / rafDelta, .08);
       telemetryMinimumSimulationFps = Math.min(telemetryMinimumSimulationFps, smoothedFps);
       if (game) {
-        var delta = Math.min(FIXED_STEP * MAX_SIMULATION_STEPS, (now - game.lastFrame) / 1000);
+        // rAF stamps the frame start, which can precede a slow handler that set lastFrame; never run time backwards.
+        var delta = Math.max(0, Math.min(FIXED_STEP * MAX_SIMULATION_STEPS, (now - game.lastFrame) / 1000));
         game.lastFrame = now;
         if (game.state === "playing" && !game.finished) {
           game.accumulator += delta;
@@ -15929,6 +16202,9 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
             game.updateEffects(delta);
             game.updateFeedback(delta);
             game.deathFeedbackTime = Math.max(0, game.deathFeedbackTime - delta);
+          } else if (game.state === "intermission") {
+            // The card screen shows the battlefield: let wrecks and purchase flashes finish instead of freezing.
+            game.updateEffects(delta);
           }
         }
         if (now - lastHudUpdate > 100) {
@@ -16627,7 +16903,7 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
       rangeScenario: function (id) { if (rangeSession) rangeArena.reset(game, id); },
       rangeState: function () { return rangeSession ? Object.assign({ type: rangeSession.type, screen: game.state, upgrade: game.upgrades[rangeSession.type] || null }, rangeArena.snapshot()) : null; },
       rangeSnapshot: function () { return rangeSession ? { enemies: game.enemies.map(function(e) { return { hp: e.hp, x:e.x, y:e.y }; }), tiles:Array.from(game.ship.tiles.values()).map(function(t) { return { type:t.type,hp:t.hp,maxHp:t.maxHp,shield:t.shield }; }), definitions:JSON.parse(JSON.stringify(game.weaponDefinitions)) } : null; },
-      icon: function (type) { return type === "core" ? moduleArt.iconHtml("core") : moduleIconHtml(type); },
+      icon: moduleIconHtml,
       openBuild: openBuild, resize: resize, closeHangar: closeHangar, hangarTab: setHangarTab,
       clearBuildHover: function () { if (!buildInteraction.drag || !buildInteraction.drag.active) updateBuildPreview(); },
       suspendBuildHover: function () { buildHoverSuspended = true; updateBuildPreview(); },
@@ -16673,8 +16949,8 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
         var context = target.getContext("2d"); context.clearRect(0,0,800,800);
         var tiles = [{ type:"core",x:0,y:0 },{ type:selectedStarter,x:0,y:-1 }];
         context.save(); context.translate(400,435); context.rotate(-.25); context.scale(1.4,1.4);
-        tiles.forEach(function (tile) { moduleArt.drawBase(context, tile.type, tile.x*112, tile.y*112, 106); });
-        tiles.forEach(function (tile) { if (!moduleArt.drawEquipment(context,tile.type,tile.x*112,tile.y*112,106,-Math.PI/2)) drawModuleGlyph({type:tile.type,aim:-Math.PI/2},tile.x*112,tile.y*112,context,106); });
+        if (moduleArt) tiles.forEach(function (tile) { moduleArt.drawBase(context, tile.type, tile.x*112, tile.y*112, 106); });
+        tiles.forEach(function (tile) { if (!moduleArt || !moduleArt.drawEquipment(context,tile.type,tile.x*112,tile.y*112,106,-Math.PI/2)) drawModuleGlyph({type:tile.type,aim:-Math.PI/2},tile.x*112,tile.y*112,context,106); });
         context.restore();
       }
     };
@@ -17167,7 +17443,7 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
       if (index < 0 || (!event.shiftKey && index === focusable.length - 1) || (event.shiftKey && index === 0)) { event.preventDefault(); focusable[event.shiftKey ? focusable.length - 1 : 0].focus(); }
     }
   }, true);
-  window.DriftModuleArt.ready.then(function () { lastHero = ""; refresh(); });
+  if (window.DriftModuleArt) window.DriftModuleArt.ready.then(function () { lastHero = ""; refresh(); });
   refresh();
   document.body.classList.remove("pc-ui-pending");
   window.setInterval(refresh, 160);

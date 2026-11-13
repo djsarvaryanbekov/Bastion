@@ -18,7 +18,7 @@
   }
   function art(type) {
     var el = node("div", "research-art");
-    el.innerHTML = window.DriftModuleArt.iconHtml(type) || "◈"; return el;
+    el.innerHTML = (window.DriftModuleArt && window.DriftModuleArt.iconHtml(type)) || "◈"; return el;
   }
   // Geometry is independent of the upgrade resolver. Every node refers to a real model choice.
   function workspace(container, title, subtitle, entries, inspect, selectedId) {

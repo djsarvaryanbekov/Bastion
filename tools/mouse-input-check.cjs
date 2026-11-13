@@ -1,3 +1,4 @@
+require("./english-browser-locale.cjs");
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
@@ -62,7 +63,7 @@ assert.equal(simulate({ mode: 'keyboard', keys: { KeyA: true, KeyD: true } }).an
         '    window.__mouseTest = { input: mouseInput, mobile: mobileInput, keys: () => keys, save: save, getGame: function() { return game; } };\n    window.__driftBastion = {')
     }));
     await page.goto(pathToFileURL(file).href);
-    await page.locator('#startButton').click();
+    await page.locator('#startEndlessButton').click();
     await page.mouse.move(940, 400);
     await page.mouse.down();
     await page.clock.runFor(1200);

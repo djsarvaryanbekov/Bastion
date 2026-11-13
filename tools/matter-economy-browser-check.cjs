@@ -1,4 +1,5 @@
 "use strict";
+require("./english-browser-locale.cjs");
 
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -24,7 +25,7 @@ const { chromium } = require("playwright");
     await page.clock.pauseAt(new Date(Date.now() + 1000));
     const state = () => page.evaluate(() => window.__driftBastion.getState());
     const tick = () => page.clock.runFor(200);
-    await page.click("#startButton");
+    await page.click("#startEndlessButton");
     await page.evaluate(() => window.__driftBastion.addMatter(1000));
     await page.click("#buildButton");
     await page.click('#catalog [data-type="cannon"]');

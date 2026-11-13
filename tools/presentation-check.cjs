@@ -1,4 +1,5 @@
 "use strict";
+require("./english-browser-locale.cjs");
 
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -130,12 +131,15 @@ function writeWav(file, samples, sampleRate) {
       await page.screenshot({ path:path.join(output, `${height}-destruction.png`) });
       await page.evaluate(() => {
         const test=window.__presentationTest, game=test.game();
-        test.save.settings.reducedFlash=true;
-        const enemy=game.spawnEnemy("bulwark",game.ship.x+120,game.ship.y-150);
-        game.damageEnemy(enemy,1,enemy.x-10,enemy.y);
-        const last=game.effects.filter(effect=>effect.type==="hitSpark").slice(-2);
-        if (!last.every(effect=>effect.width===4)) throw new Error("Reduced-flash sparks remain bright");
-        test.save.settings.reducedFlash=false;
+        // Compare against normal sparks instead of a fixed width, so a visual retune does not break the check.
+        function sparkWidths(reducedFlash) {
+          test.save.settings.reducedFlash=reducedFlash;
+          const enemy=game.spawnEnemy("bulwark",game.ship.x+120,game.ship.y-150);
+          game.damageEnemy(enemy,1,enemy.x-10,enemy.y);
+          return game.effects.filter(effect=>effect.type==="hitSpark").slice(-2).map(effect=>effect.width);
+        }
+        const reduced=sparkWidths(true), normal=sparkWidths(false);
+        if (!reduced.length || !normal.length || Math.max(...reduced) >= Math.min(...normal)) throw new Error("Reduced-flash sparks remain bright: "+reduced+" vs "+normal);
       });
       await page.evaluate(() => window.__presentationTest.game().applyDamageToTile("0,0",100000));
       await page.clock.runFor(90);

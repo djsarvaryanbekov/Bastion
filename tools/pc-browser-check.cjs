@@ -1,4 +1,5 @@
 "use strict";
+require("./english-browser-locale.cjs");
 const {chromium}=require('playwright'), assert=require('node:assert/strict'), fs=require('node:fs'), path=require('node:path');
 const {pathToFileURL}=require('node:url');
 const output=path.resolve(__dirname,'../outputs/qa');
@@ -48,7 +49,7 @@ const output=path.resolve(__dirname,'../outputs/qa');
  assert.equal((await page.evaluate(()=>window.__driftBastion.getState())).modules,5);report.freeBuild=true;
  await page.click('#closeBuild');await tick(180);await page.click('#pcRangeExit');
  const afterRange=await page.evaluate(()=>({save:localStorage.getItem('drift-bastion-save-v2'),progress:window.__driftBastion.getState().progression}));assert.deepEqual(afterRange,beforeRange);report.rangeSaveIsolation=true;
- await page.click('#startButton');await tick(150);await page.evaluate(()=>window.__driftBastion.addMatter(300));await page.click('#buildButton');await tick(180);
+ await page.click('#startEndlessButton');await tick(150);await page.evaluate(()=>window.__driftBastion.addMatter(300));await page.click('#buildButton');await tick(180);
  await page.click('#catalog [data-type="missile"]');await page.hover('.build-cell[data-x="1"][data-y="0"]');
  await shot('build-ghost-1080');await page.click('.build-cell[data-x="1"][data-y="0"]');
  const dragCard=page.locator('#catalog [data-type="shield"]');await dragCard.scrollIntoViewIfNeeded();const a=await dragCard.boundingBox(),b=await page.locator('.build-cell[data-x="-1"][data-y="0"]').boundingBox();await page.mouse.move(a.x+a.width/2,a.y+a.height/2);await page.mouse.down();await page.mouse.move(b.x+b.width/2,b.y+b.height/2,{steps:12});await page.mouse.up();await tick(450);assert.equal((await page.evaluate(()=>window.__driftBastion.getState())).modules,4);report.dragAndClick=true;

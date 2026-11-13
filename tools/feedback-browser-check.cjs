@@ -1,4 +1,5 @@
 "use strict";
+require("./english-browser-locale.cjs");
 
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
@@ -29,7 +30,7 @@ const { chromium } = require("playwright");
     await page.goto(pathToFileURL(fixture).href);
     await page.evaluate(() => window.DriftModuleArt.ready);
     await page.clock.pauseAt(new Date(Date.now() + 1000));
-    await page.click("#startButton");
+    await page.click("#startEndlessButton");
     await page.evaluate(() => { window.__feedbackBrowser.game().matter = 100; });
     await page.click("#buildButton");
     const before = await page.evaluate(() => window.__driftBastion.getState());
@@ -52,13 +53,18 @@ const { chromium } = require("playwright");
       return { purchased, rank: svg.querySelector(".module-rank")?.dataset.rank,
         transform: images[images.length - 1].getAttribute("transform"),
         expectedRotation: tile.aim - sprite.forward * Math.PI / 180,
-        sameSprite: images[images.length - 1].getAttribute("href") === sprite.src,
+        spriteHref: images[images.length - 1].getAttribute("href"), spriteSrc: sprite.src,
         paints, rotations, matter: api.game().matter };
     });
     assert.equal(icon.purchased, true);
     assert.equal(icon.matter, before.matter - 8, "The first weapon upgrade retains its price.");
     assert.equal(icon.rank, undefined, "Family ranks are not repeated on installed module artwork");
-    assert.equal(icon.sameSprite, true);
+    // Build cells reference the sprite through a cached blob URL; it must hold the same bytes as the source image.
+    const sameSprite = await page.evaluate(async ({ href, src }) => {
+      const bytes = async url => new Uint8Array(await (await fetch(url)).arrayBuffer()).join(",");
+      return href === src || (href.startsWith("blob:") && await bytes(href) === await bytes(src));
+    }, { href: icon.spriteHref, src: icon.spriteSrc });
+    assert.equal(sameSprite, true);
     const rotationDegrees = Number(icon.transform.match(/rotate\(([^)]+)\)/)[1]);
     assert.ok(Math.abs(rotationDegrees * Math.PI / 180 - icon.expectedRotation) < 1e-8);
     assert.ok(icon.rotations.some(angle => Math.abs(angle - icon.expectedRotation) < 1e-8));
@@ -87,7 +93,9 @@ const { chromium } = require("playwright");
       const star = api.stars()[0];
       const original = ctx.fillRect;
       const samples = [];
-      star.x = 100; star.y = 100; star.depth = .8;
+      // The space backdrop paints first, so the star is found by a size no other rectangle uses.
+      const markerSize = 3.37;
+      star.x = 100; star.y = 100; star.depth = .8; star.size = markerSize;
       function sample(cameraY, velocityY) {
         game.camera.x = 0; game.camera.y = cameraY;
         game.ship.vx = 0; game.ship.vy = velocityY;
@@ -96,7 +104,7 @@ const { chromium } = require("playwright");
           ctx.fillRect = function (...args) { rectangles.push(args); return original.apply(this, args); };
           api.background(1000);
         } finally { ctx.fillRect = original; }
-        samples.push(rectangles[1]);
+        samples.push(rectangles.find(rect => rect[2] === markerSize && rect[3] === markerSize));
       }
       sample(0, 0); sample(-100, -100);
       return { stationary: samples[0], forward: samples[1] };

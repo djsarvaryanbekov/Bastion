@@ -1,5 +1,7 @@
+require("./english-browser-locale.cjs");
 const fs = require('node:fs');
 const path = require('node:path');
+const expectedGameBuild = /GAME_BUILD = "([^"]+)"/.exec(fs.readFileSync(path.join(__dirname, '..', 'telemetry.js'), 'utf8'))[1];
 const vm = require('node:vm');
 const assert = require('node:assert/strict');
 const { pathToFileURL } = require('node:url');
@@ -59,7 +61,7 @@ async function advanceTrainingUntil(page, predicate, label) {
     await page.locator('#trainingOpenBuildButton').click();
     await page.locator('#trainingBuildExitButton').click();
     assert.equal(await page.locator('#menuOverlay').isVisible(), true);
-    await page.locator('#startButton').click();
+    await page.locator('#startEndlessButton').click();
     assert.equal(await page.locator('#onboardingCue').count(), 0);
     assert.equal(await page.locator('#trainingHUD').isVisible(), false);
     assert.equal(await page.locator('#resetProgressButton, #debugToolsToggle, #replayOnboardingButton').count(), 3);
@@ -81,10 +83,10 @@ async function advanceTrainingUntil(page, predicate, label) {
     await page.locator('#exportTelemetryButton').click();
     const downloaded = await pendingDownload;
     const data = JSON.parse(fs.readFileSync(await downloaded.path(), 'utf8'));
-    assert.equal(data.schemaVersion, 2);
+    assert.equal(data.schemaVersion, 3);
     const run = data.runs.at(-1);
-    assert.equal(run.metricsVersion, 2);
-    assert.equal(run.gameBuild, '2026.10.13-build-workspace-31');
+    assert.equal(run.metricsVersion, 3);
+    assert.equal(run.gameBuild, expectedGameBuild);
     await page.locator('#resumeButton').click();
     await page.locator('#pauseHangarButton').click();
     await page.clock.runFor(1000);

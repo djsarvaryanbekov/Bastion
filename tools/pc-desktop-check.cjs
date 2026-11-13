@@ -1,4 +1,5 @@
 "use strict";
+require("./english-browser-locale.cjs");
 const { chromium } = require('playwright'), assert = require('node:assert/strict');
 const fs = require('node:fs'), path = require('node:path'), { pathToFileURL } = require('node:url');
 (async () => {
@@ -17,7 +18,7 @@ const fs = require('node:fs'), path = require('node:path'), { pathToFileURL } = 
   await page.locator('#pcFullscreen').focus(); await page.keyboard.press('Tab'); assert.notEqual(await page.evaluate(()=>document.activeElement.id),'pcFullscreen');
   await page.click('#menuSettingsButton'); await tick(); await page.locator('#reducedFlashToggle').check();
   assert.equal(await page.locator('body').evaluate(e=>e.classList.contains('reduced-flash')),true);
-  await page.keyboard.press('Escape'); await page.click('#startButton'); await page.click('#buildButton'); await tick();
+  await page.keyboard.press('Escape'); await page.click('#startEndlessButton'); await page.click('#buildButton'); await tick();
   await page.evaluate(()=>window.__driftBastion.addMatter(100));
   await page.click('#catalog [data-type="armor"]');
   async function clickUnavailable(locator) { const rect=await locator.boundingBox(); await page.mouse.click(rect.x+rect.width/2,rect.y+rect.height/2); }
@@ -50,8 +51,13 @@ const fs = require('node:fs'), path = require('node:path'), { pathToFileURL } = 
   await page.click('#pcRangeBuild'); await page.click('#catalog [data-type="armor"]');
   for(let y=1;y<=12;y++) await cell(0,y).click();
   for(const [width,height] of [[1280,720],[1920,1080],[2560,1440]]) {
-    await page.setViewportSize({width,height}); await tick(); await cell(0,12).scrollIntoViewIfNeeded();
-    assert.ok(await page.locator('.build-grid-wrap').evaluate(e=>e.scrollHeight>e.clientHeight));
+    await page.setViewportSize({width,height}); await page.click('#pcBuildFit'); await tick();
+    // Build auto-fits the whole ship; zooming in is what makes a tall ship scroll.
+    const viewport=await page.locator('.build-grid-wrap').boundingBox(), farCell=await cell(0,12).boundingBox();
+    assert.ok(farCell.y>=viewport.y-1&&farCell.y+farCell.height<=viewport.y+viewport.height+1,`fit shows the whole ship at ${width}x${height}`);
+    for(let step=0;step<4;step++) await page.click('#pcBuildZoomIn');
+    await tick(); assert.ok(await page.locator('.build-grid-wrap').evaluate(e=>e.scrollHeight>e.clientHeight),`zoomed ship scrolls at ${width}x${height}`);
+    await cell(0,12).scrollIntoViewIfNeeded();
     await page.screenshot({path:path.resolve(__dirname,`../outputs/qa/large-ship-${height}-150.png`)});
   }
   report.largeShipScrolling=true;

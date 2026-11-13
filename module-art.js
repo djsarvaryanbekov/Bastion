@@ -48,10 +48,30 @@
     return data[type].integrated || draw(context, type, x, y, size, angle);
   }
 
+  // SVG icons and Build cells point at each sprite through a short blob URL. Inlining the base64 data URI
+  // made every Build grid render re-parse ~200 KB of markup per occupied cell (~25 MB on a 140-module ship).
+  var hrefs = Object.create(null);
+  function spriteHref(type) {
+    if (hrefs[type]) return hrefs[type];
+    var src = data[type].src, href = src;
+    var header = /^data:([^;,]+);base64,/.exec(src);
+    if (header && typeof Blob === "function" && typeof root.atob === "function" && root.URL && typeof root.URL.createObjectURL === "function") {
+      try {
+        var binary = root.atob(src.slice(header[0].length)), bytes = new Uint8Array(binary.length);
+        for (var i = 0; i < binary.length; i += 1) bytes[i] = binary.charCodeAt(i);
+        href = root.URL.createObjectURL(new Blob([bytes], { type: header[1] }));
+      } catch (error) {
+        href = src;
+      }
+    }
+    hrefs[type] = href;
+    return href;
+  }
+
   function layerHtml(type, angle) {
     var sprite = data[type];
     if (!sprite) return "";
-    return '<image href="' + sprite.src + '" x="' + sprite.x + '" y="' + sprite.y + '" width="' + sprite.width + '" height="' + sprite.height + '"' + (sprite.rotates ? ' transform="rotate(' + ((Number.isFinite(angle) ? angle * 180 / Math.PI : -90) - sprite.forward) + ')"' : "") + '/>';
+    return '<image href="' + spriteHref(type) + '" x="' + sprite.x + '" y="' + sprite.y + '" width="' + sprite.width + '" height="' + sprite.height + '"' + (sprite.rotates ? ' transform="rotate(' + ((Number.isFinite(angle) ? angle * 180 / Math.PI : -90) - sprite.forward) + ')"' : "") + '/>';
   }
 
   function iconHtml(type, cell, options) {

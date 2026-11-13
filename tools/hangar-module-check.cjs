@@ -1,4 +1,5 @@
 "use strict";
+require("./english-browser-locale.cjs");
 
 const assert = require("node:assert/strict");
 const path = require("node:path");
@@ -61,7 +62,7 @@ const { chromium } = require("playwright");
     await page.locator("#closeHangar").click();
     assert.match(await page.locator("#startWeaponName").innerText(), /Scatter Array/i);
 
-    await page.locator("#startButton").click();
+    await page.locator("#startEndlessButton").click();
     await page.locator("#buildButton").click();
     assert.equal(await page.locator("#buildModulePreview").count(), 0);
     assert.deepEqual(errors, []);
