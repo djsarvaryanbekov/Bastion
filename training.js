@@ -60,7 +60,7 @@
 
     if (!context.inBuild) {
       if (state.stageId === "combat" && context.inputEngaged === false) {
-        return guide(context.touch ? tr("Drag empty space to fly. Your Cannon fires automatically.") : tr("W/S thrust · A/D turn. Your Cannon fires automatically."), "controls");
+        return guide(context.touch ? tr("Drag empty space to fly. Your Cannon fires automatically.") : tr("Hold left mouse to fly, or W/S thrust · A/D turn. Your Cannon fires automatically."), "controls");
       }
       if (needsCannon || needsUpgrade) {
         var shortfall = missing(needsCannon ? context.cannonCost : context.cannonUpgradeCost);

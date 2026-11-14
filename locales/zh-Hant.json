@@ -851,7 +851,7 @@
   "Visual quality": "畫質",
   "Volatile Hulls": "易爆船體",
   "W / S": "W / S",
-  "W/S thrust · A/D turn. Your Cannon fires automatically.": "W/S 推進 · A/D 轉向。機砲會自動開火。",
+  "Hold left mouse to fly, or W/S thrust · A/D turn. Your Cannon fires automatically.": "按住滑鼠左鍵飛行，或 W/S 推進 · A/D 轉向。機砲會自動開火。",
   "W/S: thrust · A/D: turn": "W/S: 推進 · A/D: 轉向",
   "WAVE {wave} CLEARED": "第 {wave} 波已清除",
   "WAVE {wave} · BOSS": "第 {wave} 波 · 頭目",

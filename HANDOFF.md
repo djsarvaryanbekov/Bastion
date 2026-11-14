@@ -99,6 +99,10 @@ The user asked for a full test of UI, every module, core gameplay and performanc
   - Touch routes in `training-browser` run only with `--touch` (the phone build is archived). Its profiles are 1280×800 and 1280×720 @150%.
 - A real bug surfaced in `module-art-browser`'s missing-art check: with no module art, the menu threw errors (`pc-ui.js`, `pc-research.js`, `pc-systems.js`, `game.js` `drawHero` / `icon`). It was the same in build 58. Guarded, then the main HTML was rebuilt. Backup of 59 is in `outputs/experiments/2026-11-13-qa-perf/backup-59/`.
 
+## Update 2026-11-15 — Training hint mentions the mouse (build `2026.11.15-training-hint-65`)
+- The first Training hint now reads "Hold left mouse to fly, or W/S thrust · A/D turn. Your Cannon fires automatically." It is in `training.js` and all 16 `locales/*.json`, and `test:i18n` passes.
+- itch.io (build 64) got its Metadata tab filled from the user's laptop Chrome: keyboard and mouse, about a half-hour, all 16 languages, interactive tutorial. Build 65 is not committed or uploaded yet.
+
 ## Update 2026-11-13 — tuning pass from user feedback (build `2026.11.13-tuning-63`)
 - **Mouse:** holding LMB is constant full forward gas; the cursor only steers. There is no braking at a side cursor and no reverse, and the ship still coasts on release (`game.js` `updateMovement`). Tests: `ship-handling-check.cjs`, `mouse-input-check.cjs`.
 - **Outrider ("Дозорный"):**

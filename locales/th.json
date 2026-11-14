@@ -851,7 +851,7 @@
   "Visual quality": "คุณภาพภาพ",
   "Volatile Hulls": "ตัวถังไม่เสถียร",
   "W / S": "W / S",
-  "W/S thrust · A/D turn. Your Cannon fires automatically.": "W/S แรงขับ · A/D เลี้ยว ปืนใหญ่ยิงอัตโนมัติ",
+  "Hold left mouse to fly, or W/S thrust · A/D turn. Your Cannon fires automatically.": "กดเมาส์ซ้ายค้างเพื่อบิน หรือ W/S แรงขับ · A/D เลี้ยว ปืนใหญ่ยิงอัตโนมัติ",
   "W/S: thrust · A/D: turn": "W/S: แรงขับ · A/D: เลี้ยว",
   "WAVE {wave} CLEARED": "เคลียร์คลื่น {wave} แล้ว",
   "WAVE {wave} · BOSS": "คลื่น {wave} · บอส",

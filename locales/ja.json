@@ -851,7 +851,7 @@
   "Visual quality": "画質",
   "Volatile Hulls": "誘爆船殻",
   "W / S": "W / S",
-  "W/S thrust · A/D turn. Your Cannon fires automatically.": "W/S で推進 · A/D で旋回。キャノンは自動で発射。",
+  "Hold left mouse to fly, or W/S thrust · A/D turn. Your Cannon fires automatically.": "左クリック長押しで飛行、または W/S で推進 · A/D で旋回。キャノンは自動で発射。",
   "W/S: thrust · A/D: turn": "W/S: 推進 · A/D: 旋回",
   "WAVE {wave} CLEARED": "ウェーブ {wave} クリア",
   "WAVE {wave} · BOSS": "ウェーブ {wave} · ボス",
