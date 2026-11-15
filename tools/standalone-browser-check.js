@@ -69,7 +69,7 @@ async function advanceTrainingUntil(page, predicate, label) {
     assert.equal(await page.locator('#guidePanel, #replayGuideButton, #catalogBrowseButton, #buildUpgradeTab').count(), 0);
     await page.locator('#buildButton').click();
     await page.locator('#pcLayoutTab').click();
-    assert.equal(await page.locator('#catalog .catalog-card').count(), 2);
+    assert.equal(await page.locator('#catalog .catalog-card').count(), 6);
     await page.locator('.build-cell[data-x="0"][data-y="-1"]').click();
     assert.equal(await page.locator('#buildGrid').isVisible(), true);
     // The redesigned inspector stays hidden until an installed module is selected.

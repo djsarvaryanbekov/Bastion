@@ -3431,7 +3431,7 @@ window.BastionLocales = {"de":{" cells":" Felder","+10% Matter; each further Sip
   var STORAGE_KEY = "drift-bastion-playtest-v1";
   var SCHEMA_VERSION = 3;
   var METRICS_VERSION = 3;
-  var GAME_BUILD = "2026.11.15-training-hint-65";
+  var GAME_BUILD = "2026.11.15-starter-set-67";
   // Per-wave rows carry the balance detail, so the time series only needs a coarse shape.
   var SAMPLE_INTERVAL = 30;
   var MAX_RUNS = 30;
@@ -4753,36 +4753,17 @@ window.BastionLocales = {"de":{" cells":" Felder","+10% Matter; each further Sip
   var REWARD_SCALE = 600000;
   var WEAPONS = ["cannon", "scatter", "flak", "laser", "missile", "cryo", "arc", "pulse", "rail", "mine", "ember", "gravity"];
   var MODULE_TYPES = WEAPONS.concat(["armor", "shield", "repair", "reactor", "collector", "bulkhead"]);
-  var DEFAULT_TYPES = ["cannon", "armor"];
+  var DEFAULT_TYPES = ["cannon", "armor", "scatter", "shield", "missile", "laser"];
+  // These were paid licenses before they joined the starter set; old saves get the price back once.
+  var STARTER_REFUNDS = { scatter: 8, shield: 16, missile: 24, laser: 32 };
   var COUNTERS = ["totalKills", "bossesDefeated", "totalUpgrades", "contractsCompleted"];
   var DEFINITIONS = [
-  {
-    "type": "scatter",
-    "stat": "totalKills",
-    "target": 0,
-    "cost": 8,
-    "text": tr("Available for {cost} Fragments", { cost: 8 })
-  },
-  {
-    "type": "shield",
-    "stat": "totalKills",
-    "target": 0,
-    "cost": 16,
-    "text": tr("Available for {cost} Fragments", { cost: 16 })
-  },
   {
     "type": "flak",
     "stat": "totalKills",
     "target": 0,
     "cost": 20,
     "text": tr("Available for {cost} Fragments", { cost: 20 })
-  },
-  {
-    "type": "missile",
-    "stat": "totalKills",
-    "target": 0,
-    "cost": 24,
-    "text": tr("Available for {cost} Fragments", { cost: 24 })
   },
   {
     "type": "collector",
@@ -4811,13 +4792,6 @@ window.BastionLocales = {"de":{" cells":" Felder","+10% Matter; each further Sip
     "target": 0,
     "cost": 28,
     "text": tr("Available for {cost} Fragments", { cost: 28 })
-  },
-  {
-    "type": "laser",
-    "stat": "totalKills",
-    "target": 0,
-    "cost": 32,
-    "text": tr("Available for {cost} Fragments", { cost: 32 })
   },
   {
     "type": "cryo",
@@ -5041,6 +5015,13 @@ window.BastionLocales = {"de":{" cells":" Felder","+10% Matter; each further Sip
     return nearest;
   }
 
+  function starterRefund(rawProgress) {
+    if (!isRecord(rawProgress)) return 0;
+    return validModules(rawProgress.purchasedModules).reduce(function (sum, type) {
+      return sum + (Object.prototype.hasOwnProperty.call(STARTER_REFUNDS, type) ? STARTER_REFUNDS[type] : 0);
+    }, 0);
+  }
+
   function settleRunReward(snapshot, carryUnits) {
     carryUnits = Number.isInteger(carryUnits) && carryUnits >= 0 && carryUnits < REWARD_SCALE ? carryUnits : 0;
     snapshot = isRecord(snapshot) ? snapshot : {};
@@ -5081,6 +5062,8 @@ window.BastionLocales = {"de":{" cells":" Felder","+10% Matter; each further Sip
     nextObjective: nextObjective,
     runReward: runReward,
     settleRunReward: settleRunReward,
+    starterRefund: starterRefund,
+    defaultTypes: Object.freeze(DEFAULT_TYPES.slice()),
     definitions: DEFINITIONS
   });
 });
@@ -8521,6 +8504,230 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
 });
 
 </script>
+<script>
+(function (root) {
+  "use strict";
+
+  // Opt-in footage recorder for marketing clips. Off for every player unless this browser
+  // opened the game once with ?record=1 (?record=0 turns it off again). When on, each run is
+  // recorded from the game canvas (plus combat audio) and downloaded with a timed event log
+  // when the run ends, so an editing agent can find the highlights without watching the video.
+
+  var STORAGE_KEY = "bastion.playtestRecorder.enabled";
+  var FRAME_RATE = 60;
+  var VIDEO_BITS_PER_SECOND = 8000000;
+  var CHUNK_MILLISECONDS = 1000;
+  var MIN_RUN_SECONDS = 20;
+  // H.264 High level 5.2 so large high-DPI canvases at 60 fps stay inside the level's limits.
+  var MIME_CANDIDATES = [
+    "video/mp4;codecs=avc1.640034,mp4a.40.2",
+    "video/mp4;codecs=avc1.640034",
+    "video/webm;codecs=h264,opus",
+    "video/webm;codecs=vp9,opus",
+    "video/webm;codecs=vp8,opus",
+    "video/webm"
+  ];
+  var SAMPLE_KEYS = ["matter", "kills", "modules", "coreHp", "coreHpRatio", "coreMaxHp", "enemies", "enemiesVisible",
+    "friendlyProjectiles", "hostileProjectiles", "threatLevel", "bossState", "bossHpRatio", "shield", "shieldMax", "renderFps"];
+
+  var audioEngine = null;
+  var session = null;
+
+  function readFlagFromUrl() {
+    try {
+      var value = new URLSearchParams(root.location.search).get("record");
+      if (value === "1") root.localStorage.setItem(STORAGE_KEY, "1");
+      if (value === "0") root.localStorage.removeItem(STORAGE_KEY);
+    } catch (error) { /* storage blocked: recorder stays off */ }
+  }
+
+  function isEnabled() {
+    try { return root.localStorage.getItem(STORAGE_KEY) === "1"; } catch (error) { return false; }
+  }
+
+  function isSupported(canvas) {
+    return Boolean(canvas && canvas.captureStream && root.MediaRecorder);
+  }
+
+  function pickMimeType() {
+    for (var i = 0; i < MIME_CANDIDATES.length; i += 1) {
+      if (root.MediaRecorder.isTypeSupported(MIME_CANDIDATES[i])) return MIME_CANDIDATES[i];
+    }
+    return "";
+  }
+
+  function secondsSince(startMs) {
+    return Math.round((root.performance.now() - startMs) / 10) / 100;
+  }
+
+  function stamp(date) {
+    function pad(value) { return String(value).padStart(2, "0"); }
+    return date.getFullYear() + "-" + pad(date.getMonth() + 1) + "-" + pad(date.getDate()) + "_" +
+      pad(date.getHours()) + "-" + pad(date.getMinutes()) + "-" + pad(date.getSeconds());
+  }
+
+  function plainCopy(value) {
+    try { return JSON.parse(JSON.stringify(value || {})); } catch (error) { return {}; }
+  }
+
+  function addAudioTrack(stream) {
+    if (!audioEngine) return false;
+    try {
+      audioEngine.ensure();
+      if (!audioEngine.context || !audioEngine.masterGain) return false;
+      if (!audioEngine.recorderDestination) {
+        audioEngine.recorderDestination = audioEngine.context.createMediaStreamDestination();
+        audioEngine.masterGain.connect(audioEngine.recorderDestination);
+      }
+      audioEngine.recorderDestination.stream.getAudioTracks().forEach(function (track) { stream.addTrack(track); });
+      return stream.getAudioTracks().length > 0;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function log(type, gameTime, data) {
+    if (!session) return;
+    var entry = { t: secondsSince(session.startMs), type: type };
+    if (Number.isFinite(Number(gameTime))) entry.gameT = Math.round(Number(gameTime) * 100) / 100;
+    if (data !== undefined) entry.data = data;
+    session.events.push(entry);
+  }
+
+  function start(context) {
+    var canvas = document.getElementById("gameCanvas");
+    if (!isEnabled() || !isSupported(canvas)) return;
+    var mimeType = pickMimeType();
+    var stream = canvas.captureStream(FRAME_RATE);
+    var hasAudio = addAudioTrack(stream);
+    var recorder;
+    try {
+      recorder = new root.MediaRecorder(stream, mimeType ?
+        { mimeType: mimeType, videoBitsPerSecond: VIDEO_BITS_PER_SECOND } :
+        { videoBitsPerSecond: VIDEO_BITS_PER_SECOND });
+    } catch (error) {
+      console.warn("Playtest recorder could not start:", error);
+      return;
+    }
+    session = {
+      recorder: recorder,
+      chunks: [],
+      events: [],
+      startMs: root.performance.now(),
+      startedAt: new Date(),
+      meta: {
+        gameBuild: root.PlaytestTelemetry && root.PlaytestTelemetry.gameBuild,
+        mimeType: recorder.mimeType || mimeType,
+        canvas: { width: canvas.width, height: canvas.height },
+        frameRate: FRAME_RATE,
+        audio: hasAudio,
+        context: plainCopy(context)
+      }
+    };
+    var owned = session;
+    recorder.ondataavailable = function (event) { if (event.data && event.data.size) owned.chunks.push(event.data); };
+    recorder.start(CHUNK_MILLISECONDS);
+  }
+
+  function download(blob, fileName) {
+    var url = URL.createObjectURL(blob);
+    var link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
+  }
+
+  function stop(outcome, result) {
+    if (!session) return;
+    var finished = session;
+    session = null;
+    var durationSeconds = secondsSince(finished.startMs);
+    finished.events.push({ t: durationSeconds, type: "recording_end", data: { outcome: outcome } });
+    finished.recorder.onstop = function () {
+      finished.recorder.stream.getVideoTracks().forEach(function (track) { track.stop(); });
+      if (durationSeconds < MIN_RUN_SECONDS || !finished.chunks.length) return;
+      var mimeType = finished.meta.mimeType || "video/webm";
+      var extension = /^video\/mp4/.test(mimeType) ? "mp4" : "webm";
+      var baseName = "Bastion_rec_" + stamp(finished.startedAt) + "_" + String(outcome || "unknown").replace(/[^a-z0-9_-]/gi, "");
+      var manifest = Object.assign({}, finished.meta, {
+        format: "bastion-recording-v1",
+        video: baseName + "." + extension,
+        startedAt: finished.startedAt.toISOString(),
+        durationSeconds: durationSeconds,
+        outcome: outcome,
+        result: plainCopy(result),
+        timeBase: "t = seconds from the first video frame; gameT = in-game elapsed seconds",
+        events: finished.events
+      });
+      download(new Blob(finished.chunks, { type: mimeType }), manifest.video);
+      download(new Blob([JSON.stringify(manifest, null, 1)], { type: "application/json" }), baseName + ".events.json");
+    };
+    if (finished.recorder.state !== "inactive") finished.recorder.stop();
+    else finished.recorder.onstop();
+  }
+
+  function wrap(target, name, after) {
+    var original = target[name];
+    if (typeof original !== "function") return;
+    target[name] = function () {
+      var result = original.apply(this, arguments);
+      try { after.apply(null, arguments); } catch (error) { console.warn("Playtest recorder hook failed:", name, error); }
+      return result;
+    };
+  }
+
+  function hookTelemetry(telemetry) {
+    var beginRun = telemetry.beginRun;
+    telemetry.beginRun = function (context) {
+      if (session) stop("restarted", null);
+      var runId = beginRun.apply(this, arguments);
+      try { start(context); log("run_started", 0, plainCopy(context)); } catch (error) { console.warn("Playtest recorder start failed:", error); }
+      return runId;
+    };
+    wrap(telemetry, "finishRun", function (result) {
+      log("run_finished", result && result.elapsed, plainCopy(result));
+      stop((result && result.outcome) || "unknown", result);
+    });
+    wrap(telemetry, "event", function (type, elapsed, details) { log(type, elapsed, plainCopy(details)); });
+    wrap(telemetry, "recordEnemyKill", function (type, reward, source) { log("kill", undefined, { enemy: type, source: source || "other" }); });
+    wrap(telemetry, "recordBossSpawn", function (elapsed, hp, info) { log("boss_spawn", elapsed, Object.assign({ hp: hp }, plainCopy(info))); });
+    wrap(telemetry, "recordBossDefeat", function (elapsed, info) { log("boss_defeat", elapsed, plainCopy(info)); });
+    wrap(telemetry, "recordModuleLost", function (type, branch) { log("module_lost", undefined, { module: type, branch: branch }); });
+    wrap(telemetry, "recordPurchase", function (type, price, elapsed) { log("purchase", elapsed, { module: type, price: price }); });
+    wrap(telemetry, "recordDamage", function (targetType, hullDamage, shieldAbsorbed, attacker, coreHpRatio) {
+      if (targetType !== "core" || !(Number(hullDamage) > 0)) return;
+      log("core_hit", undefined, { damage: Math.round(Number(hullDamage)), attacker: attacker || "unknown", coreHpRatio: coreHpRatio });
+    });
+    wrap(telemetry, "sample", function (snapshot) {
+      if (!snapshot) return;
+      var data = {};
+      SAMPLE_KEYS.forEach(function (key) { if (snapshot[key] !== undefined && snapshot[key] !== null) data[key] = snapshot[key]; });
+      log("sample", snapshot.elapsed, data);
+    });
+  }
+
+  function hookAudio(audioApi) {
+    var create = audioApi.create;
+    audioApi.create = function () {
+      audioEngine = create.apply(this, arguments);
+      return audioEngine;
+    };
+  }
+
+  readFlagFromUrl();
+  if (root.PlaytestTelemetry) hookTelemetry(root.PlaytestTelemetry);
+  if (root.DriftCombatAudio) hookAudio(root.DriftCombatAudio);
+
+  root.BastionPlaytestRecorder = {
+    isEnabled: isEnabled,
+    isRecording: function () { return Boolean(session); }
+  };
+})(window);
+
+</script>
   <script>
 (function () {
     "use strict";
@@ -8566,7 +8773,7 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
     var COLD_DETAIL_BUDGETS = [32, 16, 0];
     var coldVfx = window.DriftColdVfx;
     var SIMPLE_PROJECTILE_RENDER_BUDGETS = [180, 120, 80];
-    var SAVE_VERSION = 9;
+    var SAVE_VERSION = 10;
     var SAVE_KEY = "drift-bastion-save-v2";
     var SAVE_BACKUP_KEY = SAVE_KEY + "-backup";
     var LEGACY_SAVE_KEY = "drift-bastion-save-v1";
@@ -9114,6 +9321,7 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
         });
       }
       if (Number(parsed.version) < 9 && parsed.progression && Array.isArray(parsed.progression.purchasedModules) && parsed.progression.purchasedModules.indexOf("drive") >= 0) clean.fragments += 36;
+      if (Number(parsed.version) < 10) clean.fragments += progression.starterRefund(parsed.progression);
       var sourceSettings = parsed.settings && typeof parsed.settings === "object" ? parsed.settings : {};
       clean.settings.muted = Boolean(sourceSettings.muted !== undefined ? sourceSettings.muted : parsed.muted);
       clean.settings.masterVolume = clamp(Number(sourceSettings.masterVolume), 0, 1);
@@ -9614,7 +9822,7 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
 
     function renderStarterPicker() {
       ui.weaponPicker.innerHTML = "";
-      var moduleOrder = ["cannon", "armor"].concat(progression.definitions.map(function (definition) { return definition.type; }));
+      var moduleOrder = progression.defaultTypes.concat(progression.definitions.map(function (definition) { return definition.type; }));
       moduleOrder.sort(function (a, b) {
         function rank(type) { var state = progression.status(save.progression, type); return state.owned ? 0 : (state.available ? 1 : 2); }
         return rank(a) - rank(b);

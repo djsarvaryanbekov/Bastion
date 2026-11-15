@@ -42,7 +42,7 @@
     var COLD_DETAIL_BUDGETS = [32, 16, 0];
     var coldVfx = window.DriftColdVfx;
     var SIMPLE_PROJECTILE_RENDER_BUDGETS = [180, 120, 80];
-    var SAVE_VERSION = 9;
+    var SAVE_VERSION = 10;
     var SAVE_KEY = "drift-bastion-save-v2";
     var SAVE_BACKUP_KEY = SAVE_KEY + "-backup";
     var LEGACY_SAVE_KEY = "drift-bastion-save-v1";
@@ -590,6 +590,7 @@
         });
       }
       if (Number(parsed.version) < 9 && parsed.progression && Array.isArray(parsed.progression.purchasedModules) && parsed.progression.purchasedModules.indexOf("drive") >= 0) clean.fragments += 36;
+      if (Number(parsed.version) < 10) clean.fragments += progression.starterRefund(parsed.progression);
       var sourceSettings = parsed.settings && typeof parsed.settings === "object" ? parsed.settings : {};
       clean.settings.muted = Boolean(sourceSettings.muted !== undefined ? sourceSettings.muted : parsed.muted);
       clean.settings.masterVolume = clamp(Number(sourceSettings.masterVolume), 0, 1);
@@ -1090,7 +1091,7 @@
 
     function renderStarterPicker() {
       ui.weaponPicker.innerHTML = "";
-      var moduleOrder = ["cannon", "armor"].concat(progression.definitions.map(function (definition) { return definition.type; }));
+      var moduleOrder = progression.defaultTypes.concat(progression.definitions.map(function (definition) { return definition.type; }));
       moduleOrder.sort(function (a, b) {
         function rank(type) { var state = progression.status(save.progression, type); return state.owned ? 0 : (state.available ? 1 : 2); }
         return rank(a) - rank(b);

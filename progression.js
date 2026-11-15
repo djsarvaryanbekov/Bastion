@@ -13,36 +13,17 @@
   var REWARD_SCALE = 600000;
   var WEAPONS = ["cannon", "scatter", "flak", "laser", "missile", "cryo", "arc", "pulse", "rail", "mine", "ember", "gravity"];
   var MODULE_TYPES = WEAPONS.concat(["armor", "shield", "repair", "reactor", "collector", "bulkhead"]);
-  var DEFAULT_TYPES = ["cannon", "armor"];
+  var DEFAULT_TYPES = ["cannon", "armor", "scatter", "shield", "missile", "laser"];
+  // These were paid licenses before they joined the starter set; old saves get the price back once.
+  var STARTER_REFUNDS = { scatter: 8, shield: 16, missile: 24, laser: 32 };
   var COUNTERS = ["totalKills", "bossesDefeated", "totalUpgrades", "contractsCompleted"];
   var DEFINITIONS = [
-  {
-    "type": "scatter",
-    "stat": "totalKills",
-    "target": 0,
-    "cost": 8,
-    "text": tr("Available for {cost} Fragments", { cost: 8 })
-  },
-  {
-    "type": "shield",
-    "stat": "totalKills",
-    "target": 0,
-    "cost": 16,
-    "text": tr("Available for {cost} Fragments", { cost: 16 })
-  },
   {
     "type": "flak",
     "stat": "totalKills",
     "target": 0,
     "cost": 20,
     "text": tr("Available for {cost} Fragments", { cost: 20 })
-  },
-  {
-    "type": "missile",
-    "stat": "totalKills",
-    "target": 0,
-    "cost": 24,
-    "text": tr("Available for {cost} Fragments", { cost: 24 })
   },
   {
     "type": "collector",
@@ -71,13 +52,6 @@
     "target": 0,
     "cost": 28,
     "text": tr("Available for {cost} Fragments", { cost: 28 })
-  },
-  {
-    "type": "laser",
-    "stat": "totalKills",
-    "target": 0,
-    "cost": 32,
-    "text": tr("Available for {cost} Fragments", { cost: 32 })
   },
   {
     "type": "cryo",
@@ -301,6 +275,13 @@
     return nearest;
   }
 
+  function starterRefund(rawProgress) {
+    if (!isRecord(rawProgress)) return 0;
+    return validModules(rawProgress.purchasedModules).reduce(function (sum, type) {
+      return sum + (Object.prototype.hasOwnProperty.call(STARTER_REFUNDS, type) ? STARTER_REFUNDS[type] : 0);
+    }, 0);
+  }
+
   function settleRunReward(snapshot, carryUnits) {
     carryUnits = Number.isInteger(carryUnits) && carryUnits >= 0 && carryUnits < REWARD_SCALE ? carryUnits : 0;
     snapshot = isRecord(snapshot) ? snapshot : {};
@@ -341,6 +322,8 @@
     nextObjective: nextObjective,
     runReward: runReward,
     settleRunReward: settleRunReward,
+    starterRefund: starterRefund,
+    defaultTypes: Object.freeze(DEFAULT_TYPES.slice()),
     definitions: DEFINITIONS
   });
 });

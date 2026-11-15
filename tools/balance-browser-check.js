@@ -7,7 +7,7 @@ const fs=require('fs'),path=require('path'),assert=require('node:assert/strict')
  try{
   for(const profile of [{name:'desktop-1080',width:1920,height:1080,scale:100},{name:'desktop-720-large-text',width:1280,height:720,scale:150}]){
    const context=await browser.newContext({viewport:{width:profile.width,height:profile.height}});const page=await context.newPage();page.on('pageerror',e=>errors.push(profile.name+': '+e.message));
-   await page.addInitScript(({scale})=>{if(!localStorage.getItem('balance-seed')){localStorage.setItem('balance-seed','yes');localStorage.setItem('drift-bastion-save-v2',JSON.stringify({version:9,fragments:300,progression:{schemaVersion:4,purchasedModules:['shield'],branchLicenses:[]},campaign:{purchasedCores:[],selectedCore:'standard',coreRanks:{standard:{modules:0,damage:0,matter:0,drive:0}}},settings:{uiScale:scale,muted:true},training:{completed:true}}));}},{scale:profile.scale});
+   await page.addInitScript(({scale})=>{if(!localStorage.getItem('balance-seed')){localStorage.setItem('balance-seed','yes');localStorage.setItem('drift-bastion-save-v2',JSON.stringify({version:10,fragments:300,progression:{schemaVersion:4,purchasedModules:['shield'],branchLicenses:[]},campaign:{purchasedCores:[],selectedCore:'standard',coreRanks:{standard:{modules:0,damage:0,matter:0,drive:0}}},settings:{uiScale:scale,muted:true},training:{completed:true}}));}},{scale:profile.scale});
    await page.clock.install();await page.goto(pathToFileURL(path.resolve('outputs/Drift_Bastion_Playtest.html')).href+'?debug=1');
    const state=()=>page.evaluate(()=>window.__driftBastion.getState());
    await page.locator('#hangarMenuButton').click();await page.locator('#pcResearchTab').click();

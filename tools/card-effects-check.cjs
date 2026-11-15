@@ -363,7 +363,7 @@ assert.ok(shrapnel[0].vx > 0 && shooter);
 game = freshRun();
 place(game, "cannon", 0, -1);
 place(game, "armor", 0, 1);
-const licensed = ["cannon", "armor"];
+const licensed = require("../progression").defaultTypes;
 const shipTypes = ["core", "cannon", "armor"];
 const mentions = def => [].concat(def.requires || [], def.installed || [], def.installedAny || [], def.pair || []);
 for (let i = 0; i < 300; i += 1) {

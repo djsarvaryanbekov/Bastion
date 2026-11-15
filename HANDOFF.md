@@ -99,6 +99,20 @@ The user asked for a full test of UI, every module, core gameplay and performanc
   - Touch routes in `training-browser` run only with `--touch` (the phone build is archived). Its profiles are 1280×800 and 1280×720 @150%.
 - A real bug surfaced in `module-art-browser`'s missing-art check: with no module art, the menu threw errors (`pc-ui.js`, `pc-research.js`, `pc-systems.js`, `game.js` `drawHero` / `icon`). It was the same in build 58. Guarded, then the main HTML was rebuilt. Backup of 59 is in `outputs/experiments/2026-11-13-qa-perf/backup-59/`.
 
+## Update 2026-11-15 — Six starter modules (build `2026.11.15-starter-set-67`)
+- A new save now owns Cannon, Armor, Scatter, Shield, Missile and Laser (`DEFAULT_TYPES` in `progression.js`), so the first run's Build screen and cards are not limited to Cannon and Armor. The user asked for this for publisher scouts. The Hangar still sells 12 licenses for 396 Fragments in total (was 16 for 476).
+- Old saves: `SAVE_VERSION` is 10. A save below 10 that had bought Scatter, Shield, Missile or Laser gets those prices back once (8 / 16 / 24 / 32, `progression.starterRefund`). The entries stay in `purchasedModules`.
+- `progression.defaultTypes` is the one list of starter modules; the Hangar order in `game.js` reads it.
+- Checks updated to the new rules: `progression-check`, `progression-view-check`, `balance-model-check`, `survival-integration-check`, `card-effects-check`, `standalone-browser-check` (fresh Build catalog has 6 cards), `balance-browser-check` (fixture is a version 10 save), `hangar-module-check` (buys Flak). `survival-browser-check` (legacy suite) was edited to buy Flak but not run.
+- Passed on the main HTML: `npm test`, `npm run check`; on the identical experiment build: `npm run test:browser`, the nine `test:pc` checks, and `outputs/experiments/2026-11-15-starter-set/verify-starter.cjs` (fresh save at 1920×1080 and 1280×720 @1.5, old-save refund 50 → 74, no second refund after reload). Backup of 66: `outputs/experiments/2026-11-15-starter-set/backup-66/`.
+- **itch.io plays build 67**: `outputs/itch-io-2026-11-15-build67/Bastion_build67.zip`, upload 20551374; build 65 (20524935) is hidden. Includes the opt-in recorder from build 66. Not committed; `Drift_Bastion_Playtest_Package.zip` not updated; not playtested by a person.
+
+## Update 2026-11-15 — Opt-in footage recorder for marketing (build `2026.11.15-recorder-66`)
+- `playtest-recorder.js` records each run (game canvas + combat audio, H.264 MP4 in Chrome) and downloads `Bastion_rec_<time>_<outcome>.mp4` plus `.events.json` when the run ends. Runs under 20 s are dropped.
+- **Off for every player.** It turns on only in a browser that opened the game once with `?record=1` (stored in localStorage; `?record=0` turns it off). Itch players never see it.
+- The event log uses `t` = seconds from the first video frame (plus `gameT`): wave start/clear, every kill with its weapon, boss spawn/defeat, card picks, purchases, module losses, core hits, pauses, 30 s samples. It hooks `window.PlaytestTelemetry` and `DriftCombatAudio.create`; `game.js` is unchanged. The HUD is DOM, so it is not in the footage.
+- Test: `npm run test:recorder` (real-time 25 s run; `RECORDER_KEEP_DIR` keeps the files). Backup of 65: `outputs/experiments/2026-11-15-recorder/backup-65/`. Not committed; ZIP and itch not updated. Research notes for the marketing agent: `research/marketing-agent-2026-11-15/LEARNINGS.md`.
+
 ## Update 2026-11-15 — Training hint mentions the mouse (build `2026.11.15-training-hint-65`)
 - The first Training hint now reads "Hold left mouse to fly, or W/S thrust · A/D turn. Your Cannon fires automatically." It is in `training.js` and all 16 `locales/*.json`, and `test:i18n` passes.
 - itch.io (build 64) got its Metadata tab filled from the user's laptop Chrome: keyboard and mouse, about a half-hour, all 16 languages, interactive tutorial. Build 65 is not committed or uploaded yet.

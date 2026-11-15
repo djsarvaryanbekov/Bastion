@@ -99,18 +99,18 @@ const server = http.createServer((req, res) => {
     await page.locator("#hangarWeaponTab").click();
     assert.equal(await page.locator("#weaponPicker .pick-button").count(), 18);
     const beforeInspectionSave = await page.evaluate(() => localStorage.getItem("drift-bastion-save-v2"));
-    await page.locator('[data-module="scatter"]').click();
-    assert.match(await page.locator("#hangarModuleDetails").innerText(), /Scatter Array/);
+    await page.locator('[data-module="flak"]').click();
+    assert.match(await page.locator("#hangarModuleDetails").innerText(), /Flak Battery/);
     assert.equal(await page.evaluate(() => localStorage.getItem("drift-bastion-save-v2")), beforeInspectionSave,
       "Viewing an available module must not buy its licence");
     await page.locator("#hangarModuleDetails .armory-detail-action.primary").click();
-    assert.match(await page.locator('[data-module="scatter"]').innerText(), /Unlocked/);
+    assert.match(await page.locator('[data-module="flak"]').innerText(), /Unlocked/);
     await page.screenshot({ path: path.join(output, "hangar.png") });
     await page.locator("#hangarUpgradeTab").click();
     assert.equal(await page.locator("#corePicker .core-card").count(), 4);
     await page.screenshot({ path: path.join(output, "cores.png") });
     await page.reload();
-    assert.ok((await page.evaluate(() => window.__driftBastion.getState())).progression.purchasedModules.includes("scatter"));
+    assert.ok((await page.evaluate(() => window.__driftBastion.getState())).progression.purchasedModules.includes("flak"));
     report.checks.push("Same ship continuation; one bank; actual Hangar licence purchase survives reload; four existing cores");
 
     await page.locator("#menuSettingsButton").click(); await page.locator("#uiScaleSelect").selectOption("150"); await page.locator("#resumeButton").click();

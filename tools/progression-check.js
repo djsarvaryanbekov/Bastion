@@ -2,8 +2,11 @@
 const assert=require('node:assert/strict'),P=require('../progression');
 const fresh=P.normalize();assert.equal(fresh.schemaVersion,4);assert.deepEqual(fresh.branchLicenses,[]);assert.deepEqual(fresh.purchasedModules,[]);
 for(const raw of [null,undefined,'bad',false,[],12])assert.deepEqual(P.normalize(raw),fresh);
-assert.equal(P.definitions.length,16);
-for(const type of ['cannon','armor'])assert.ok(P.isUnlocked(fresh,type));
+assert.equal(P.definitions.length,12);
+assert.deepEqual([...P.defaultTypes],['cannon','armor','scatter','shield','missile','laser']);
+for(const type of P.defaultTypes){assert.ok(P.isUnlocked(fresh,type));assert.equal(P.status(fresh,type).owned,true);assert.equal(P.canPurchase(fresh,type),false);assert.equal(P.purchase(P.normalize(),type,9999),null);assert.ok(!P.definitions.some(d=>d.type===type));}
+assert.equal(P.starterRefund({purchasedModules:['scatter','shield','missile','laser','rail','scatter','bad']}),80);assert.equal(P.starterRefund({purchasedModules:['rail','flak']}),0);
+for(const raw of [null,undefined,'bad',[],{},{purchasedModules:'scatter'}])assert.equal(P.starterRefund(raw),0);
 for(const d of P.definitions){
  assert.ok(P.canPurchase(fresh,d.type));let p=P.normalize();
  for(const wallet of [-1,NaN,Infinity,d.cost-.1,'999']){const before=JSON.stringify(p);assert.equal(P.purchase(p,d.type,wallet),null);assert.equal(JSON.stringify(p),before);}
@@ -19,4 +22,4 @@ assert.equal(P.settleRunReward({elapsed:60,killsByMinute:[0,500]},0).sources.kil
 assert.equal(P.settleRunReward({elapsed:59.999,killsByMinute:[0,500]},0).sources.kills,0);
 for(const carry of [-1,600000,NaN,Infinity,.5])assert.equal(P.settleRunReward(null,carry).carryUnits,0);
 for(const invalid of [null,{},[],{elapsed:Infinity,bosses:NaN,killsByMinute:[Infinity]}]){const r=P.settleRunReward(invalid);assert.ok(Number.isFinite(r.fragments));assert.ok(Number.isFinite(r.carryUnits));}
-console.log('Progression checks passed: currency-only licenses, atomic purchases, legacy ownership, retired Drive archive, counters, minute boundaries, cap and fractional carry.');
+console.log('Progression checks passed: currency-only licenses, six starter modules with a one-time refund, atomic purchases, legacy ownership, retired Drive archive, counters, minute boundaries, cap and fractional carry.');

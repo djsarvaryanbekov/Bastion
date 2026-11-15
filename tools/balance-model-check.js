@@ -38,9 +38,10 @@ assert.ok(U.purchase(state,'cannon','focus',1000,1,undefined,['cannon:twin','can
 assert.equal(U.investment('cannon',state.cannon),188);
 assert.equal(U.resolve(defs.cannon,state.cannon).shots,4);
 assert.ok(Math.abs(U.resolve(defs.cannon,state.cannon).damage/U.resolve(defs.cannon,state.cannon).cooldown*4-88.872)<1e-8);
-assert.equal(P.definitions.reduce((sum,d)=>sum+d.cost,0),476);
-assert.equal(P.status(P.normalize(null),'scatter').cost,8);
-assert.equal(P.status(P.normalize(null),'scatter').available,true);
+assert.equal(P.definitions.reduce((sum,d)=>sum+d.cost,0),396);
+assert.equal(P.status(P.normalize(null),'flak').cost,20);
+assert.equal(P.status(P.normalize(null),'flak').available,true);
+assert.equal(P.status(P.normalize(null),'scatter').owned,true);
 assert.equal(P.status(P.normalize(null),'drive').available,false);
 for(const [killsByMinute,elapsed,expected] of [[[5000],59,10],[[10000],59,10],[[10000,500],61,11],[[0,10000],119,10],[[500],.5,1]]){
  const r=P.settleRunReward({killsByMinute,elapsed,bosses:0});assert.equal(r.sources.kills,expected);assert.ok(Math.abs(r.sources.time-elapsed/60)<1e-8);

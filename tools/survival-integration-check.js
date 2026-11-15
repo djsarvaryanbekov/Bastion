@@ -63,7 +63,7 @@ legacy.lastLoadout.selectedWeapon = "rail";
 Object.assign(api.save, api.sanitizeSave(legacy)); api.storeSave();
 const stored = JSON.parse(runtime.localStorage.getItem("drift-bastion-save-v2"));
 const reloaded = api.sanitizeSave(stored);
-assert.equal(reloaded.fragments, 137);
+assert.equal(reloaded.fragments, 161, "Scatter and Shield joined the starter set, so their 8 + 16 Fragments come back once");
 assert.deepEqual(plain(reloaded.meta), legacy.meta);
 assert.deepEqual(plain(reloaded.progression.purchasedModules), legacy.progression.purchasedModules);
 assert.equal(reloaded.lastLoadout.selectedWeapon, "rail");
@@ -81,9 +81,9 @@ game.elapsed=600;game.kills=10000;game.killsByMinute=[10000];game.bossesDefeated
 assert.equal(game.ship,ship);assert.equal(game.matter,matter);assert.deepEqual(plain(game.upgrades),upgrades);assert.equal(api.save.fragments,0);
 game.finishRun(false,true);assert.equal(api.save.fragments,56);assert.equal(game.state,'result');game.finishRun(false,true);assert.equal(api.save.fragments,56);
 api.returnToMenu();api.startRun();assert.equal(api.current().matter,0);assert.deepEqual(plain(api.current().upgrades),{});assert.equal(api.current().ship.tiles.size,2);assert.equal(api.save.fragments,56);
-// Removed Drive licenses are archived and refunded once; existing settings and bonuses survive.
+// Removed Drive licenses are archived and refunded once, as is Scatter's starter-set refund; existing settings and bonuses survive.
 reset();const old=api.defaultSave();old.version=8;old.fragments=17;old.fragmentCarryUnits=123;old.meta={core:0,modules:10,matter:8,drive:6,damage:10};old.campaign={purchasedCores:['striker'],selectedCore:'striker'};old.progression.purchasedModules=['drive','scatter'];old.settings.uiScale=125;
-const migrated=api.sanitizeSave(old);assert.equal(migrated.fragments,53);assert.equal(migrated.fragmentCarryUnits,123);assert.equal(migrated.settings.uiScale,125);assert.deepEqual(plain(migrated.progression.retiredModules),['drive']);assert.deepEqual(plain(migrated.progression.purchasedModules),['scatter']);
+const migrated=api.sanitizeSave(old);assert.equal(migrated.fragments,61);assert.equal(migrated.fragmentCarryUnits,123);assert.equal(migrated.settings.uiScale,125);assert.deepEqual(plain(migrated.progression.retiredModules),['drive']);assert.deepEqual(plain(migrated.progression.purchasedModules),['scatter']);
 assert.equal(migrated.campaign.coreRanks.striker.modules,25);assert.equal(migrated.campaign.legacyBonuses.striker.modules,.25);assert.equal(migrated.campaign.coreRanks.standard.damage,25);assert.ok(Math.abs(migrated.campaign.legacyBonuses.striker.damage-.15)<1e-9);assert.deepEqual(plain(api.sanitizeSave(migrated)),plain(migrated));
 Object.assign(api.save,migrated);const probe=new api.Game();const damage=probe.coreBonus('damage');api.save.campaign.selectedCore='standard';api.save.campaign.coreRanks.standard.damage=0;assert.equal(probe.coreBonus('damage'),damage,'Active run snapshots its core ranks');
 old.meta={core:10,modules:0,matter:0,drive:0,damage:0};
