@@ -954,5 +954,7 @@
   "{value} · Max": "{value} · 满级",
   "{value} · Retained": "{value} · 已保留",
   "{waves} waves · {time} · {bosses} bosses defeated": "{waves} 波 · {time} · 已击败 {bosses} 名首领",
-  "Ⅱ PAUSE": "Ⅱ 暂停"
+  "Ⅱ PAUSE": "Ⅱ 暂停",
+  "WAVE {wave}": "第 {wave} 波",
+  "DESTROY THE SWARM": "消灭虫群"
 }

@@ -954,5 +954,7 @@
   "{value} · Max": "{value} · Máx.",
   "{value} · Retained": "{value} · Mantido",
   "{waves} waves · {time} · {bosses} bosses defeated": "{waves} ondas · {time} · {bosses} chefes derrotados",
-  "Ⅱ PAUSE": "Ⅱ PAUSA"
+  "Ⅱ PAUSE": "Ⅱ PAUSA",
+  "WAVE {wave}": "ONDA {wave}",
+  "DESTROY THE SWARM": "DESTRUA O ENXAME"
 }

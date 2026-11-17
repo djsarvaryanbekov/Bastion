@@ -23,7 +23,8 @@
     }
   }
 
-  function destruction(game, enemy, quality, reducedFlash, art) {
+  // sprite ({ type, rotation }) overrides the enemy's own type and facing for the wreckage art.
+  function destruction(game, enemy, quality, reducedFlash, art, sprite) {
     var heavy = enemy.type === "boss" || enemy.type === "core";
     var space = Math.max(0, limit(quality) - game.effects.length);
     if (!space) return;
@@ -31,12 +32,13 @@
     blast.maxRadius = enemy.radius * (heavy ? 2.7 : 1.8);
     blast.width = heavy ? 3 : 2.2;
     var count = enemy.type === "core" ? 0 : Math.min(quality > 0 ? 2 : 3, Math.max(0, space - 1));
-    var facing = Number.isFinite(enemy.visualRotation) ? enemy.visualRotation : enemy.rotation || 0;
-    var span = art && art.displaySize(enemy.type, enemy.radius) || enemy.radius * 2.4;
+    var spriteType = sprite ? sprite.type : enemy.type;
+    var facing = sprite ? sprite.rotation || 0 : (Number.isFinite(enemy.visualRotation) ? enemy.visualRotation : enemy.rotation || 0);
+    var span = art && art.displaySize(spriteType, enemy.radius) || enemy.radius * 2.4;
     for (var i = 0; i < count; i++) {
       var direction = facing + i / count * Math.PI * 2 + .3;
       var fragment = game.spawnEffect("wreck", enemy.x, enemy.y, heavy ? 1.45 : .9, enemy.color || "#a36f5e");
-      fragment.enemyType = enemy.type;
+      fragment.enemyType = spriteType;
       fragment.fragment = i;
       fragment.fragmentCount = count;
       fragment.radius = enemy.radius;

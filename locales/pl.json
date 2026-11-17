@@ -954,5 +954,7 @@
   "{value} · Max": "{value} · Maks.",
   "{value} · Retained": "{value} · Zachowane",
   "{waves} waves · {time} · {bosses} bosses defeated": "Fale: {waves} · {time} · pokonani bossowie: {bosses}",
-  "Ⅱ PAUSE": "Ⅱ PAUZA"
+  "Ⅱ PAUSE": "Ⅱ PAUZA",
+  "WAVE {wave}": "FALA {wave}",
+  "DESTROY THE SWARM": "ZNISZCZ RÓJ"
 }

@@ -1092,6 +1092,64 @@
     }
 
     .hud-matter b { color: var(--gold); }
+
+    /* HUD feedback (hud-feedback.js): Matter pops and shows a "+N" tick; core HP leaves a draining trail and jolts on hits. */
+    /* The tick floats beside the number without taking layout space, so the HUD never shifts while Matter changes. */
+    .matter-row { position: relative; display: inline-block; }
+    #hudMatter { display: inline-block; transform-origin: center 70%; will-change: transform; }
+    .matter-delta {
+      position: absolute;
+      left: calc(100% + 7px);
+      bottom: 1px;
+      color: #ffe39a;
+      font: 800 .8125rem/1 ui-monospace, SFMono-Regular, Consolas, monospace;
+      text-shadow: 0 0 8px rgba(255, 196, 77, .55);
+      opacity: 0;
+      white-space: nowrap;
+    }
+    .matter-delta.spend { color: #ff8a98; text-shadow: none; }
+    .health-bar { position: relative; }
+    .health-trail {
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: 100%;
+      background: #fff3df;
+    }
+    .health-bar .health-fill { position: relative; z-index: 1; transition: none; }
+    /* Wave clear stamp: punches in above the ship (never over it) and is gone when the card screen opens 1.2 s later. */
+    .wave-clear-stamp {
+      position: fixed;
+      left: 50%;
+      top: 27%;
+      z-index: 6;
+      display: grid;
+      justify-items: center;
+      gap: 6px;
+      opacity: 0;
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+    }
+    .wave-clear-stamp strong {
+      color: #ffffff;
+      font: 800 2.75rem/1 "Segoe UI", Arial, sans-serif;
+      letter-spacing: .08em;
+      text-shadow: 0 2px 0 #06101a, 0 0 18px rgba(84, 214, 206, .45);
+    }
+    .wave-clear-stamp span {
+      color: var(--gold, #edbd70);
+      font: 800 1.5rem/1 ui-monospace, SFMono-Regular, Consolas, monospace;
+      text-shadow: 0 2px 0 #06101a, 0 0 12px rgba(255, 196, 77, .5);
+    }
+    .wave-clear-stamp.show { animation: waveClearStamp 1.2s ease-out forwards; }
+    @keyframes waveClearStamp {
+      0% { opacity: 0; transform: translate(-50%, -50%) scale(1.7); }
+      9% { opacity: 1; transform: translate(-50%, -50%) scale(.94); }
+      15% { transform: translate(-50%, -50%) scale(1); }
+      78% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+      100% { opacity: 0; transform: translate(-50%, -58%) scale(1); }
+    }
+    .health-shell.hp-hit #hudHpText { color: #ff6b7d; }
+    .health-shell.hp-heal .health-fill { filter: brightness(1.6); }
     .hud-boss { min-width: 190px; }
     .hud-boss b { color: var(--text); white-space: nowrap; }
     .hud-secondary { min-width: 86px; border-color: transparent; background: rgba(4, 12, 27, .45); }

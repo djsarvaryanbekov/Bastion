@@ -954,5 +954,7 @@
   "{value} · Max": "{value} · Maks",
   "{value} · Retained": "{value} · Saqlangan",
   "{waves} waves · {time} · {bosses} bosses defeated": "{waves} toʻlqin · {time} · {bosses} ta boss yengildi",
-  "Ⅱ PAUSE": "Ⅱ PAUZA"
+  "Ⅱ PAUSE": "Ⅱ PAUZA",
+  "WAVE {wave}": "TOʻLQIN {wave}",
+  "DESTROY THE SWARM": "TOʻDANI YOʻQ QILING"
 }

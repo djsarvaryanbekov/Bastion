@@ -59,6 +59,23 @@
     var cardsApi = window.DriftCards || null;
     var WAVE_BOSS_DELAY = 8;
     var WAVE_CLEAR_SETTLE = 1.2;
+    // Impact freezes, in seconds of real time. The simulation holds so the moment registers before play continues.
+    var HIT_STOP_MODULE_LOST = .06;
+    var HIT_STOP_BOSS_KILL = .22;
+    var HIT_STOP_CORE_LOST = .35;
+    // Modules are torn off in bursts late in a run; one freeze per burst keeps the fight from stuttering.
+    var HIT_STOP_MODULE_GAP = .6;
+    // A lost core holds the results panel back until its freeze and wreckage have played.
+    var RESULT_PANEL_DELAY = .3;
+    var CORE_LOST_RESULT_DELAY = 1.5;
+    // A boss dies in stages: flash, a chain of fireballs across the hull, then smoke and embers.
+    var BOSS_DEATH_BLASTS = 5;
+    var BOSS_DEATH_BLAST_SPACING = .11;
+    var BOSS_DEATH_FLASH = .5;
+    // Screen flash opacity lost per second; a flash this short reads as light, not as a white-out.
+    var SCREEN_FLASH_DECAY = 3.5;
+    // Below this strength a shake moves on one axis only, so light hits feel different from heavy ones.
+    var SHAKE_SINGLE_AXIS_BELOW = 3;
     var WAVE_INTERMISSION_REPAIR = .3;
     var WAVE_DAMAGE_TAKEN_FLOOR = .5;
     var WAVE_FINAL_BOSS_HP_SCALE = 1.3;
@@ -283,6 +300,11 @@
       hudModules: document.getElementById("hudModules"),
       hudHpText: document.getElementById("hudHpText"),
       healthFill: document.getElementById("healthFill"),
+      healthTrail: document.getElementById("healthTrail"),
+      hudMatterDelta: document.getElementById("hudMatterDelta"),
+      waveClearStamp: document.getElementById("waveClearStamp"),
+      waveClearTitle: document.getElementById("waveClearTitle"),
+      waveClearReward: document.getElementById("waveClearReward"),
       bossHud: document.getElementById("bossHud"),
       bossFill: document.getElementById("bossFill"),
       bossName: document.getElementById("bossName"),
@@ -679,6 +701,15 @@
     var save = loadSave();
     var audio = window.DriftCombatAudio.create();
     var combatFeedback = window.DriftCombatFeedback;
+    var hudFeedback = window.DriftHudFeedback.create({
+      matterValue: ui.hudMatter,
+      matterDelta: ui.hudMatterDelta,
+      healthShell: document.getElementById("healthShell"),
+      healthFill: ui.healthFill,
+      healthTrail: ui.healthTrail,
+      hpText: ui.hudHpText,
+      hpMax: document.getElementById("hudHpMax")
+    });
     var shipDebris = window.DriftShipDebris;
     audio.muted = save.settings.muted;
     audio.setVolume(save.settings.masterVolume);
@@ -687,6 +718,7 @@
     starterTiles.set("0,-1", selectedStarter);
     var selectedBuildModule = "armor";
     var keys = Object.create(null);
+    var ARROW_KEYS = ["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"];
     var mobileInput = {
       active: false,
       pointerId: null,
@@ -1351,6 +1383,7 @@
       this.waveElapsed = 0;
       this.wavePhase = null;
       this.waveClearTimer = 0;
+      this.sweepStartCount = 1;
       this.waveOvertime = false;
       this.cardPicks = [];
       this.cardMods = cardsApi ? cardsApi.emptyMods() : { global: {}, family: {} };
@@ -1458,6 +1491,10 @@
       this.shakeTrauma = 0;
       this.damageVignette = 0;
       this.deathFeedbackTime = 0;
+      this.hitStop = 0;
+      this.screenFlash = 0;
+      this.stagedBlasts = [];
+      this.lastModuleHitStopAt = -HIT_STOP_MODULE_GAP;
       this.damageWarningTimer = 0;
       this.damageWarningText = "";
       this.coreWarningStage = 0;
@@ -1942,6 +1979,8 @@
     };
 
     Game.prototype.spawnBoss = function () {
+      // The boss dies in missile-style fireballs; building that art now keeps its first frame off the death itself.
+      if (typeof window !== "undefined" && window.DriftMissileBlastVfx) window.DriftMissileBlastVfx.prepare();
       if (this.training && !this.testRange) return;
       if (this.finished || (this.boss && !this.boss.dead)) return;
       this.bossSpawned = true;
@@ -2057,9 +2096,11 @@
         targetAngular = mobileInput.magnitude > .08 ? clamp(angleDelta * steeringGain, -turnRate, turnRate) : 0;
         thrust = mobileInput.magnitude > .08 ? mobileInput.magnitude * Math.max(0, Math.cos(angleDelta)) : 0;
       } else {
-        var turnInput = (keys.KeyD ? 1 : 0) - (keys.KeyA ? 1 : 0);
+        var forward = keys.KeyW || keys.ArrowUp;
+        var reverse = keys.KeyS || keys.ArrowDown;
+        var turnInput = (keys.KeyD || keys.ArrowRight ? 1 : 0) - (keys.KeyA || keys.ArrowLeft ? 1 : 0);
         targetAngular = turnInput * turnRate;
-        thrust = keys.KeyW && keys.KeyS ? 0 : (keys.KeyW ? 1 : 0) - (keys.KeyS ? .58 : 0);
+        thrust = forward && reverse ? 0 : (forward ? 1 : 0) - (reverse ? .58 : 0);
       }
       ship.angularVelocity = clamp(lerp(ship.angularVelocity, targetAngular, 1 - Math.exp(-turnResponse * dt)), -turnRate, turnRate);
       ship.angle += ship.angularVelocity * dt;
@@ -2120,6 +2161,50 @@
       this.shakeTrauma = clamp(this.shakeTrauma + amount * save.settings.shakeIntensity, 0, 18);
     };
 
+    // Only the frame loop spends this, so headless simulations and node checks keep their timing.
+    Game.prototype.requestHitStop = function (seconds) {
+      // A freeze requested outside combat would otherwise fire when the next wave starts.
+      if (this.state !== "playing") return;
+      this.hitStop = Math.max(this.hitStop, seconds);
+    };
+
+    Game.prototype.flashScreen = function (strength) {
+      this.screenFlash = Math.max(this.screenFlash, save.settings.reducedFlash ? strength * .25 : strength);
+    };
+
+    Game.prototype.beginBossDeath = function (boss) {
+      this.flashScreen(BOSS_DEATH_FLASH);
+      this.stagedBlasts.length = 0;
+      for (var i = 0; i < BOSS_DEATH_BLASTS; i += 1) {
+        // The first fireball sits on the hull centre; the rest step outward around it so the hull breaks up in sequence.
+        var angle = (boss.rotation || 0) + i * 2.4;
+        var offset = i === 0 ? 0 : boss.radius * (.35 + .12 * i);
+        this.stagedBlasts.push({
+          at: this.elapsed + i * BOSS_DEATH_BLAST_SPACING,
+          x: boss.x + Math.cos(angle) * offset,
+          y: boss.y + Math.sin(angle) * offset,
+          radius: boss.radius * (i === 0 ? 1.5 : .9),
+          last: i === BOSS_DEATH_BLASTS - 1
+        });
+      }
+      var smoke = this.spawnEffect("blastSmoke", boss.x, boss.y, 1.8, "#1b232c");
+      smoke.maxRadius = boss.radius * 2.2;
+    };
+
+    Game.prototype.updateStagedBlasts = function () {
+      while (this.stagedBlasts.length && this.stagedBlasts[0].at <= this.elapsed) {
+        var blast = this.stagedBlasts.shift();
+        // Reuses the missile fireball so the boss blows up in the game's own explosion style. Presentation only.
+        var fireball = this.spawnEffect("ring", blast.x, blast.y, MISSILE_BLAST_LIFE, "#ffb766");
+        fireball.radius = 5;
+        fireball.maxRadius = blast.radius;
+        fireball.weaponType = "missile";
+        // The last blast leaves slow embers instead of fast sparks.
+        this.burst(blast.x, blast.y, blast.last ? "#ff9b55" : "#ffe2ad", blast.last ? 22 : 8, blast.last ? 110 : 200);
+        this.addShake(blast.last ? 5 : 3);
+      }
+    };
+
     Game.prototype.triggerShipImpact = function (tile, amount) {
       var isCore = tile.type === "core";
       var intensity = clamp(amount / 18 + (isCore ? .45 : 0), .2, 1.5);
@@ -2135,8 +2220,14 @@
     Game.prototype.updateFeedback = function (dt) {
       this.shakeTrauma *= Math.exp(-10 * dt);
       if (this.shakeTrauma < .05) this.shakeTrauma = 0;
-      this.camera.shakeX = (Math.random() * 2 - 1) * this.shakeTrauma;
-      this.camera.shakeY = (Math.random() * 2 - 1) * this.shakeTrauma;
+      // Shake is applied in world units; dividing by zoom keeps it the same size on screen for small and large ships.
+      var shakeAmplitude = this.shakeTrauma / (this.camera.zoom || 1);
+      // Both rolls are always drawn: seeded balance checks share this random stream with combat.
+      var shakeRollX = Math.random() * 2 - 1;
+      var shakeRollY = Math.random() * 2 - 1;
+      this.camera.shakeX = this.shakeTrauma < SHAKE_SINGLE_AXIS_BELOW ? 0 : shakeRollX * shakeAmplitude;
+      this.camera.shakeY = shakeRollY * shakeAmplitude;
+      this.screenFlash = Math.max(0, this.screenFlash - SCREEN_FLASH_DECAY * dt);
       this.damageVignette = Math.max(0, this.damageVignette - dt * 1.8);
       this.damageWarningTimer = Math.max(0, this.damageWarningTimer - dt);
       this.telegraphSoundClock = Math.max(0, this.telegraphSoundClock - dt);
@@ -3760,7 +3851,10 @@
     Game.prototype.killEnemy = function (enemy) {
       if (enemy.dead) return;
       enemy.dead = true;
-      combatFeedback.destruction(this, enemy, currentQualityTier(), save.settings.reducedFlash, enemyArt);
+      // Every boss variant shares the "boss" type but has its own sprite and facing.
+      var bossArt = enemy.type === "boss" ? BOSS_ART_TYPES[enemy.variant] : null;
+      combatFeedback.destruction(this, enemy, currentQualityTier(), save.settings.reducedFlash, enemyArt,
+        bossArt ? { type: bossArt.art, rotation: bossArt.directional ? enemy.visualFacing : enemy.rotation } : null);
       if (enemy.spreadBurn) {
         this.enemies.forEach(function(other) {
           if (other.dead || distanceSquared(enemy.x,enemy.y,other.x,other.y)>80*80) return;
@@ -3783,6 +3877,8 @@
         this.ambientSpawnClock = 1.5;
         this.assaultClock = ASSAULT_FIRST_DELAY;
         this.addShake(14);
+        this.requestHitStop(HIT_STOP_BOSS_KILL);
+        this.beginBossDeath(enemy);
         this.burst(enemy.x, enemy.y, "#e9b477", 35, 260);
         this.kills += 1;
         this.matter += enemy.reward;
@@ -3923,6 +4019,8 @@
       if (target.type === "core") {
         var corePos = this.gridToWorld(0, 0);
         this.deathFeedbackTime = 1.5;
+        // Training and the test range reset the same ship in place; a leftover freeze would hit the retry.
+        if (!this.training && !this.testRange) this.requestHitStop(HIT_STOP_CORE_LOST);
         this.addShake(18);
         this.damageVignette = save.settings.reducedFlash ? .42 : 1;
         this.burst(corePos.x, corePos.y, "#efbd79", 24, 220);
@@ -3933,6 +4031,10 @@
       }
       this.detachTile(targetKey, false);
       this.addShake(6);
+      if (this.elapsed - this.lastModuleHitStopAt >= HIT_STOP_MODULE_GAP) {
+        this.lastModuleHitStopAt = this.elapsed;
+        this.requestHitStop(HIT_STOP_MODULE_LOST);
+      }
       var reachable = new Set(["0,0"]);
       var queue = [{ x: 0, y: 0 }];
       var offsets = [[1, 0], [-1, 0], [0, 1], [0, -1]];
@@ -4099,6 +4201,7 @@
       if (this.ownsDuo) this.activePairs = this.latticeActive ? this.shipTypePairs() : this.adjacentPairs();
       this.updateWeapons(dt);
       this.updateDerelicts(dt);
+      this.updateStagedBlasts();
       this.updateEffects(dt);
       this.processVolatileBlasts();
       if (this.training && trainingSession && this === game && this.state === "playing") {
@@ -4166,7 +4269,8 @@
       this.wavePhase = "sweep";
       this.waveOvertime = false;
       this.nextBossAt = Infinity;
-      if (this === game) showToast(tr("SPAWNS STOPPED · DESTROY THE SWARM"));
+      // The wave HUD turns into an "enemies left" bar here, so the sweep needs no toast.
+      this.sweepStartCount = Math.max(1, this.livingEnemyCount());
     };
 
     Game.prototype.livingEnemyCount = function () {
@@ -4207,6 +4311,7 @@
         if (!this.projectiles[p].friendly) this.projectiles[p].life = 0;
       }
       this.volatileQueue.length = 0;
+      if (this === game) showWaveClearStamp(this.wave, this.waveClearReward());
     };
 
     Game.prototype.repairShip = function (hullFraction, shieldFraction) {
@@ -4216,15 +4321,21 @@
       });
     };
 
-    Game.prototype.completeWave = function () {
+    // One formula for the payout and for the clear stamp that announces it before the payout lands.
+    Game.prototype.waveClearReward = function () {
       var bonus = waves.clearBonus(this.wave) + this.cardMod("waveClearMatter");
       var dividend = Math.min(cardsApi ? cardsApi.DIVIDEND_CAP : 0, Math.floor(this.matter * this.cardMod("dividend")));
-      this.matter += bonus + dividend;
-      this.lastWaveReward = { wave: this.wave, matter: bonus + dividend };
+      return bonus + dividend;
+    };
+
+    Game.prototype.completeWave = function () {
+      var reward = this.waveClearReward();
+      this.matter += reward;
+      this.lastWaveReward = { wave: this.wave, matter: reward };
       this.repairShip(WAVE_INTERMISSION_REPAIR, 1);
       if (playtestTelemetry && this === game) {
         var core = this.ship.tiles.get("0,0");
-        playtestTelemetry.event("wave_clear", this.elapsed, { wave: this.wave, matter: Math.round(this.matter), reward: bonus + dividend, coreHp: core ? Math.round(core.hp) : 0, modules: this.ship.tiles.size });
+        playtestTelemetry.event("wave_clear", this.elapsed, { wave: this.wave, matter: Math.round(this.matter), reward: reward, coreHp: core ? Math.round(core.hp) : 0, modules: this.ship.tiles.size });
       }
       if (waves.isFinalWave(this.wave) && !this.survivalCompleted) { this.winWaves(); return; }
       this.enterIntermission();
@@ -4237,6 +4348,8 @@
       this.cardPickedIndex = -1;
       this.rerolls = 0;
       this.derelicts.length = 0;
+      // Blasts still queued would otherwise go off when the next wave starts.
+      this.stagedBlasts.length = 0;
       this.frostLines.length = 0;
       this.sparks.length = 0;
       this.latticeActive = false;
@@ -4741,9 +4854,10 @@
       updateTelemetryStatus();
       ui.toast.classList.remove("show");
       var completedGame = this;
+      var coreLost = !victory && !retired;
       setTimeout(function () {
         if (game === completedGame && game.state === "result") ui.resultOverlay.classList.remove("hidden");
-      }, 300);
+      }, (coreLost ? CORE_LOST_RESULT_DELAY : RESULT_PANEL_DELAY) * 1000);
       updateHud();
     };
 
@@ -5988,6 +6102,7 @@
       ui.damageVignette.style.opacity = "0";
       ui.dangerBanner.classList.remove("show");
       ui.dangerBanner.textContent = "";
+      hideWaveClearStamp();
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, viewWidth, viewHeight);
     }
@@ -6185,9 +6300,26 @@
       updateHud();
     }
 
+    // The release after the pressure: a short stamp during the existing clear pause, so it adds no waiting.
+    function showWaveClearStamp(wave, reward) {
+      ui.waveClearTitle.textContent = tr("WAVE {wave} CLEARED", { wave: wave });
+      ui.waveClearReward.textContent = reward > 0 ? tr("+{amount} MATTER", { amount: reward }) : "";
+      // The sweep toast ("destroy the swarm") would contradict the stamp once the wave is cleared.
+      clearTimeout(toastTimer);
+      ui.toast.classList.remove("show");
+      ui.waveClearStamp.classList.remove("show");
+      void ui.waveClearStamp.offsetWidth; // restarts the CSS animation when two clears come close together
+      ui.waveClearStamp.classList.add("show");
+    }
+
+    function hideWaveClearStamp() {
+      ui.waveClearStamp.classList.remove("show");
+    }
+
     function openWaveOverlay() {
       resetMobileInput();
       if (ownedDetailId) showOwnedDetail(ownedDetailId, "");
+      hideWaveClearStamp();
       // A sweep toast from the last seconds of combat must not linger over the break.
       clearTimeout(toastTimer);
       ui.toast.classList.remove("show");
@@ -6255,6 +6387,85 @@
       ui.hudCards.classList.toggle("hidden", !chips.length);
     }
 
+    // Matter and core HP are drawn every frame so gains and hits answer at once; the rest of the HUD stays at 10 Hz.
+    var lastCoreMaxHp = 1;
+    function syncHudFeedback(dt) {
+      if (!game) return;
+      var core = game.ship.tiles.get("0,0");
+      if (core) lastCoreMaxHp = core.maxHp;
+      hudFeedback.update(dt, game, game.matter, core ? core.hp : 0, lastCoreMaxHp, save.settings.shakeIntensity);
+    }
+
+    // ---- Wave HUD (top centre): timer, enemies left, or the boss bar in one place ----
+    var WAVE_HUD_URGENT_SECONDS = 5;
+    var BOSS_ROUTE_LEG = 5; // every fifth wave is a boss wave
+    var BOSS_VARIANT_ORDER = ["ring", "pursuer", "storm"];
+    var waveHud = window.DriftWaveHud.create({
+      root: document.getElementById("waveHud"),
+      title: document.getElementById("waveHudTitle"),
+      right: document.getElementById("waveHudRight"),
+      fill: document.getElementById("waveHudFill"),
+      route: document.getElementById("waveHudRoute")
+    });
+
+    function spriteSource(table, key) {
+      var entry = table && table[key];
+      return entry && entry.src ? entry.src : "";
+    }
+
+    (function applyHudIcons() {
+      var coreSource = spriteSource(window.DriftModuleArtData, "core");
+      var coreIcon = document.getElementById("coreIcon");
+      if (coreSource && coreIcon) coreIcon.style.backgroundImage = "url(\"" + coreSource + "\")";
+    })();
+
+    function escapeHudText(text) {
+      return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    // "WAVE 3 / 20" with the number set apart; the number is placed by the translation, so word order follows the language.
+    function waveTitleHtml(wave) {
+      var marker = "\u0001";
+      var html = escapeHudText(tr("WAVE {wave}", { wave: marker })).replace(marker, "<b>" + wave + "</b>");
+      return wave <= waves.WAVE_COUNT ? html + " <i>/ " + waves.WAVE_COUNT + "</i>" : html;
+    }
+
+    function nextBossIcon() {
+      var variant = game.boss && !game.boss.dead ? game.boss.variant : BOSS_VARIANT_ORDER[(game.bossesDefeated || 0) % BOSS_VARIANT_ORDER.length];
+      var art = BOSS_ART_TYPES[variant];
+      return art ? spriteSource(window.DriftEnemyArtData, art.art) : "";
+    }
+
+    function bossRoute() {
+      if (game.wave < 1 || game.wave > waves.WAVE_COUNT) return null;
+      var first = Math.floor((game.wave - 1) / BOSS_ROUTE_LEG) * BOSS_ROUTE_LEG + 1;
+      return { first: first, last: first + BOSS_ROUTE_LEG - 1, current: game.wave, bossIcon: nextBossIcon() };
+    }
+
+    function waveHudModel(fallbackText) {
+      if (!game) return null;
+      var bossAlive = game.boss && !game.boss.dead;
+      var wavesRun = game.mode === "waves" && !game.testRange;
+      if (bossAlive) {
+        var name = game.boss.variant !== "ring" && game.boss.combatPhase === 2 ? tr("{name} — PHASE 2", { name: game.boss.displayName }) : game.boss.displayName;
+        return { kind: "boss", titleHtml: escapeHudText(name), rightHtml: wavesRun ? waveTitleHtml(game.wave) : "",
+          fraction: game.boss.hp / game.boss.maxHp, urgent: false, route: wavesRun ? bossRoute() : null };
+      }
+      if (!wavesRun) return { kind: "text", titleHtml: escapeHudText(fallbackText), rightHtml: "", fraction: null, urgent: false, route: null };
+      if (game.wavePhase === "sweep" || game.wavePhase === "clearing") {
+        var left = game.livingEnemyCount();
+        var raptor = spriteSource(window.DriftEnemyArtData, "raptor");
+        return { kind: "sweep", titleHtml: escapeHudText(tr("DESTROY THE SWARM")),
+          rightHtml: (raptor ? "<img src=\"" + raptor + "\" alt=\"\">" : "") + left,
+          fraction: left / Math.max(left, game.sweepStartCount), urgent: false, route: bossRoute() };
+      }
+      var limit = game.waveTimeLimit();
+      if (!Number.isFinite(limit)) return { kind: "timer", titleHtml: waveTitleHtml(game.wave), rightHtml: "", fraction: 1, urgent: false, route: bossRoute() };
+      var remaining = Math.max(0, limit - game.waveElapsed);
+      return { kind: "timer", titleHtml: waveTitleHtml(game.wave), rightHtml: formatTime(remaining),
+        fraction: remaining / limit, urgent: remaining <= WAVE_HUD_URGENT_SECONDS, route: bossRoute() };
+    }
+
     function updateHud() {
       renderHudCards();
       if (game) {
@@ -6265,7 +6476,7 @@
       }
       if (!game) return;
       var core = game.ship.tiles.get("0,0");
-      ui.hudMatter.textContent = Math.floor(game.matter);
+      syncHudFeedback(0);
       ui.hudKills.textContent = game.kills;
       ui.hudTime.textContent = formatTime(game.elapsed);
       ui.hudModules.textContent = game.ship.tiles.size;
@@ -6273,10 +6484,9 @@
         (Number.isFinite(game.nextBossAt) ? tr("BOSS {number} IN {time}", { number: game.bossesDefeated + 1, time: formatTime(Math.max(0, game.nextBossAt - game.elapsed)) }) : tr("HOLD UNTIL 10:00"));
       if (game.mode === "waves") ui.hudBossProgress.textContent = waveHudText();
       if (game.testRange) ui.hudBossProgress.textContent = tr("TEST RANGE");
+      waveHud.render(waveHudModel(ui.hudBossProgress.textContent));
       if (core) {
         var healthRatio = core.hp / core.maxHp;
-        ui.hudHpText.textContent = Math.ceil(core.hp) + " / " + Math.ceil(core.maxHp);
-        ui.healthFill.style.width = clamp(healthRatio * 100, 0, 100) + "%";
         ui.hud.classList.toggle("core-danger", healthRatio <= .5);
         ui.hud.classList.toggle("core-critical", healthRatio <= .25);
       }
@@ -7532,6 +7742,11 @@
         drawProjectiles(true);
         ctx.restore();
         drawBossLocator();
+        if (game.screenFlash > 0) {
+          // Warm white reads as blast light on the dark field.
+          ctx.fillStyle = "rgba(255,238,210," + clamp(game.screenFlash, 0, 1).toFixed(3) + ")";
+          ctx.fillRect(0, 0, viewWidth, viewHeight);
+        }
       }
       drawScreenFeedback();
     }
@@ -7628,18 +7843,34 @@
         var delta = Math.max(0, Math.min(FIXED_STEP * MAX_SIMULATION_STEPS, (now - game.lastFrame) / 1000));
         game.lastFrame = now;
         if (game.state === "playing" && !game.finished) {
-          game.accumulator += delta;
+          var simulationDelta = delta;
+          if (game.hitStop > 0) {
+            // Impact freeze: combat holds while the blast and the shake keep moving. Only the frozen part of
+            // the frame is withheld, so the freeze lasts its set time at any frame rate.
+            var held = Math.min(game.hitStop, delta);
+            game.hitStop = Math.max(0, game.hitStop - held);
+            game.updateEffects(held);
+            game.updateFeedback(held);
+            simulationDelta -= held;
+          }
+          game.accumulator += simulationDelta;
           var simulationSteps = 0;
           while (game.accumulator >= FIXED_STEP && simulationSteps < MAX_SIMULATION_STEPS) {
             game.update(FIXED_STEP);
             game.accumulator -= FIXED_STEP;
             simulationSteps += 1;
+            // A freeze requested inside this step must not be skipped by catch-up steps.
+            if (game.hitStop > 0) { game.accumulator = 0; break; }
           }
           if (game.accumulator >= FIXED_STEP) game.accumulator %= FIXED_STEP;
         } else {
           game.accumulator = 0;
-          // Let wreckage settle after death without advancing combat or rewards.
-          if ((game.finished && game.state === "result") || game.deathFeedbackTime > 0) {
+          if (game.finished && game.state === "result" && game.hitStop > 0) {
+            // Core loss: the whole picture holds for a beat, then the wreckage flies.
+            game.hitStop = Math.max(0, game.hitStop - delta);
+            game.updateFeedback(delta);
+          } else if ((game.finished && game.state === "result") || game.deathFeedbackTime > 0) {
+            // Let wreckage settle after death without advancing combat or rewards.
             game.updateEffects(delta);
             game.updateFeedback(delta);
             game.deathFeedbackTime = Math.max(0, game.deathFeedbackTime - delta);
@@ -7648,6 +7879,7 @@
             game.updateEffects(delta);
           }
         }
+        syncHudFeedback(Math.min(.1, rafDelta / 1000));
         if (now - lastHudUpdate > 100) {
           updateHud();
           if (DEBUG) {
@@ -8057,13 +8289,16 @@
       if (event.ctrlKey || event.metaKey || event.altKey || event.isComposing || event.repeat) return;
       if (event.code === "Escape" && buildInteraction && buildInteraction.drag) { clearBuildInteraction(); renderBuildGrid(); event.preventDefault(); return; }
       if (["KeyW", "KeyA", "KeyS", "KeyD", "KeyB", "KeyP", "Escape"].indexOf(event.code) >= 0) event.preventDefault();
-      var movementKey = ["KeyW", "KeyA", "KeyS", "KeyD"].indexOf(event.code) >= 0;
+      var arrowKey = ARROW_KEYS.indexOf(event.code) >= 0;
+      var movementKey = arrowKey || ["KeyW", "KeyA", "KeyS", "KeyD"].indexOf(event.code) >= 0;
       if (movementKey) {
         if (!game || game.state !== "playing" || game.finished) return;
+        // Outside combat the arrows keep their normal job: scrolling lists and moving sliders.
+        if (arrowKey) event.preventDefault();
         if (mouseInput.active || mobileInput.active) resetMobileInput();
         keys[event.code] = true;
       }
-      if (["KeyW", "KeyA", "KeyS", "KeyD", "KeyB", "KeyP", "Escape"].indexOf(event.code) >= 0) dismissControlHint();
+      if (movementKey || ["KeyB", "KeyP", "Escape"].indexOf(event.code) >= 0) dismissControlHint();
       var cardKey = /^(?:Digit|Numpad)([1-4])$/.exec(event.code);
       if (cardKey && game && game.state === "intermission" && !game.cardPicked && !ui.waveOverlay.classList.contains("hidden")) {
         var cardButton = ui.cardChoices.children[Number(cardKey[1]) - 1];
@@ -8373,7 +8608,8 @@
       presentation: function () {
         var tile = selectedBuildTile();
         var inputActive = Boolean(game && game.state === "playing" && (
-          mouseInput.active || mobileInput.active || keys.KeyW || keys.KeyA || keys.KeyS || keys.KeyD
+          mouseInput.active || mobileInput.active || keys.KeyW || keys.KeyA || keys.KeyS || keys.KeyD ||
+          keys.ArrowUp || keys.ArrowDown || keys.ArrowLeft || keys.ArrowRight
         ));
         return { module: tile ? tile.type : selectedBuildModule, starter: selectedStarter, core: campaign.getCore(save.campaign.selectedCore).name,
           menuSettings: settingsOpenedFromMenu, inputActive: inputActive };
@@ -8412,6 +8648,9 @@
           matter: game.matter,
           kills: game.kills,
           elapsed: game.elapsed,
+          hitStop: game.hitStop,
+          screenFlash: game.screenFlash,
+          stagedBlasts: game.stagedBlasts.length,
           modules: game.ship.tiles.size,
           threatLevel: game.threatLevel(),
           assaultIndex: game.assaultIndex,

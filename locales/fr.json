@@ -954,5 +954,7 @@
   "{value} · Max": "{value} · Max",
   "{value} · Retained": "{value} · Conservé",
   "{waves} waves · {time} · {bosses} bosses defeated": "{waves} vagues · {time} · {bosses} boss vaincus",
-  "Ⅱ PAUSE": "Ⅱ PAUSE"
+  "Ⅱ PAUSE": "Ⅱ PAUSE",
+  "WAVE {wave}": "VAGUE {wave}",
+  "DESTROY THE SWARM": "DÉTRUISEZ L'ESSAIM"
 }

@@ -954,5 +954,7 @@
   "{value} · Max": "{value} · Max",
   "{value} · Retained": "{value} · Conservato",
   "{waves} waves · {time} · {bosses} bosses defeated": "{waves} ondate · {time} · {bosses} boss sconfitti",
-  "Ⅱ PAUSE": "Ⅱ PAUSA"
+  "Ⅱ PAUSE": "Ⅱ PAUSA",
+  "WAVE {wave}": "ONDATA {wave}",
+  "DESTROY THE SWARM": "DISTRUGGI LO SCIAME"
 }

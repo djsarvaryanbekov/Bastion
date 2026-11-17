@@ -954,5 +954,7 @@
   "{value} · Max": "{value} · 最大",
   "{value} · Retained": "{value} · 保持",
   "{waves} waves · {time} · {bosses} bosses defeated": "{waves} ウェーブ · {time} · ボス {bosses} 体撃破",
-  "Ⅱ PAUSE": "Ⅱ ポーズ"
+  "Ⅱ PAUSE": "Ⅱ ポーズ",
+  "WAVE {wave}": "ウェーブ {wave}",
+  "DESTROY THE SWARM": "群れを殲滅せよ"
 }

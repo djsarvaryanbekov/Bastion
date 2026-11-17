@@ -13,7 +13,10 @@ for (let wave = 1; wave <= 20; wave += 1) {
   const boss = [5, 10, 15].includes(wave) ? "mini" : wave === 20 ? "final" : null;
   assert.equal(def.boss, boss, "Boss waves sit at 5/10/15/20");
   assert.equal(def.duration === null, Boolean(boss), "Only boss waves are untimed");
-  if (wave > 1) assert.ok(def.pressureAt > Waves.get(wave - 1).pressureAt, "Pressure rises every wave");
+  if (wave > 1 && Waves.isBossWave(wave - 1)) {
+    assert.ok(def.pressureAt < Waves.get(wave - 1).pressureAt, "The wave after a boss is a breather");
+    assert.ok(Waves.get(wave + 1).pressureAt > Waves.get(wave - 1).pressureAt, "The climb resumes after the breather");
+  } else if (wave > 1) assert.ok(def.pressureAt > Waves.get(wave - 1).pressureAt, "Pressure rises every other wave");
 }
 assert.ok(Waves.isFinalWave(20) && !Waves.isFinalWave(25));
 assert.equal(Waves.get(25).boss, "mini", "Endless keeps a boss every five waves");

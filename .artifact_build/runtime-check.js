@@ -145,6 +145,8 @@ vm.runInNewContext(fs.readFileSync("ship-debris.js", "utf8"), sandbox, { filenam
 vm.runInNewContext(fs.readFileSync("shield-vfx.js", "utf8"), sandbox, { filename: "shield-vfx.js" });
 vm.runInNewContext(fs.readFileSync("fire-vfx.js", "utf8"), sandbox, { filename: "fire-vfx.js" });
 vm.runInNewContext(fs.readFileSync("cold-vfx.js", "utf8"), sandbox, { filename: "cold-vfx.js" });
+vm.runInNewContext(fs.readFileSync("hud-feedback.js", "utf8"), sandbox, { filename: "hud-feedback.js" });
+vm.runInNewContext(fs.readFileSync("wave-hud.js", "utf8"), sandbox, { filename: "wave-hud.js" });
 vm.runInNewContext(fs.readFileSync("game.js", "utf8"), sandbox, { filename: "game.js" });
 if (!sandbox.window.__driftBastion || typeof sandbox.frameCallback !== "function") {
   throw new Error("Game did not initialize its public state and animation loop.");

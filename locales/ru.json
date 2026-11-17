@@ -954,5 +954,7 @@
   "{value} · Max": "{value} · Макс.",
   "{value} · Retained": "{value} · Сохранено",
   "{waves} waves · {time} · {bosses} bosses defeated": "Волн: {waves} · {time} · повержено боссов: {bosses}",
-  "Ⅱ PAUSE": "Ⅱ ПАУЗА"
+  "Ⅱ PAUSE": "Ⅱ ПАУЗА",
+  "WAVE {wave}": "ВОЛНА {wave}",
+  "DESTROY THE SWARM": "УНИЧТОЖЬТЕ РОЙ"
 }

@@ -15,23 +15,24 @@
 
   // pressureAt reuses the endless spawner's clock (ENEMY_PHASES.at, seconds), so wave N fights the same
   // enemy mix the endless run reaches at that time. Boss waves end on the boss kill, not on duration.
+  // The wave after each boss starts below that boss wave: a breather to enjoy the build before the climb resumes.
   var WAVE_DEFS = [
     { duration: 30, pressureAt: 0, boss: null },
     { duration: 35, pressureAt: 30, boss: null },
     { duration: 40, pressureAt: 60, boss: null },
     { duration: 45, pressureAt: 100, boss: null },
     { duration: null, pressureAt: 140, boss: "mini" },
-    { duration: 45, pressureAt: 180, boss: null },
+    { duration: 45, pressureAt: 120, boss: null },
     { duration: 50, pressureAt: 230, boss: null },
     { duration: 50, pressureAt: 280, boss: null },
     { duration: 55, pressureAt: 330, boss: null },
     { duration: null, pressureAt: 380, boss: "mini" },
-    { duration: 55, pressureAt: 450, boss: null },
+    { duration: 55, pressureAt: 340, boss: null },
     { duration: 55, pressureAt: 520, boss: null },
     { duration: 60, pressureAt: 580, boss: null },
     { duration: 60, pressureAt: 650, boss: null },
     { duration: null, pressureAt: 720, boss: "mini" },
-    { duration: 60, pressureAt: 800, boss: null },
+    { duration: 60, pressureAt: 640, boss: null },
     { duration: 60, pressureAt: 880, boss: null },
     { duration: 60, pressureAt: 960, boss: null },
     { duration: 60, pressureAt: 1080, boss: null },

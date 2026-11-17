@@ -954,5 +954,7 @@
   "{value} · Max": "{value} · สูงสุด",
   "{value} · Retained": "{value} · คงไว้",
   "{waves} waves · {time} · {bosses} bosses defeated": "{waves} คลื่น · {time} · ล้มบอส {bosses} ตัว",
-  "Ⅱ PAUSE": "Ⅱ หยุดชั่วคราว"
+  "Ⅱ PAUSE": "Ⅱ หยุดชั่วคราว",
+  "WAVE {wave}": "คลื่น {wave}",
+  "DESTROY THE SWARM": "ทำลายฝูงให้หมด"
 }

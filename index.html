@@ -27,7 +27,7 @@
     <div id="hudCards" class="hud-cards hidden" aria-label="Active cards"></div>
     <div class="hud-top">
       <div class="hud-stack">
-        <div class="hud-chip hud-matter"><label>MATTER</label><b id="hudMatter">0</b></div>
+        <div class="hud-chip hud-matter"><label class="sr-label">MATTER</label><svg class="matter-icon" viewBox="0 0 34 34" aria-hidden="true"><polygon points="17,2 29,12 17,32 5,12" fill="#20262c"/><polygon points="17,5 26.5,12.4 17,15" fill="#ffe7b0"/><polygon points="17,5 7.5,12.4 17,15" fill="#f6c879"/><polygon points="7.5,12.4 17,15 17,28.5" fill="#d08f3e"/><polygon points="26.5,12.4 17,15 17,28.5" fill="#a96f2b"/><polygon points="17,5 19.5,7 17,9 14.5,7" fill="#fff6dd"/></svg><div class="matter-row"><b id="hudMatter">0</b><span id="hudMatterDelta" class="matter-delta" aria-hidden="true"></span></div></div>
         <div class="hud-chip hud-boss"><label>NEXT THREAT</label><b id="hudBossProgress">Boss in 02:00</b></div>
         <div class="hud-chip hud-secondary"><label>TIME</label><b id="hudTime">00:00</b></div>
         <div class="hud-chip hidden"><label>KILLS</label><b id="hudKills">0</b></div>
@@ -51,6 +51,12 @@
       <strong id="bossName">SIEGE RING</strong>
       <div class="boss-bar"><div id="bossFill" class="boss-fill"></div></div>
     </div>
+    <div id="waveHud" class="wave-hud hidden">
+      <div class="wave-hud-head"><span id="waveHudTitle" class="wave-hud-title"></span><span id="waveHudRight" class="wave-hud-right"></span></div>
+      <div class="wave-hud-bar"><div id="waveHudFill" class="wave-hud-fill"></div></div>
+      <div id="waveHudRoute" class="wave-hud-route" aria-hidden="true"></div>
+    </div>
+    <div id="waveClearStamp" class="wave-clear-stamp" aria-hidden="true"><strong id="waveClearTitle"></strong><span id="waveClearReward"></span></div>
     <div id="mobileControls" class="mobile-controls" aria-label="Touch controls">
       <div id="mobileMoveZone" class="mobile-move-zone" aria-hidden="true">
         <div id="moveJoystick" class="move-joystick">
@@ -362,9 +368,11 @@
       <span id="debugStats">60 FPS</span>
     </div>
     <div class="hud-status">
-      <div class="health-shell">
-        <div class="health-label"><span>CORE HEALTH</span><span id="hudHpText">350 / 350</span></div>
-        <div class="health-bar"><div id="healthFill" class="health-fill"></div></div>
+      <div id="healthShell" class="health-shell">
+        <span class="sr-label">CORE HEALTH</span>
+        <span id="coreIcon" class="core-icon" aria-hidden="true"><span class="core-alert">!</span></span>
+        <div class="health-bar"><div id="healthTrail" class="health-trail"></div><div id="healthFill" class="health-fill"></div><div class="health-ticks"></div></div>
+        <span class="hp-readout"><span id="hudHpText">350</span><small id="hudHpMax"> / 350</small></span>
       </div>
     </div>
   </div>
@@ -404,6 +412,8 @@
   <script src="cold-vfx.js"></script>
   <script src="space-backdrop.js"></script>
   <script src="playtest-recorder.js"></script>
+  <script src="hud-feedback.js"></script>
+  <script src="wave-hud.js"></script>
   <script src="game.js"></script>
   <script src="pc-build.js"></script>
   <script src="pc-ui.js"></script>

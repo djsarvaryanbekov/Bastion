@@ -954,5 +954,7 @@
   "{value} · Max": "{value} · 최대",
   "{value} · Retained": "{value} · 유지됨",
   "{waves} waves · {time} · {bosses} bosses defeated": "{waves} 웨이브 · {time} · 보스 {bosses}체 격파",
-  "Ⅱ PAUSE": "Ⅱ 일시정지"
+  "Ⅱ PAUSE": "Ⅱ 일시정지",
+  "WAVE {wave}": "웨이브 {wave}",
+  "DESTROY THE SWARM": "무리를 섬멸하라"
 }

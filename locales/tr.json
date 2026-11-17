@@ -954,5 +954,7 @@
   "{value} · Max": "{value} · Maks",
   "{value} · Retained": "{value} · Korundu",
   "{waves} waves · {time} · {bosses} bosses defeated": "{waves} dalga · {time} · {bosses} boss yenildi",
-  "Ⅱ PAUSE": "Ⅱ DURAKLAT"
+  "Ⅱ PAUSE": "Ⅱ DURAKLAT",
+  "WAVE {wave}": "DALGA {wave}",
+  "DESTROY THE SWARM": "SÜRÜYÜ YOK ET"
 }

@@ -954,5 +954,7 @@
   "{value} · Max": "{value} · Max",
   "{value} · Retained": "{value} · Retained",
   "{waves} waves · {time} · {bosses} bosses defeated": "{waves} waves · {time} · {bosses} bosses defeated",
-  "Ⅱ PAUSE": "Ⅱ PAUSE"
+  "Ⅱ PAUSE": "Ⅱ PAUSE",
+  "WAVE {wave}": "WAVE {wave}",
+  "DESTROY THE SWARM": "DESTROY THE SWARM"
 }

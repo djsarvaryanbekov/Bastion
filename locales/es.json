@@ -954,5 +954,7 @@
   "{value} · Max": "{value} · Máx.",
   "{value} · Retained": "{value} · Conservado",
   "{waves} waves · {time} · {bosses} bosses defeated": "{waves} oleadas · {time} · {bosses} jefes derrotados",
-  "Ⅱ PAUSE": "Ⅱ PAUSA"
+  "Ⅱ PAUSE": "Ⅱ PAUSA",
+  "WAVE {wave}": "OLEADA {wave}",
+  "DESTROY THE SWARM": "DESTRUYE EL ENJAMBRE"
 }

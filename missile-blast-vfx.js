@@ -158,5 +158,12 @@
     return true;
   }
 
-  return Object.freeze({ draw: draw });
+  // Builds the sprites and runs the blob simulation once, so the first visible blast does not pay for setup.
+  function prepare() {
+    if (!sprites()) return false;
+    simulateBlob(0, 0, 0);
+    return true;
+  }
+
+  return Object.freeze({ draw: draw, prepare: prepare });
 });
