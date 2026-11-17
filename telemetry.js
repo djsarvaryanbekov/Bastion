@@ -4,7 +4,7 @@
   var STORAGE_KEY = "drift-bastion-playtest-v1";
   var SCHEMA_VERSION = 3;
   var METRICS_VERSION = 3;
-  var GAME_BUILD = "2026.11.17-hud-feel-73";
+  var GAME_BUILD = "2026.11.17-hud-fix-74";
   // Per-wave rows carry the balance detail, so the time series only needs a coarse shape.
   var SAMPLE_INTERVAL = 30;
   var MAX_RUNS = 30;

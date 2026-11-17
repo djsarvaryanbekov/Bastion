@@ -143,7 +143,8 @@
       write("hp", String(Math.ceil(hp)), function (value) { hpText.textContent = value; });
       write("hpMax", " / " + Math.ceil(maxHp), function (value) { hpMax.textContent = value; });
       var offset = jolt > 0 ? Math.sin((HIT_JOLT_SECONDS - jolt) * HIT_JOLT_FREQUENCY) * joltAmplitude * (jolt / HIT_JOLT_SECONDS) : 0;
-      write("shell", Math.abs(offset) > .2 ? "translateX(" + offset.toFixed(1) + "px)" : "", function (value) { healthShell.style.transform = value; });
+      // The separate translate property stacks with any transform the layout uses (the phone build centres this panel).
+      write("shell", Math.abs(offset) > .2 ? offset.toFixed(1) + "px 0" : "", function (value) { healthShell.style.translate = value; });
       var tinted = tint > 0 ? 1 : 0;
       write("tint", tinted, function (value) { healthShell.classList.toggle("hp-hit", value === 1); });
       var healed = heal > 0 ? 1 : 0;

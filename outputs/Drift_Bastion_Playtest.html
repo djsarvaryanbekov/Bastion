@@ -3550,7 +3550,7 @@ window.BastionLocales = {"de":{" cells":" Felder","+10% Matter; each further Sip
   var STORAGE_KEY = "drift-bastion-playtest-v1";
   var SCHEMA_VERSION = 3;
   var METRICS_VERSION = 3;
-  var GAME_BUILD = "2026.11.17-hud-feel-73";
+  var GAME_BUILD = "2026.11.17-hud-fix-74";
   // Per-wave rows carry the balance detail, so the time series only needs a coarse shape.
   var SAMPLE_INTERVAL = 30;
   var MAX_RUNS = 30;
@@ -9003,7 +9003,8 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
       write("hp", String(Math.ceil(hp)), function (value) { hpText.textContent = value; });
       write("hpMax", " / " + Math.ceil(maxHp), function (value) { hpMax.textContent = value; });
       var offset = jolt > 0 ? Math.sin((HIT_JOLT_SECONDS - jolt) * HIT_JOLT_FREQUENCY) * joltAmplitude * (jolt / HIT_JOLT_SECONDS) : 0;
-      write("shell", Math.abs(offset) > .2 ? "translateX(" + offset.toFixed(1) + "px)" : "", function (value) { healthShell.style.transform = value; });
+      // The separate translate property stacks with any transform the layout uses (the phone build centres this panel).
+      write("shell", Math.abs(offset) > .2 ? offset.toFixed(1) + "px 0" : "", function (value) { healthShell.style.translate = value; });
       var tinted = tint > 0 ? 1 : 0;
       write("tint", tinted, function (value) { healthShell.classList.toggle("hp-hit", value === 1); });
       var healed = heal > 0 ? 1 : 0;
@@ -15548,7 +15549,10 @@ window.ATTACK_VFX_SHEETS = [{"module":"cannon","width":64,"height":64,"frames":4
     }
 
     function waveHudModel(fallbackText) {
-      if (!game) return null;
+      if (!game || game.finished) return null;
+      // Outside combat the break, Build and victory screens own the top of the screen; during the clear
+      // pause the wave-clear stamp does. A leftover "DESTROY THE SWARM · 0" would only contradict them.
+      if (game.state === "intermission" || game.state === "building" || game.state === "milestone" || game.wavePhase === "clearing") return null;
       var bossAlive = game.boss && !game.boss.dead;
       var wavesRun = game.mode === "waves" && !game.testRange;
       if (bossAlive) {

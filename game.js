@@ -6443,7 +6443,10 @@
     }
 
     function waveHudModel(fallbackText) {
-      if (!game) return null;
+      if (!game || game.finished) return null;
+      // Outside combat the break, Build and victory screens own the top of the screen; during the clear
+      // pause the wave-clear stamp does. A leftover "DESTROY THE SWARM · 0" would only contradict them.
+      if (game.state === "intermission" || game.state === "building" || game.state === "milestone" || game.wavePhase === "clearing") return null;
       var bossAlive = game.boss && !game.boss.dead;
       var wavesRun = game.mode === "waves" && !game.testRange;
       if (bossAlive) {
